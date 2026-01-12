@@ -56,7 +56,7 @@ export async function POST(request: Request) {
     let category = await prisma.category.findFirst({
       where: {
         name: "Pagamento de Cartão",
-        OR: [{ userId: user.userId }, { isSystem: true }],
+        OR: [{ userId: user.userId }, { userId: null }],
       },
     });
 
