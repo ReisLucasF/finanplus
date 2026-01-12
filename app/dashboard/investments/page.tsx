@@ -399,7 +399,7 @@ export default function InvestmentsPage() {
                                                 <div className="flex justify-between text-sm">
                                                     <span className="text-gray-600 dark:text-gray-400">Quantidade:</span>
                                                     <span className="font-medium text-gray-900 dark:text-white">
-                                                        {summary.totalQuantity.toFixed(6)}
+                                                        {summary.totalQuantity}
                                                     </span>
                                                 </div>
                                                 <div className="flex justify-between text-sm">

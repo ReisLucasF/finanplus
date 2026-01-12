@@ -74,9 +74,19 @@ export default function SettingsPage() {
                 throw new Error('Erro ao salvar configurações')
             }
 
+            // Salvar tema no localStorage imediatamente
+            localStorage.setItem('theme', settings.theme)
+
+            // Aplicar tema imediatamente
+            if (settings.theme === 'DARK') {
+                document.documentElement.classList.add('dark')
+            } else {
+                document.documentElement.classList.remove('dark')
+            }
+
             setMessage({ type: 'success', text: 'Configurações salvas com sucesso!' })
 
-            // Recarregar a página para aplicar mudanças de tema
+            // Recarregar a página após um delay
             setTimeout(() => {
                 window.location.reload()
             }, 1500)
@@ -119,8 +129,8 @@ export default function SettingsPage() {
 
             {message && (
                 <div className={`mb-6 p-4 rounded-lg flex items-center gap-2 ${message.type === 'success'
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                        : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+                    ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                    : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
                     }`}>
                     <AlertCircle className="h-5 w-5" />
                     {message.text}

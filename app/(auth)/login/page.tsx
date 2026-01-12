@@ -1,8 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+
+declare global {
+    interface Window {
+        google?: any;
+    }
+}
 
 export default function LoginPage() {
     const router = useRouter()
@@ -10,6 +16,78 @@ export default function LoginPage() {
     const [password, setPassword] = useState('')
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
+    const [googleLoaded, setGoogleLoaded] = useState(false)
+
+    const handleGoogleCallback = async (response: any) => {
+        try {
+            setLoading(true)
+            const res = await fetch('/api/auth/google', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: response.credential }),
+            })
+
+            const data = await res.json()
+
+            if (!res.ok) {
+                setError(data.error || 'Erro ao fazer login com Google')
+                setLoading(false)
+                return
+            }
+
+            // Redirecionar
+            if (data.user.onboardingCompleted) {
+                router.push('/dashboard')
+            } else {
+                router.push('/onboarding')
+            }
+        } catch (err) {
+            setError('Erro ao conectar com o servidor')
+            setLoading(false)
+        }
+    }
+
+    useEffect(() => {
+        // Carregar Google Identity Services
+        const script = document.createElement('script')
+        script.src = 'https://accounts.google.com/gsi/client'
+        script.async = true
+        script.defer = true
+        script.onload = () => {
+            setGoogleLoaded(true)
+            // Renderizar botão automaticamente quando carregar
+            if (window.google) {
+                window.google.accounts.id.initialize({
+                    client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+                    callback: handleGoogleCallback,
+                })
+                window.google.accounts.id.renderButton(
+                    document.getElementById('googleSignInButton'),
+                    {
+                        theme: 'outline',
+                        size: 'large',
+                        width: 368,
+                        text: 'continue_with',
+                        locale: 'pt-BR'
+                    }
+                )
+            }
+        }
+        document.body.appendChild(script)
+
+        return () => {
+            const existingScript = document.querySelector('script[src="https://accounts.google.com/gsi/client"]')
+            if (existingScript) {
+                document.body.removeChild(existingScript)
+            }
+        }
+    }, [])
+
+    const handleGoogleSignIn = () => {
+        if (window.google) {
+            window.google.accounts.id.prompt()
+        }
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -101,6 +179,19 @@ export default function LoginPage() {
                     {loading ? 'Entrando...' : 'Entrar'}
                 </button>
             </form>
+
+            <div className="mt-6">
+                <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                        <span className="px-2 bg-white dark:bg-gray-800 text-gray-500">Ou continue com</span>
+                    </div>
+                </div>
+
+                <div id="googleSignInButton" className="mt-4 flex justify-center"></div>
+            </div>
 
             <div className="mt-6 text-center">
                 <p className="text-sm text-gray-600 dark:text-gray-400">
