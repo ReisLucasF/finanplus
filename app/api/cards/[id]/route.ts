@@ -13,7 +13,7 @@ const cardSchema = z.object({
 // GET - Buscar cartão específico
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getCurrentUser();
@@ -21,9 +21,11 @@ export async function GET(
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
+    const { id } = await params;
+
     const card = await prisma.creditCard.findFirst({
       where: {
-        id: params.id,
+        id,
         userId: user.userId,
       },
     });
@@ -48,13 +50,15 @@ export async function GET(
 // PUT - Atualizar cartão
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
+
+    const { id } = await params;
 
     const body = await request.json();
     console.log("Body recebido no PUT:", JSON.stringify(body, null, 2));
@@ -77,7 +81,7 @@ export async function PUT(
 
     const card = await prisma.creditCard.updateMany({
       where: {
-        id: params.id,
+        id,
         userId: user.userId,
       },
       data,
@@ -115,7 +119,7 @@ export async function PUT(
 // DELETE - Excluir cartão
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getCurrentUser();
@@ -123,9 +127,11 @@ export async function DELETE(
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
+    const { id } = await params;
+
     const card = await prisma.creditCard.deleteMany({
       where: {
-        id: params.id,
+        id,
         userId: user.userId,
       },
     });

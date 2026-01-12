@@ -26,7 +26,7 @@ const updateSchema = z.object({
 // GET - Buscar recorrência específica
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getCurrentUser();
@@ -34,9 +34,11 @@ export async function GET(
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
+    const { id } = await params;
+
     const recurring = await prisma.recurringTransaction.findFirst({
       where: {
-        id: params.id,
+        id,
         userId: user.userId,
       },
       include: {
@@ -65,7 +67,7 @@ export async function GET(
 // PUT - Atualizar recorrência
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getCurrentUser();
@@ -73,12 +75,14 @@ export async function PUT(
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
+    const { id } = await params;
+
     const body = await request.json();
     const data = updateSchema.parse(body);
 
     const recurring = await prisma.recurringTransaction.updateMany({
       where: {
-        id: params.id,
+        id,
         userId: user.userId,
       },
       data: {
@@ -113,7 +117,7 @@ export async function PUT(
 // DELETE - Excluir recorrência
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getCurrentUser();
@@ -121,9 +125,11 @@ export async function DELETE(
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
+    const { id } = await params;
+
     const recurring = await prisma.recurringTransaction.deleteMany({
       where: {
-        id: params.id,
+        id,
         userId: user.userId,
       },
     });

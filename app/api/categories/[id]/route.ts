@@ -12,7 +12,7 @@ const categorySchema = z.object({
 // PUT - Atualizar categoria
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getCurrentUser();
@@ -20,12 +20,14 @@ export async function PUT(
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
+    const { id } = await params;
+
     const body = await request.json();
     const data = categorySchema.parse(body);
 
     // Verificar se é categoria do sistema
     const category = await prisma.category.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!category) {
@@ -47,7 +49,7 @@ export async function PUT(
     }
 
     const updated = await prisma.category.update({
-      where: { id: params.id },
+      where: { id },
       data,
     });
 
@@ -67,7 +69,7 @@ export async function PUT(
 // DELETE - Excluir categoria
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getCurrentUser();
@@ -75,9 +77,11 @@ export async function DELETE(
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
+    const { id } = await params;
+
     // Verificar se é categoria do sistema
     const category = await prisma.category.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!category) {
@@ -100,7 +104,7 @@ export async function DELETE(
 
     // Verificar se há transações vinculadas
     const transactionsCount = await prisma.transaction.count({
-      where: { categoryId: params.id },
+      where: { categoryId: id },
     });
 
     if (transactionsCount > 0) {
@@ -114,7 +118,7 @@ export async function DELETE(
     }
 
     await prisma.category.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ success: true });
