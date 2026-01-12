@@ -14,7 +14,7 @@ const api = axios.create({
 const clean = (text: string | null | undefined): string | null =>
   text ? text.replace(/\n/g, "").trim() : null;
 
-const extractDetails = ($: cheerio.Root) => {
+const extractDetails = ($: cheerio.CheerioAPI) => {
   const details: Record<string, string> = {};
 
   $("td.label").each((index, element) => {
