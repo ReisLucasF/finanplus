@@ -40,7 +40,7 @@ const getYahooQuote = async (ticker: string) => {
 };
 
 // Função para extrair todos os pares label/data
-const extractDetails = ($: cheerio.Root) => {
+const extractDetails = ($: cheerio.CheerioAPI) => {
   const details: Record<string, string> = {};
 
   $("td.label").each((index, element) => {
