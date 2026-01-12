@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     }
 
     // Verificar saldo da conta
-    if (account.balance < amount) {
+    if (account.currentBalance < amount) {
       return NextResponse.json(
         { error: "Saldo insuficiente" },
         { status: 400 }
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
       // Debitar da conta bancária
       await tx.bankAccount.update({
         where: { id: accountId },
-        data: { balance: { decrement: amount } },
+        data: { currentBalance: { decrement: amount } },
       });
 
       return transaction;
