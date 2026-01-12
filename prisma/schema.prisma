@@ -1,0 +1,333 @@
+// FinanPlus - Prisma Schema
+// Sistema de controle financeiro pessoal
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum Theme {
+  LIGHT
+  DARK
+}
+
+enum AccountType {
+  CHECKING
+  SAVINGS
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+enum TransactionFrequency {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  ANNUAL
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+}
+
+enum InvestmentType {
+  STOCKS      // Ações
+  CDB         // CDB
+  FUNDS       // Fundos de Investimento
+  TREASURY    // Tesouro Direto
+  CRYPTO      // Criptomoedas
+  REAL_ESTATE // Fundos Imobiliários
+  OTHER       // Outros
+}
+
+// Models
+model User {
+  id                   String   @id @default(uuid())
+  email                String   @unique
+  password             String?  // Pode ser null para usuários OAuth
+  googleId             String?  @unique
+  name                 String
+  displayName          String?
+  role                 UserRole @default(USER)
+  isActive             Boolean  @default(true)
+  theme                Theme    @default(LIGHT)
+  country              String   @default("BR")
+  currency             String   @default("BRL")
+  monthlyLimit         Decimal? @db.Decimal(12, 2)
+  onboardingCompleted  Boolean  @default(false)
+  dashboardLayout      Json?    // Array de IDs dos widgets em ordem
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  // Relações
+  accounts             BankAccount[]
+  creditCards          CreditCard[]
+  transactions         Transaction[]
+  recurringTransactions RecurringTransaction[]
+  transfers            Transfer[]
+  goals                Goal[]
+  reviews              Review[]
+  categories           Category[]
+  creditCardPayments   CreditCardPayment[]
+  investments          Investment[]
+  investmentTransactions InvestmentTransaction[]
+
+  @@index([email])
+  @@index([googleId])
+}
+
+model BankAccount {
+  id              String   @id @default(uuid())
+  userId          String
+  name            String
+  type            AccountType
+  initialBalance  Decimal  @db.Decimal(12, 2)
+  currentBalance  Decimal  @db.Decimal(12, 2)
+  color           String   // Hex color
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relações
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions    Transaction[]
+  recurringTransactions RecurringTransaction[]
+  transfersFrom   Transfer[] @relation("TransferFrom")
+  transfersTo     Transfer[] @relation("TransferTo")
+  goals           Goal[]
+  creditCardPayments CreditCardPayment[]
+
+  @@index([userId])
+}
+
+model CreditCard {
+  id              String   @id @default(uuid())
+  userId          String
+  name            String
+  cardLimit       Decimal  @db.Decimal(12, 2)
+  dueDay          Int      // 1-31
+  initialDebt     Decimal  @default(0) @db.Decimal(12, 2)
+  color           String   // Hex color
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relações
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments        CreditCardPayment[]
+
+  @@index([userId])
+}
+
+model Category {
+  id              String   @id @default(uuid())
+  userId          String?  // Null para categorias do sistema
+  name            String
+  type            TransactionType
+  icon            String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relações
+  user            User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions    Transaction[]
+  recurringTransactions RecurringTransaction[]
+
+  @@unique([name, type])
+  @@index([userId])
+  @@index([type])
+}
+
+model Transaction {
+  id              String   @id @default(uuid())
+  userId          String
+  accountId       String
+  categoryId      String
+  type            TransactionType
+  description     String
+  amount          Decimal  @db.Decimal(12, 2)
+  date            DateTime
+  status          TransactionStatus @default(PENDING)
+  isRecurring     Boolean  @default(false)
+  recurringId     String?  // ID da recorrência que gerou esta transação
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relações
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account         BankAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  category        Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([accountId])
+  @@index([categoryId])
+  @@index([date])
+  @@index([status])
+  @@index([recurringId])
+}
+
+model RecurringTransaction {
+  id              String   @id @default(uuid())
+  userId          String
+  accountId       String
+  categoryId      String
+  type            TransactionType
+  description     String
+  amount          Decimal  @db.Decimal(12, 2)
+  frequency       TransactionFrequency
+  startDate       DateTime
+  endDate         DateTime?
+  dueDay          Int      // 1-31
+  isActive        Boolean  @default(true)
+  lastProcessedDate DateTime? // Última data em que foi processada
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relações
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account         BankAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  category        Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([accountId])
+  @@index([isActive])
+}
+
+model CreditCardPayment {
+  id              String   @id @default(uuid())
+  userId          String
+  creditCardId    String
+  accountId       String   // Conta de onde saiu o pagamento
+  amount          Decimal  @db.Decimal(12, 2)
+  dueDate         DateTime
+  paymentDate     DateTime?
+  status          PaymentStatus @default(PENDING)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relações
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  creditCard      CreditCard @relation(fields: [creditCardId], references: [id], onDelete: Cascade)
+  account         BankAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([creditCardId])
+  @@index([status])
+}
+
+model Transfer {
+  id              String   @id @default(uuid())
+  userId          String
+  fromAccountId   String
+  toAccountId     String
+  amount          Decimal  @db.Decimal(12, 2)
+  description     String?
+  date            DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relações
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fromAccount     BankAccount @relation("TransferFrom", fields: [fromAccountId], references: [id], onDelete: Cascade)
+  toAccount       BankAccount @relation("TransferTo", fields: [toAccountId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([fromAccountId])
+  @@index([toAccountId])
+  @@index([date])
+}
+
+model Goal {
+  id                      String   @id @default(uuid())
+  userId                  String
+  name                    String
+  targetAmount            Decimal  @db.Decimal(12, 2)
+  currentAmount           Decimal  @default(0) @db.Decimal(12, 2)
+  targetDate              DateTime
+  accountId               String?
+  includeInvestments      Boolean  @default(false)
+  estimatedCompletionDate DateTime?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  // Relações
+  user                    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account                 BankAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+}
+
+model Review {
+  id              String   @id @default(uuid())
+  userId          String
+  rating          Int      // 1-5
+  comment         String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relações
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([rating])
+}
+
+model Investment {
+  id                String         @id @default(uuid())
+  userId            String
+  name              String         // Nome do investimento (ex: "Ações Petrobras", "CDB Banco X")
+  type              InvestmentType
+  ticker            String?        // Ticker da ação (ex: PETR4, VALE3) - para buscar cotação automática
+  cdiPercentage     Decimal?       @db.Decimal(5, 2) // Percentual do CDI (ex: 110.00 = 110% do CDI) - para CDB
+  institution       String?        // Corretora ou banco
+  notes             String?        @db.Text
+  color             String         @default("#3B82F6")
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  // Relações
+  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions      InvestmentTransaction[]
+
+  @@index([userId])
+  @@index([type])
+  @@index([ticker])
+}
+
+model InvestmentTransaction {
+  id            String   @id @default(uuid())
+  userId        String
+  investmentId  String
+  type          String   // BUY (compra), SELL (venda)
+  amount        Decimal  @db.Decimal(12, 2) // Valor total da transação
+  quantity      Decimal  @db.Decimal(12, 6) // Quantidade comprada/vendida
+  price         Decimal  @db.Decimal(12, 2) // Preço unitário na transação
+  date          DateTime // Data da transação
+  notes         String?  @db.Text
+  createdAt     DateTime @default(now())
+
+  // Relações
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  investment    Investment @relation(fields: [investmentId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([investmentId])
+  @@index([date])
+}

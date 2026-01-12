@@ -1,0 +1,140 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
+import { z } from "zod";
+
+const accountSchema = z.object({
+  name: z.string().min(1),
+  type: z.enum(["CHECKING", "SAVINGS"]),
+  color: z.string().regex(/^#[0-9A-F]{6}$/i),
+});
+
+// GET - Buscar conta específica
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
+    const account = await prisma.bankAccount.findFirst({
+      where: {
+        id: params.id,
+        userId: user.userId,
+      },
+      include: {
+        transactions: {
+          orderBy: { date: "desc" },
+          take: 10,
+        },
+      },
+    });
+
+    if (!account) {
+      return NextResponse.json(
+        { error: "Conta não encontrada" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(account);
+  } catch (error) {
+    console.error("Erro ao buscar conta:", error);
+    return NextResponse.json(
+      { error: "Erro ao buscar conta" },
+      { status: 500 }
+    );
+  }
+}
+
+// PUT - Atualizar conta
+export async function PUT(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const data = accountSchema.parse(body);
+
+    const account = await prisma.bankAccount.updateMany({
+      where: {
+        id: params.id,
+        userId: user.userId,
+      },
+      data,
+    });
+
+    if (account.count === 0) {
+      return NextResponse.json(
+        { error: "Conta não encontrada" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.errors }, { status: 400 });
+    }
+    console.error("Erro ao atualizar conta:", error);
+    return NextResponse.json(
+      { error: "Erro ao atualizar conta" },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE - Excluir conta
+export async function DELETE(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
+    // Verificar se há transações vinculadas
+    const transactionsCount = await prisma.transaction.count({
+      where: { accountId: params.id },
+    });
+
+    if (transactionsCount > 0) {
+      return NextResponse.json(
+        { error: "Não é possível excluir uma conta com transações vinculadas" },
+        { status: 400 }
+      );
+    }
+
+    const account = await prisma.bankAccount.deleteMany({
+      where: {
+        id: params.id,
+        userId: user.userId,
+      },
+    });
+
+    if (account.count === 0) {
+      return NextResponse.json(
+        { error: "Conta não encontrada" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Erro ao excluir conta:", error);
+    return NextResponse.json(
+      { error: "Erro ao excluir conta" },
+      { status: 500 }
+    );
+  }
+}

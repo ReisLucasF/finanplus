@@ -6,15 +6,36 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
+    "@prisma/client": "^5.22.0",
+    "@prisma/driver-adapter-utils": "^7.2.0",
+    "@tanstack/react-query": "^5.90.16",
+    "axios": "^1.13.2",
+    "bcrypt": "^6.0.0",
+    "cheerio": "^1.1.2",
+    "date-fns": "^4.1.0",
+    "dotenv": "^17.2.3",
+    "google-auth-library": "^10.5.0",
+    "highcharts": "^12.5.0",
+    "highcharts-react-official": "^3.2.3",
+    "jose": "^6.1.3",
+    "lucide-react": "^0.562.0",
     "next": "16.1.1",
+    "prisma": "^5.22.0",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "react-hook-form": "^7.71.0",
+    "recharts": "^3.6.0",
+    "sonner": "^2.0.7",
+    "zod": "^4.3.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/bcrypt": "^6.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -22,6 +43,8 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
     "tailwindcss": "^4",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }
