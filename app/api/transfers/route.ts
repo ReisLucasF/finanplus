@@ -74,7 +74,7 @@ export async function POST(request: Request) {
     }
 
     // Verificar saldo
-    if (fromAccount.currentBalance < data.amount) {
+    if (fromAccount.currentBalance.toNumber() < data.amount) {
       return NextResponse.json(
         { error: "Saldo insuficiente" },
         { status: 400 }

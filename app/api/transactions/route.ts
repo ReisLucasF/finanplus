@@ -77,7 +77,10 @@ export async function POST(request: Request) {
     }
 
     // Se for despesa, verificar saldo
-    if (data.type === "EXPENSE" && account.currentBalance < data.amount) {
+    if (
+      data.type === "EXPENSE" &&
+      account.currentBalance.toNumber() < data.amount
+    ) {
       return NextResponse.json(
         { error: "Saldo insuficiente" },
         { status: 400 }
