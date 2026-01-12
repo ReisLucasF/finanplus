@@ -97,12 +97,16 @@ export async function POST(request: Request) {
       // Atualizar saldos
       await tx.bankAccount.update({
         where: { id: data.fromAccountId },
-        data: { currentBalance: fromAccount.currentBalance - data.amount },
+        data: {
+          currentBalance: fromAccount.currentBalance.toNumber() - data.amount,
+        },
       });
 
       await tx.bankAccount.update({
         where: { id: data.toAccountId },
-        data: { currentBalance: toAccount.currentBalance + data.amount },
+        data: {
+          currentBalance: toAccount.currentBalance.toNumber() + data.amount,
+        },
       });
 
       return newTransfer;
