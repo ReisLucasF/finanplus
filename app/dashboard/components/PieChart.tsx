@@ -82,7 +82,6 @@ export default function PieChart({ title, data }: PieChartProps) {
                         allowPointSelect: true,
                         cursor: 'pointer',
                         showInLegend: true,
-                        colorByPoint: true,
                         dataLabels: {
                             enabled: true,
                             format: '<b>{point.name}</b><br/>{point.percentage:.1f}%',
