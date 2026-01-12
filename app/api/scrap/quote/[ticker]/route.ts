@@ -72,9 +72,10 @@ const extractDetails = ($: cheerio.Root) => {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { ticker: string } }
+  { params }: { params: Promise<{ ticker: string }> }
 ) {
-  const ticker = params.ticker.toUpperCase();
+  const { ticker: tickerParam } = await params;
+  const ticker = tickerParam.toUpperCase();
   const url = `https://fundamentus.com.br/detalhes.php?papel=${ticker}`;
 
   try {
@@ -251,38 +252,38 @@ export async function GET(
     return NextResponse.json(response);
   } catch (error: any) {
     console.error("Erro ao buscar dados:", error);
-    
+
     // Se for erro 403 (Cloudflare bloqueando), usar Brapi como fallback
-    if (error?.response?.status === 403 || error?.code === 'ERR_BAD_REQUEST') {
+    if (error?.response?.status === 403 || error?.code === "ERR_BAD_REQUEST") {
       console.log(`Fundamentus bloqueado (403), usando Brapi para ${ticker}`);
-      
+
       try {
         const brapiData = await buscarAtivoCompleto(ticker);
-        
+
         if (!brapiData.cotacao) {
           return NextResponse.json(
             { error: "Ativo não encontrado" },
             { status: 404 }
           );
         }
-        
+
         // Montar resposta no formato esperado usando dados da Brapi
         const isFII = ticker.endsWith("11");
-        
+
         const response: any = {
           ticker,
           type: brapiData.tipo || (isFII ? "FII" : "Ação"),
           source: "brapi", // Indicar que veio da Brapi
           oscillations: {},
         };
-        
+
         if (isFII) {
           response.info = {
             fii: ticker,
             nome: brapiData.nome || ticker,
             setor: brapiData.setor,
           };
-          
+
           response.cotacao = {
             preco: brapiData.cotacao.preco.toFixed(2),
             preco_yahoo: brapiData.cotacao.preco.toFixed(2),
@@ -290,9 +291,10 @@ export async function GET(
             min_52_sem: brapiData.cotacao.minima?.toFixed(2),
             max_52_sem: brapiData.cotacao.maxima?.toFixed(2),
           };
-          
+
           response.indicadores = {
-            div_yield: brapiData.fundamentalistas?.dividendYield?.toFixed(2) + "%",
+            div_yield:
+              brapiData.fundamentalistas?.dividendYield?.toFixed(2) + "%",
             p_vp: brapiData.fundamentalistas?.pvp?.toFixed(2),
           };
         } else {
@@ -301,7 +303,7 @@ export async function GET(
             empresa: brapiData.nome || ticker,
             setor: brapiData.setor,
           };
-          
+
           response.cotacao = {
             preco: brapiData.cotacao.preco.toFixed(2),
             preco_yahoo: brapiData.cotacao.preco.toFixed(2),
@@ -310,21 +312,25 @@ export async function GET(
             max_52_sem: brapiData.cotacao.maxima?.toFixed(2),
             vol_$_med_2m: brapiData.cotacao.volume?.toString(),
           };
-          
+
           response.indicadores = {
             p_l: brapiData.fundamentalistas?.pl?.toFixed(2),
             p_vp: brapiData.fundamentalistas?.pvp?.toFixed(2),
-            div_yield: brapiData.fundamentalistas?.dividendYield?.toFixed(2) + "%",
+            div_yield:
+              brapiData.fundamentalistas?.dividendYield?.toFixed(2) + "%",
             roe: brapiData.fundamentalistas?.roe?.toFixed(2) + "%",
-            marg_liquida: brapiData.fundamentalistas?.margemLiquida?.toFixed(2) + "%",
-            liquidez_corr: brapiData.fundamentalistas?.liquidezCorrente?.toFixed(2),
+            marg_liquida:
+              brapiData.fundamentalistas?.margemLiquida?.toFixed(2) + "%",
+            liquidez_corr:
+              brapiData.fundamentalistas?.liquidezCorrente?.toFixed(2),
           };
-          
+
           response.valor = {
-            valor_de_mercado: brapiData.fundamentalistas?.valorMercado?.toLocaleString('pt-BR'),
+            valor_de_mercado:
+              brapiData.fundamentalistas?.valorMercado?.toLocaleString("pt-BR"),
           };
         }
-        
+
         return NextResponse.json(response);
       } catch (brapiError) {
         console.error("Erro ao usar Brapi como fallback:", brapiError);
@@ -334,7 +340,7 @@ export async function GET(
         );
       }
     }
-    
+
     return NextResponse.json(
       { error: "Erro ao buscar dados" },
       { status: 500 }

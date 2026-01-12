@@ -17,9 +17,10 @@ const clean = (text: string | null | undefined): string | null =>
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { ticker: string } }
+  { params }: { params: Promise<{ ticker: string }> }
 ) {
-  const ticker = params.ticker.toUpperCase();
+  const { ticker: tickerParam } = await params;
+  const ticker = tickerParam.toUpperCase();
 
   // Tenta primeiro como FII, depois como ação
   const urls = [
@@ -88,7 +89,9 @@ export async function GET(
     } catch (error) {
       // Se for erro 403, tentar próxima URL ou usar Brapi
       if ((error as any)?.response?.status === 403) {
-        console.log(`Fundamentus bloqueado (403) para ${type}, tentando próximo...`);
+        console.log(
+          `Fundamentus bloqueado (403) para ${type}, tentando próximo...`
+        );
         continue;
       }
       continue;
@@ -98,10 +101,10 @@ export async function GET(
   // Se chegou aqui, nenhuma fonte do Fundamentus funcionou
   // Tentar usar a Brapi como fallback
   console.log(`Usando Brapi como fallback para dividendos de ${ticker}`);
-  
+
   try {
     const brapiData = await buscarAtivoCompleto(ticker);
-    
+
     if (brapiData.fundamentalistas?.dividendYield) {
       return NextResponse.json({
         ticker,
@@ -109,11 +112,13 @@ export async function GET(
         source: "brapi",
         total_records: 0,
         statistics: {
-          dividend_yield: brapiData.fundamentalistas.dividendYield.toFixed(2) + "%",
+          dividend_yield:
+            brapiData.fundamentalistas.dividendYield.toFixed(2) + "%",
           ultimo_valor: "N/A",
         },
         dividends: [],
-        message: "Dados detalhados de dividendos não disponíveis via Brapi. Dividend Yield estimado.",
+        message:
+          "Dados detalhados de dividendos não disponíveis via Brapi. Dividend Yield estimado.",
       });
     }
   } catch (brapiError) {
