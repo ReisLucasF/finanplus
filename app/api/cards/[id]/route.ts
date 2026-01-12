@@ -97,9 +97,9 @@ export async function PUT(
     return NextResponse.json({ success: true });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error("Erro de validação Zod:", error.errors);
+      console.error("Erro de validação Zod:", error.issues);
       return NextResponse.json(
-        { error: "Dados inválidos", details: error.errors },
+        { error: "Dados inválidos", details: error.issues },
         { status: 400 }
       );
     }

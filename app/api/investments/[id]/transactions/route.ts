@@ -68,11 +68,11 @@ export async function POST(
   } catch (error) {
     console.error("Erro completo:", error);
     if (error instanceof z.ZodError) {
-      console.error("Erro de validação:", error.errors);
+      console.error("Erro de validação:", error.issues);
       return NextResponse.json(
         {
           error: "Erro de validação",
-          details: error.errors,
+          details: error.issues,
         },
         { status: 400 }
       );
