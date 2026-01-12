@@ -13,8 +13,8 @@ interface Recurring {
     endDate: string | null
     isActive: boolean
     type: string
-    account: { name: string }
-    category: { name: string; color: string }
+    account: { id: string; name: string }
+    category: { id: string; name: string; color: string }
 }
 
 interface Account {
