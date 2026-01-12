@@ -9,7 +9,7 @@ interface Goal {
     targetAmount: number
     currentAmount: number
     targetDate: string
-    account?: { name: string }
+    account?: { id: string; name: string }
     includeInvestments?: boolean
 }
 
