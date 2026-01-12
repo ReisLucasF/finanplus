@@ -9,7 +9,7 @@ async function main() {
   console.log("🌱 Iniciando seed...");
 
   // Categorias de RECEITA padrão do sistema
-  const incomeCategories = [
+  const incomeCategories: { name: string; type: "INCOME"; icon: string }[] = [
     { name: "Salário", type: "INCOME", icon: "💼" },
     { name: "Freelance", type: "INCOME", icon: "💻" },
     { name: "Investimentos", type: "INCOME", icon: "📈" },
@@ -20,7 +20,7 @@ async function main() {
   ];
 
   // Categorias de DESPESA padrão do sistema
-  const expenseCategories = [
+  const expenseCategories: { name: string; type: "EXPENSE"; icon: string }[] = [
     { name: "Alimentação", type: "EXPENSE", icon: "🍔" },
     { name: "Transporte", type: "EXPENSE", icon: "🚗" },
     { name: "Moradia", type: "EXPENSE", icon: "🏡" },
@@ -41,7 +41,7 @@ async function main() {
       where: {
         name_type: {
           name: category.name,
-          type: category.type as any,
+          type: category.type,
         },
       },
       update: {},
@@ -58,7 +58,7 @@ async function main() {
       where: {
         name_type: {
           name: category.name,
-          type: category.type as any,
+          type: category.type,
         },
       },
       update: {},
