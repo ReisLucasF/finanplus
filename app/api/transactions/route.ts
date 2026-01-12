@@ -103,8 +103,8 @@ export async function POST(request: Request) {
       // Atualizar saldo da conta
       const newBalance =
         data.type === "INCOME"
-          ? account.currentBalance + data.amount
-          : account.currentBalance - data.amount;
+          ? account.currentBalance.toNumber() + data.amount
+          : account.currentBalance.toNumber() - data.amount;
 
       await tx.bankAccount.update({
         where: { id: data.accountId },
