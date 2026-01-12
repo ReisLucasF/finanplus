@@ -12,7 +12,7 @@ const accountSchema = z.object({
 // GET - Buscar conta específica
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getCurrentUser();
@@ -20,9 +20,11 @@ export async function GET(
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
+    const { id } = await params;
+
     const account = await prisma.bankAccount.findFirst({
       where: {
-        id: params.id,
+        id,
         userId: user.userId,
       },
       include: {
@@ -53,7 +55,7 @@ export async function GET(
 // PUT - Atualizar conta
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getCurrentUser();
@@ -61,12 +63,13 @@ export async function PUT(
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
+    const { id } = await params;
     const body = await request.json();
     const data = accountSchema.parse(body);
 
     const account = await prisma.bankAccount.updateMany({
       where: {
-        id: params.id,
+        id,
         userId: user.userId,
       },
       data,
@@ -95,7 +98,7 @@ export async function PUT(
 // DELETE - Excluir conta
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getCurrentUser();
@@ -103,9 +106,11 @@ export async function DELETE(
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
+    const { id } = await params;
+
     // Verificar se há transações vinculadas
     const transactionsCount = await prisma.transaction.count({
-      where: { accountId: params.id },
+      where: { accountId: id },
     });
 
     if (transactionsCount > 0) {
@@ -117,7 +122,7 @@ export async function DELETE(
 
     const account = await prisma.bankAccount.deleteMany({
       where: {
-        id: params.id,
+        id,
         userId: user.userId,
       },
     });
