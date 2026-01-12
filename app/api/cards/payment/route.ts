@@ -65,7 +65,6 @@ export async function POST(request: Request) {
         data: {
           name: "Pagamento de Cartão",
           type: "EXPENSE",
-          color: "#EF4444",
           icon: "CreditCard",
           userId: user.userId,
         },
