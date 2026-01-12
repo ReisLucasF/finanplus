@@ -238,23 +238,23 @@ export default function DashboardPage() {
 
                 transactions.forEach((t: any) => {
                     const categoryName = t.category?.name || 'Sem categoria'
-                    const categoryColor = t.category?.color && t.category.color !== '#999999' && t.category.color !== '' 
-                        ? t.category.color 
+                    const categoryColor = t.category?.color && t.category.color !== '#999999' && t.category.color !== ''
+                        ? t.category.color
                         : undefined
                     const amount = parseFloat(t.amount) || 0
 
                     if (t.type === 'EXPENSE') {
                         if (!expensesByCategory[categoryName]) {
-                            expensesByCategory[categoryName] = { 
-                                value: 0, 
+                            expensesByCategory[categoryName] = {
+                                value: 0,
                                 color: categoryColor
                             }
                         }
                         expensesByCategory[categoryName].value += amount
                     } else if (t.type === 'INCOME') {
                         if (!incomeByCategory[categoryName]) {
-                            incomeByCategory[categoryName] = { 
-                                value: 0, 
+                            incomeByCategory[categoryName] = {
+                                value: 0,
                                 color: categoryColor
                             }
                         }
@@ -364,8 +364,8 @@ export default function DashboardPage() {
                         <button
                             onClick={() => setFilterType('this-month')}
                             className={`px-4 py-2 rounded-lg font-medium transition-colors ${filterType === 'this-month'
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                                 }`}
                         >
                             Este Mês
@@ -373,8 +373,8 @@ export default function DashboardPage() {
                         <button
                             onClick={() => setFilterType('last-month')}
                             className={`px-4 py-2 rounded-lg font-medium transition-colors ${filterType === 'last-month'
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                                 }`}
                         >
                             Mês Passado
@@ -382,8 +382,8 @@ export default function DashboardPage() {
                         <button
                             onClick={() => setFilterType('this-quarter')}
                             className={`px-4 py-2 rounded-lg font-medium transition-colors ${filterType === 'this-quarter'
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                                 }`}
                         >
                             Este Trimestre
@@ -391,8 +391,8 @@ export default function DashboardPage() {
                         <button
                             onClick={() => setFilterType('this-year')}
                             className={`px-4 py-2 rounded-lg font-medium transition-colors ${filterType === 'this-year'
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                                 }`}
                         >
                             Este Ano
@@ -400,8 +400,8 @@ export default function DashboardPage() {
                         <button
                             onClick={() => setFilterType('custom')}
                             className={`px-4 py-2 rounded-lg font-medium transition-colors ${filterType === 'custom'
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                                 }`}
                         >
                             Personalizado

@@ -28,12 +28,12 @@ export default function PieChart({ title, data }: PieChartProps) {
                     name: item.name,
                     y: item.value
                 }
-                
+
                 // Só adiciona cor se vier definida
                 if (item.color) {
                     dataPoint.color = item.color
                 }
-                
+
                 return dataPoint
             })
 
