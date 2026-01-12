@@ -147,7 +147,7 @@ export async function GET(
         const dataAtual = new Date();
 
         const diasUteis = calcularDiasUteis(dataInicial, dataAtual);
-        const taxaAnual = 13.75 * (investment.cdiPercentage / 100); // CDI base de 13.75%
+        const taxaAnual = 13.75 * (investment.cdiPercentage.toNumber() / 100); // CDI base de 13.75%
         const taxaDiaria = Math.pow(1 + taxaAnual / 100, 1 / 252) - 1;
 
         currentValue = totalInvested * Math.pow(1 + taxaDiaria, diasUteis);
