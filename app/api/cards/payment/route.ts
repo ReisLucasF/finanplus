@@ -83,6 +83,7 @@ export async function POST(request: Request) {
           date: new Date(),
           userId: user.userId,
           categoryId: category.id,
+          accountId: accountId,
         },
       });
 
