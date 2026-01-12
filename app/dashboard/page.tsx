@@ -265,13 +265,13 @@ export default function DashboardPage() {
                 const expensesChart = Object.entries(expensesByCategory).map(([name, data]) => ({
                     name,
                     value: data.value,
-                    ...(data.color && { color: data.color })
+                    color: data.color || '#6B7280'
                 }))
 
                 const incomeChart = Object.entries(incomeByCategory).map(([name, data]) => ({
                     name,
                     value: data.value,
-                    ...(data.color && { color: data.color })
+                    color: data.color || '#10B981'
                 }))
 
                 console.log('📊 Dashboard - Despesas por categoria:', expensesChart)
