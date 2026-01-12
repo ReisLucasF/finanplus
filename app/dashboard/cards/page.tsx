@@ -30,9 +30,9 @@ export default function CardsPage() {
     const [payingCard, setPayingCard] = useState<Card | null>(null)
     const [formData, setFormData] = useState({
         name: '',
-        cardLimit: 0,
+        cardLimit: 0 as number | string,
         dueDay: 1,
-        initialDebt: 0,
+        initialDebt: 0 as number | string,
         color: '#EF4444',
     })
     const [paymentData, setPaymentData] = useState({
@@ -392,8 +392,8 @@ export default function CardsPage() {
                                     <div className="flex justify-between items-center">
                                         <span className="text-sm text-gray-600 dark:text-gray-400">Disponível</span>
                                         <span className={`text-lg font-semibold ${(card.cardLimit - (card.currentDebt || 0)) < 0
-                                                ? 'text-red-600 dark:text-red-400'
-                                                : 'text-green-600 dark:text-green-400'
+                                            ? 'text-red-600 dark:text-red-400'
+                                            : 'text-green-600 dark:text-green-400'
                                             }`}>
                                             {formatCurrency(card.cardLimit - (card.currentDebt || 0))}
                                         </span>
