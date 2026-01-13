@@ -71,14 +71,13 @@ export async function POST(request: Request) {
       });
     }
 
-    // Criar transação de pagamento (negativa para o cartão)
-    // e debitar da conta
+    // Criar transação de pagamento e debitar da conta
     const result = await prisma.$transaction(async (tx) => {
-      // Criar transação de despesa (reduz dívida do cartão)
+      // Criar transação de despesa (pagamento de cartão)
       const transaction = await tx.transaction.create({
         data: {
           description: `Pagamento ${card.name}`,
-          amount: -amount, // Negativo porque reduz a dívida
+          amount: amount, // Valor positivo - o sistema já trata despesas adequadamente
           type: "EXPENSE",
           date: new Date(),
           userId: user.userId,

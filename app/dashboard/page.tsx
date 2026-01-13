@@ -235,12 +235,17 @@ export default function DashboardPage() {
                 const expensesByCategory: { [key: string]: { value: number; color?: string } } = {}
                 const incomeByCategory: { [key: string]: { value: number; color?: string } } = {}
 
+                console.log('📊 Dashboard - Transações filtradas:', transactions.length)
+                console.log('📊 Dashboard - Exemplos de transações:', transactions.slice(0, 3))
+
                 transactions.forEach((t: any) => {
                     const categoryName = t.category?.name || 'Sem categoria'
                     const categoryColor = t.category?.color && t.category.color !== '#999999' && t.category.color !== ''
                         ? t.category.color
                         : undefined
-                    const amount = parseFloat(t.amount) || 0
+                    const amount = typeof t.amount === 'number' ? t.amount : parseFloat(t.amount) || 0
+
+                    console.log(`📊 Transação: ${t.description} - Tipo: ${t.type} - Categoria: ${categoryName} - Valor: ${amount}`)
 
                     if (t.type === 'EXPENSE') {
                         if (!expensesByCategory[categoryName]) {
@@ -273,8 +278,8 @@ export default function DashboardPage() {
                     ...(data.color && { color: data.color })
                 }))
 
-                console.log('📊 Dashboard - Despesas por categoria:', expensesChart)
-                console.log('📊 Dashboard - Receitas por categoria:', incomeChart)
+                console.log('📊 Dashboard - Despesas por categoria (FINAL):', expensesChart)
+                console.log('📊 Dashboard - Receitas por categoria (FINAL):', incomeChart)
 
                 setStats({
                     income: income || 0,
