@@ -23,6 +23,7 @@ export default function DashboardPage() {
         expenses: 0,
         available: 0,
         predicted: 0,
+        predictedIncome: 0,
         accounts: [],
         cards: [],
         goals: [],
@@ -228,6 +229,7 @@ export default function DashboardPage() {
                     }, 0)
 
                 const predicted = available + income - expenses + recurringIncome - recurringExpenses
+                const predictedIncome = income + recurringIncome
 
                 // Agrupar por categoria para gráficos
                 const expensesByCategory: { [key: string]: { value: number; color?: string } } = {}
@@ -279,6 +281,7 @@ export default function DashboardPage() {
                     expenses: expenses || 0,
                     available: available || 0,
                     predicted: predicted || 0,
+                    predictedIncome: predictedIncome || 0,
                     accounts,
                     cards,
                     goals: goalsWithCalculated,
@@ -472,13 +475,9 @@ export default function DashboardPage() {
                     iconColor="bg-gradient-to-br from-red-500 to-red-600 text-white shadow-red-500/30"
                 />
                 <StatCard
-                    title="Saldo"
-                    value={formatCurrency(stats.income - stats.expenses)}
-                    icon={Wallet}
-                    trend={{
-                        value: `${Math.abs(balanceChange).toFixed(1)}%`,
-                        isPositive: balanceChange >= 0
-                    }}
+                    title="Receita Prevista"
+                    value={formatCurrency(stats.predictedIncome)}
+                    icon={Calendar}
                     gradient="bg-blue-500"
                     iconColor="bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-blue-500/30"
                 />
