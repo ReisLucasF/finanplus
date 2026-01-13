@@ -9,6 +9,7 @@ interface MilestoneData {
 }
 
 export default function FirstMillionCalculator() {
+    const [valorInicial, setValorInicial] = useState<number>(0)
     const [aporte, setAporte] = useState<number>(1000)
     const [taxaAnual, setTaxaAnual] = useState<number>(10)
     const [resultado, setResultado] = useState<MilestoneData[]>([])
@@ -30,15 +31,20 @@ export default function FirstMillionCalculator() {
     }
 
     const simular = () => {
-        if (!aporte || !taxaAnual) {
-            alert("Por favor, preencha o aporte e a taxa corretamente.")
+        if (aporte < 0 || taxaAnual < 0 || valorInicial < 0) {
+            alert("Por favor, preencha valores válidos.")
+            return
+        }
+
+        if (aporte === 0 && valorInicial === 0) {
+            alert("Você precisa ter um valor inicial ou um aporte mensal.")
             return
         }
 
         // Converter taxa anual para mensal
         const taxaMensal = Math.pow(1 + (taxaAnual / 100), 1 / 12) - 1
 
-        let saldo = 0
+        let saldo = valorInicial
         let mesesTotal = 0
         let mesesAcumuladosUltimoMilestone = 0
 
@@ -93,6 +99,19 @@ export default function FirstMillionCalculator() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                         <div className="flex flex-col">
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Valor Inicial (R$)
+                            </label>
+                            <input
+                                type="number"
+                                value={valorInicial}
+                                onChange={(e) => setValorInicial(Number(e.target.value))}
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                placeholder="Ex: 0"
+                            />
+                        </div>
+
+                        <div className="flex flex-col">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Aporte Mensal (R$)
                             </label>
                             <input
@@ -117,14 +136,14 @@ export default function FirstMillionCalculator() {
                                 placeholder="Ex: 10"
                             />
                         </div>
-
-                        <button
-                            onClick={simular}
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
-                        >
-                            Calcular
-                        </button>
                     </div>
+
+                    <button
+                        onClick={simular}
+                        className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+                    >
+                        Calcular
+                    </button>
                 </div>
 
                 {/* Results */}
