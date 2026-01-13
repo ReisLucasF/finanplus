@@ -64,9 +64,9 @@ export default function PieChart({ title, data }: PieChartProps) {
                 },
                 legend: {
                     enabled: true,
-                    align: 'right',
-                    verticalAlign: 'middle',
-                    layout: 'vertical',
+                    align: 'center',
+                    verticalAlign: 'bottom',
+                    layout: 'horizontal',
                     itemStyle: {
                         color: '#e5e7eb',
                         fontWeight: 'normal'
