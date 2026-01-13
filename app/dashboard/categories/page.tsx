@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { TrendingUp, Plus, Edit, Trash2 } from 'lucide-react'
+import LoadingSpinner from '../components/LoadingSpinner'
 
 interface Category {
     id: string
@@ -91,7 +92,7 @@ export default function CategoriesPage() {
         setShowModal(true)
     }
 
-    if (loading) return <div className="text-center py-8">Carregando...</div>
+    if (loading) return <LoadingSpinner />
 
     const userCategories = categories.filter(c => c.userId !== null)
     const systemCategories = categories.filter(c => c.userId === null)

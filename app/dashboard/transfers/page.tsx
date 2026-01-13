@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { ArrowLeftRight, Plus } from 'lucide-react'
+import LoadingSpinner from '../components/LoadingSpinner'
 
 interface Transfer {
     id: string
@@ -74,7 +75,7 @@ export default function TransfersPage() {
         }
     }
 
-    if (loading) return <div className="text-center py-8">Carregando...</div>
+    if (loading) return <LoadingSpinner />
 
     return (
         <div>

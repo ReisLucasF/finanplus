@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Wallet, Plus, Edit, Trash2 } from 'lucide-react'
 import Link from 'next/link'
+import LoadingSpinner from '../components/LoadingSpinner'
 
 interface BankAccount {
     id: string
@@ -107,7 +108,7 @@ export default function AccountsPage() {
     }
 
     if (loading) {
-        return <div className="text-center py-8">Carregando...</div>
+        return <LoadingSpinner />
     }
 
     return (

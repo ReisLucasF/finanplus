@@ -27,7 +27,7 @@ const navigation = [
     { name: 'Investimentos', href: '/dashboard/investments', icon: LineChart },
     { name: 'Metas', href: '/dashboard/goals', icon: Target },
     { name: 'Categorias', href: '/dashboard/categories', icon: TrendingUp },
-    { name: 'Calculadoras', href: '/dashboard/calculators/first-million', icon: Calculator },
+    { name: 'Calculadoras', href: '/dashboard/calculators', icon: Calculator },
     { name: 'Configurações', href: '/dashboard/settings', icon: Settings },
 ]
 

@@ -2,7 +2,7 @@
 
 export default function LoadingSpinner() {
     return (
-        <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-50 via-gray-50 to-blue-50/30 dark:from-gray-900 dark:via-gray-900 dark:to-blue-950/30">
+        <div className="flex min-h-screen items-center justify-center">
             <div className="text-center">
                 <div className="relative mx-auto h-20 w-20">
                     {/* Spinner externo */}

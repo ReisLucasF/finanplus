@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { RefreshCw, Plus, Edit, Trash2, Play, Pause, Calendar, DollarSign } from 'lucide-react'
+import LoadingSpinner from '../components/LoadingSpinner'
 
 interface Recurring {
     id: string
@@ -213,7 +214,7 @@ export default function RecurringPage() {
         }).format(value)
     }
 
-    if (loading) return <div className="text-center py-8">Carregando...</div>
+    if (loading) return <LoadingSpinner />
 
     return (
         <div>

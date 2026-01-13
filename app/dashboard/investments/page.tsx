@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Edit, Trash2, TrendingUp, TrendingDown, DollarSign, Briefcase, LineChart, RefreshCw } from 'lucide-react'
+import LoadingSpinner from '../components/LoadingSpinner'
 
 export default function InvestmentsPage() {
     const router = useRouter()
@@ -238,11 +239,7 @@ export default function InvestmentsPage() {
     }
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <div className="text-lg">Carregando...</div>
-            </div>
-        )
+        return <LoadingSpinner />
     }
 
     return (

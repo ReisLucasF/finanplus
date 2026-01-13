@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Target, Plus, Edit, Trash2 } from 'lucide-react'
+import LoadingSpinner from '../components/LoadingSpinner'
 
 interface Goal {
     id: string
@@ -212,7 +213,7 @@ export default function GoalsPage() {
         setShowModal(true)
     }
 
-    if (loading) return <div className="text-center py-8">Carregando...</div>
+    if (loading) return <LoadingSpinner />
 
     return (
         <div>

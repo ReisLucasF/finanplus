@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { CreditCard, Plus, Edit, Trash2, DollarSign, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react'
+import LoadingSpinner from '../components/LoadingSpinner'
 
 interface Card {
     id: string
@@ -257,7 +258,7 @@ export default function CardsPage() {
         }).format(value)
     }
 
-    if (loading) return <div className="text-center py-8">Carregando...</div>
+    if (loading) return <LoadingSpinner />
 
     return (
         <div>

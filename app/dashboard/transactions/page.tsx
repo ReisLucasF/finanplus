@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Receipt, Plus, TrendingUp, TrendingDown, Edit2, Trash2 } from 'lucide-react'
+import LoadingSpinner from '../components/LoadingSpinner'
 
 interface Account {
     id: string
@@ -82,8 +83,8 @@ export default function TransactionsPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         try {
-            const url = editingTransaction 
-                ? `/api/transactions/${editingTransaction.id}` 
+            const url = editingTransaction
+                ? `/api/transactions/${editingTransaction.id}`
                 : '/api/transactions'
             const method = editingTransaction ? 'PUT' : 'POST'
 
@@ -139,7 +140,7 @@ export default function TransactionsPage() {
     }
 
     if (loading) {
-        return <div className="text-center py-8">Carregando...</div>
+        return <LoadingSpinner />
     }
 
     return (

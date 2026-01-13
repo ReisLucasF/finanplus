@@ -22,7 +22,7 @@ export default function FirstMillionCalculator() {
     const formatTime = (totalMonths: number): string => {
         const years = Math.floor(totalMonths / 12)
         const months = totalMonths % 12
-        let parts: string[] = []
+        const parts: string[] = []
         if (years > 0) parts.push(`${years} ano${years !== 1 ? 's' : ''}`)
         if (months > 0) parts.push(`${months} m${months !== 1 ? 'eses' : 'ês'}`)
         if (parts.length === 0) return "Menos de 1 mês"
@@ -81,32 +81,31 @@ export default function FirstMillionCalculator() {
     }
 
     return (
-        <div className="max-w-4xl mx-auto">
-            <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-                {/* Header */}
-                <div className="bg-slate-900 p-6 text-center">
-                    <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Simulador do 1º Milhão 🚀</h1>
-                    <p className="text-slate-400">Descubra a velocidade da sua bola de neve</p>
-                </div>
+        <div>
+            <div className="mb-8">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Simulador do Primeiro Milhão</h1>
+                <p className="text-gray-600 dark:text-gray-400 mt-1">Descubra quanto tempo levará para alcançar seu primeiro milhão</p>
+            </div>
 
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
                 {/* Form */}
-                <div className="p-6 md:p-8 bg-slate-50 border-b border-slate-200">
+                <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                         <div className="flex flex-col">
-                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Aporte Mensal (R$)
                             </label>
                             <input
                                 type="number"
                                 value={aporte}
                                 onChange={(e) => setAporte(Number(e.target.value))}
-                                className="w-full p-3 text-lg font-semibold text-slate-900 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                 placeholder="Ex: 1000"
                             />
                         </div>
 
                         <div className="flex flex-col">
-                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Rentabilidade Anual (%)
                             </label>
                             <input
@@ -114,52 +113,56 @@ export default function FirstMillionCalculator() {
                                 value={taxaAnual}
                                 onChange={(e) => setTaxaAnual(Number(e.target.value))}
                                 step="0.1"
-                                className="w-full p-3 text-lg font-semibold text-slate-900 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                 placeholder="Ex: 10"
                             />
                         </div>
 
                         <button
                             onClick={simular}
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold p-3 rounded-lg text-lg transition shadow-lg transform active:scale-95"
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
                         >
-                            Calcular Tabela
+                            Calcular
                         </button>
                     </div>
                 </div>
 
                 {/* Results */}
-                <div className="p-6 md:p-8">
+                <div className="p-6">
                     {mostrarResultado ? (
                         <div>
-                            <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-xl font-bold text-slate-800">Resultado da Simulação</h2>
-                                <span className="bg-green-100 text-green-800 text-xs font-bold px-3 py-1 rounded-full uppercase">
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Resultado da Simulação</h2>
+                                <span className="bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400 text-sm font-semibold px-4 py-2 rounded-lg">
                                     Tempo total: {tempoTotal}
                                 </span>
                             </div>
 
-                            <div className="overflow-x-auto rounded-lg border border-slate-200">
-                                <table className="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr className="bg-slate-100 text-slate-600 text-xs uppercase tracking-wider">
-                                            <th className="p-4 font-bold border-b border-slate-200">Intervalo de Valor</th>
-                                            <th className="p-4 font-bold border-b border-slate-200 text-center">
-                                                Meses (Neste intervalo)
+                            <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+                                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                    <thead className="bg-gray-50 dark:bg-gray-700">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                                Intervalo de Valor
                                             </th>
-                                            <th className="p-4 font-bold border-b border-slate-200 text-right">Tempo Decorrido</th>
+                                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                                Meses no Intervalo
+                                            </th>
+                                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                                Tempo Decorrido
+                                            </th>
                                         </tr>
                                     </thead>
-                                    <tbody className="text-sm font-medium text-slate-700 divide-y divide-slate-100">
+                                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                                         {resultado.map((item, index) => (
-                                            <tr key={index} className="hover:bg-slate-50 transition">
-                                                <td className="p-4 border-r border-slate-100 text-slate-900">
+                                            <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                                                     {item.intervalo}
                                                 </td>
-                                                <td className="p-4 text-center border-r border-slate-100 font-bold text-blue-600">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-center font-semibold text-blue-600 dark:text-blue-400">
                                                     {item.mesesNoIntervalo}
                                                 </td>
-                                                <td className="p-4 text-right text-slate-500">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-600 dark:text-gray-400">
                                                     {item.tempoDecorrido}
                                                 </td>
                                             </tr>
@@ -169,8 +172,10 @@ export default function FirstMillionCalculator() {
                             </div>
                         </div>
                     ) : (
-                        <div className="text-center py-10 text-slate-400">
-                            <p>Preencha os dados acima e clique em &quot;Calcular&quot; para ver a mágica.</p>
+                        <div className="text-center py-12">
+                            <p className="text-gray-500 dark:text-gray-400">
+                                Preencha os dados acima e clique em &quot;Calcular&quot; para ver o resultado
+                            </p>
                         </div>
                     )}
                 </div>
