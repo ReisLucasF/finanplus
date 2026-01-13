@@ -23,7 +23,14 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json(accounts);
+    // Serializar Decimals para numbers
+    const serializedAccounts = accounts.map((account) => ({
+      ...account,
+      initialBalance: account.initialBalance.toNumber(),
+      currentBalance: account.currentBalance.toNumber(),
+    }));
+
+    return NextResponse.json(serializedAccounts);
   } catch (error) {
     console.error("Erro ao buscar contas:", error);
     return NextResponse.json(

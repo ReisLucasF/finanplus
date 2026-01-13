@@ -24,7 +24,14 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json(cards);
+    // Serializar os Decimals para números
+    const serializedCards = cards.map((card) => ({
+      ...card,
+      cardLimit: card.cardLimit.toNumber(),
+      initialDebt: card.initialDebt.toNumber(),
+    }));
+
+    return NextResponse.json(serializedCards);
   } catch (error) {
     console.error("Erro ao buscar cartões:", error);
     return NextResponse.json(
@@ -62,7 +69,14 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json(card, { status: 201 });
+    // Serializar os Decimals para números
+    const serializedCard = {
+      ...card,
+      cardLimit: card.cardLimit.toNumber(),
+      initialDebt: card.initialDebt.toNumber(),
+    };
+
+    return NextResponse.json(serializedCard, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues }, { status: 400 });

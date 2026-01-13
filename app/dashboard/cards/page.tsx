@@ -35,7 +35,10 @@ export default function CardsPage() {
         initialDebt: 0 as number | string,
         color: '#EF4444',
     })
-    const [paymentData, setPaymentData] = useState({
+    const [paymentData, setPaymentData] = useState<{
+        amount: string | number
+        accountId: string
+    }>({
         amount: 0,
         accountId: '',
     })
@@ -60,53 +63,36 @@ export default function CardsPage() {
                 const data = await res.json()
 
                 // Calcular dívida atual de cada cartão
-                const cardsWithDebt = await Promise.all(
-                    data.map(async (card: Card) => {
-                        try {
-                            const txRes = await fetch(`/api/transactions?cardId=${card.id}`)
-                            if (txRes.ok) {
-                                const transactions = await txRes.json()
-                                const totalSpent = transactions.reduce((sum: number, tx: any) => {
-                                    const amount = parseFloat(tx.amount) || 0
-                                    return sum + amount
-                                }, 0)
-                                const initialDebt = parseFloat(card.initialDebt as any) || 0
-                                const currentDebt = initialDebt + totalSpent
-                                const usagePercentage = (currentDebt / card.cardLimit) * 100
+                // Por enquanto, a dívida atual é apenas o initialDebt
+                // TODO: Implementar sistema de compras no cartão
+                const cardsWithDebt = data.map((card: Card) => {
+                    const initialDebt = Number(card.initialDebt) || 0
+                    const usagePercentage = (initialDebt / Number(card.cardLimit)) * 100
 
-                                console.log(`💳 ${card.name}:`, {
-                                    initialDebt,
-                                    totalSpent,
-                                    currentDebt,
-                                    cardLimit: card.cardLimit
-                                })
-
-                                return {
-                                    ...card,
-                                    currentDebt,
-                                    usagePercentage: Math.min(usagePercentage, 100)
-                                }
-                            }
-                            const initialDebt = parseFloat(card.initialDebt as any) || 0
-                            return { ...card, currentDebt: initialDebt, usagePercentage: (initialDebt / card.cardLimit) * 100 }
-                        } catch {
-                            const initialDebt = parseFloat(card.initialDebt as any) || 0
-                            return { ...card, currentDebt: initialDebt, usagePercentage: (initialDebt / card.cardLimit) * 100 }
-                        }
+                    console.log(`💳 ${card.name}:`, {
+                        initialDebt,
+                        cardLimit: card.cardLimit,
+                        usagePercentage
                     })
-                )
+
+                    return {
+                        ...card,
+                        currentDebt: initialDebt,
+                        usagePercentage: Math.min(usagePercentage, 100)
+                    }
+                })
 
                 setCards(cardsWithDebt)
 
-                console.log('💳 Cards carregados:', cardsWithDebt.map(c => ({
+                console.log('💳 Cards carregados:', cardsWithDebt.map((c: Card) => ({
                     name: c.name,
                     cardLimit: c.cardLimit,
                     tipo: typeof c.cardLimit,
                     currentDebt: c.currentDebt
                 })))
 
-                const totalLimit = cardsWithDebt.reduce((sum, card) => {
-                    const limit = parseFloat(card.cardLimit as any) || 0
+                const totalLimit = cardsWithDebt.reduce((sum: number, card: Card) => {
+                    const limit = Number(card.cardLimit) || 0
                     console.log(`  ${card.name}: ${limit}`)
                     return sum + limit
                 }, 0)
@@ -306,7 +292,7 @@ export default function CardsPage() {
                             <TrendingUp className="h-6 w-6 text-green-100" />
                         </div>
                         <p className="text-3xl font-bold">
-                            {formatCurrency(cards.reduce((sum, card) => sum + (parseFloat(card.cardLimit as any) || 0), 0))}
+                            {formatCurrency(cards.reduce((sum, card) => sum + (Number(card.cardLimit) || 0), 0))}
                         </p>
                     </div>
 
@@ -463,7 +449,7 @@ export default function CardsPage() {
                                 <input
                                     type="text"
                                     value={formData.cardLimit}
-                                    onChange={(e) => setFormData({ ...formData, cardLimit: e.target.value as any })}
+                                    onChange={(e) => setFormData({ ...formData, cardLimit: e.target.value })}
                                     placeholder="Ex: 5000 ou 5.000,00"
                                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                                     required
@@ -494,7 +480,7 @@ export default function CardsPage() {
                                     <input
                                         type="text"
                                         value={formData.initialDebt}
-                                        onChange={(e) => setFormData({ ...formData, initialDebt: e.target.value as any })}
+                                        onChange={(e) => setFormData({ ...formData, initialDebt: e.target.value })}
                                         placeholder="Ex: 1404 ou 1.404,00"
                                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                                     />
@@ -593,7 +579,7 @@ export default function CardsPage() {
                                 <input
                                     type="text"
                                     value={paymentData.amount}
-                                    onChange={(e) => setPaymentData({ ...paymentData, amount: e.target.value as any })}
+                                    onChange={(e) => setPaymentData({ ...paymentData, amount: e.target.value })}
                                     placeholder="Ex: 1.000,00"
                                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                                     required
@@ -620,7 +606,7 @@ export default function CardsPage() {
                             </div>
                             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                                 <p className="text-sm text-blue-800 dark:text-blue-300">
-                                    💡 O pagamento será registrado como uma despesa na categoria "Pagamento de Cartão"
+                                    💡 O pagamento será registrado como uma despesa na categoria &quot;Pagamento de Cartão&quot;
                                 </p>
                             </div>
                             <div className="flex gap-3 pt-4">

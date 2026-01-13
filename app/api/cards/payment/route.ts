@@ -93,6 +93,12 @@ export async function POST(request: Request) {
         data: { currentBalance: { decrement: amount } },
       });
 
+      // Reduzir a dívida do cartão
+      await tx.creditCard.update({
+        where: { id: cardId },
+        data: { initialDebt: { decrement: amount } },
+      });
+
       return transaction;
     });
 

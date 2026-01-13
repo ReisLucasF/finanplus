@@ -28,7 +28,23 @@ export async function GET() {
       orderBy: { date: "desc" },
     });
 
-    return NextResponse.json(transfers);
+    // Serializar Decimals
+    const serializedTransfers = transfers.map((transfer) => ({
+      ...transfer,
+      amount: transfer.amount.toNumber(),
+      fromAccount: {
+        ...transfer.fromAccount,
+        initialBalance: transfer.fromAccount.initialBalance.toNumber(),
+        currentBalance: transfer.fromAccount.currentBalance.toNumber(),
+      },
+      toAccount: {
+        ...transfer.toAccount,
+        initialBalance: transfer.toAccount.initialBalance.toNumber(),
+        currentBalance: transfer.toAccount.currentBalance.toNumber(),
+      },
+    }));
+
+    return NextResponse.json(serializedTransfers);
   } catch (error) {
     console.error("Erro ao buscar transferências:", error);
     return NextResponse.json(
@@ -94,25 +110,41 @@ export async function POST(request: Request) {
         },
       });
 
-      // Atualizar saldos
+      // Atualizar saldos usando increment/decrement para garantir atomicidade
       await tx.bankAccount.update({
         where: { id: data.fromAccountId },
         data: {
-          currentBalance: fromAccount.currentBalance.toNumber() - data.amount,
+          currentBalance: { decrement: data.amount },
         },
       });
 
       await tx.bankAccount.update({
         where: { id: data.toAccountId },
         data: {
-          currentBalance: toAccount.currentBalance.toNumber() + data.amount,
+          currentBalance: { increment: data.amount },
         },
       });
 
       return newTransfer;
     });
 
-    return NextResponse.json(transfer, { status: 201 });
+    // Serializar Decimals
+    const serializedTransfer = {
+      ...transfer,
+      amount: transfer.amount.toNumber(),
+      fromAccount: {
+        ...transfer.fromAccount,
+        initialBalance: transfer.fromAccount.initialBalance.toNumber(),
+        currentBalance: transfer.fromAccount.currentBalance.toNumber(),
+      },
+      toAccount: {
+        ...transfer.toAccount,
+        initialBalance: transfer.toAccount.initialBalance.toNumber(),
+        currentBalance: transfer.toAccount.currentBalance.toNumber(),
+      },
+    };
+
+    return NextResponse.json(serializedTransfer, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues }, { status: 400 });

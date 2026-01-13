@@ -42,7 +42,18 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(account);
+    // Serializar Decimals
+    const serializedAccount = {
+      ...account,
+      initialBalance: account.initialBalance.toNumber(),
+      currentBalance: account.currentBalance.toNumber(),
+      transactions: account.transactions.map((t) => ({
+        ...t,
+        amount: t.amount.toNumber(),
+      })),
+    };
+
+    return NextResponse.json(serializedAccount);
   } catch (error) {
     console.error("Erro ao buscar conta:", error);
     return NextResponse.json(

@@ -40,7 +40,20 @@ export async function GET(request: Request) {
       take: limit,
     });
 
-    return NextResponse.json(transactions);
+    // Serializar os Decimals para números
+    const serializedTransactions = transactions.map((tx) => ({
+      ...tx,
+      amount: tx.amount.toNumber(),
+      account: tx.account
+        ? {
+            ...tx.account,
+            initialBalance: tx.account.initialBalance.toNumber(),
+            currentBalance: tx.account.currentBalance.toNumber(),
+          }
+        : null,
+    }));
+
+    return NextResponse.json(serializedTransactions);
   } catch (error) {
     console.error("Erro ao buscar transações:", error);
     return NextResponse.json(
