@@ -210,26 +210,29 @@ export default function DashboardPage() {
                     .filter((t: any) => t.type === 'EXPENSE')
                     .reduce((sum: number, t: any) => sum + (parseFloat(t.amount) || 0), 0)
 
-                // Calcular saldo previsto: considera recorrências futuras do período filtrado
-                const recurringIncome = recurrings
+                // Calcular receitas previstas: apenas recorrências futuras (ainda não recebidas)
+                const now = new Date()
+                const futureRecurringIncome = recurrings
                     .filter((r: any) => r.isActive && r.type === 'INCOME')
                     .reduce((sum: number, r: any) => {
-                        // Calcula quantas ocorrências terão no período
+                        // Calcula quantas ocorrências FUTURAS terão no período
                         const amount = parseFloat(r.amount) || 0
-                        const occurrences = calculateOccurrencesInPeriod(r, dateRange.start, dateRange.end)
+                        const futureStart = now > dateRange.start ? now : dateRange.start
+                        const occurrences = calculateOccurrencesInPeriod(r, futureStart, dateRange.end)
                         return sum + (amount * occurrences)
                     }, 0)
 
-                const recurringExpenses = recurrings
+                const futureRecurringExpenses = recurrings
                     .filter((r: any) => r.isActive && r.type === 'EXPENSE')
                     .reduce((sum: number, r: any) => {
                         const amount = parseFloat(r.amount) || 0
-                        const occurrences = calculateOccurrencesInPeriod(r, dateRange.start, dateRange.end)
+                        const futureStart = now > dateRange.start ? now : dateRange.start
+                        const occurrences = calculateOccurrencesInPeriod(r, futureStart, dateRange.end)
                         return sum + (amount * occurrences)
                     }, 0)
 
-                const predicted = available + income - expenses + recurringIncome - recurringExpenses
-                const predictedIncome = income + recurringIncome
+                const predicted = available + income - expenses + futureRecurringIncome - futureRecurringExpenses
+                const predictedIncome = futureRecurringIncome // Apenas receitas futuras não recebidas
 
                 // Agrupar por categoria para gráficos
                 const expensesByCategory: { [key: string]: { value: number; color?: string } } = {}
