@@ -16,6 +16,7 @@ import {
 import { useState, useEffect } from 'react'
 import Sidebar from './components/Sidebar'
 import MobileHeader from './components/MobileHeader'
+import { cn } from '@/lib/utils'
 
 const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -37,9 +38,16 @@ export default function DashboardLayout({
     children: React.ReactNode
 }) {
     const [sidebarOpen, setSidebarOpen] = useState(false)
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
     const [user, setUser] = useState<{ name?: string; email?: string } | null>(null)
 
     useEffect(() => {
+        // Carregar estado collapsed do localStorage
+        const savedCollapsed = localStorage.getItem('sidebarCollapsed')
+        if (savedCollapsed !== null) {
+            setSidebarCollapsed(savedCollapsed === 'true')
+        }
+
         const loadUser = async () => {
             try {
                 const res = await fetch('/api/auth/me')
@@ -54,13 +62,19 @@ export default function DashboardLayout({
         loadUser()
     }, [])
 
+    const toggleSidebarCollapse = () => {
+        const newCollapsed = !sidebarCollapsed
+        setSidebarCollapsed(newCollapsed)
+        localStorage.setItem('sidebarCollapsed', String(newCollapsed))
+    }
+
     const handleLogout = async () => {
         await fetch('/api/auth/logout', { method: 'POST' })
         window.location.href = '/'
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-50 to-blue-50/30 dark:from-gray-900 dark:via-gray-900 dark:to-blue-950/30">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-50 to-blue-50/30 dark:from-gray-900 dark:via-gray-900 dark:to-blue-950/30 overflow-x-hidden">
             {/* Sidebar Mobile Overlay */}
             {sidebarOpen && (
                 <div className="fixed inset-0 z-50 lg:hidden">
@@ -85,18 +99,26 @@ export default function DashboardLayout({
             )}
 
             {/* Sidebar Desktop */}
-            <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
+            <div className={cn(
+                "hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:flex-col transition-all duration-300",
+                sidebarCollapsed ? "lg:w-20" : "lg:w-72"
+            )}>
                 <div className="flex flex-col flex-grow bg-white shadow-xl dark:bg-gray-800">
                     <Sidebar
                         navigation={navigation}
                         onLogout={handleLogout}
                         user={user || undefined}
+                        collapsed={sidebarCollapsed}
+                        onToggleCollapse={toggleSidebarCollapse}
                     />
                 </div>
             </div>
 
             {/* Main Content */}
-            <div className="lg:pl-72">
+            <div className={cn(
+                "transition-all duration-300",
+                sidebarCollapsed ? "lg:pl-20" : "lg:pl-72"
+            )}>
                 {/* Mobile Header */}
                 <MobileHeader onMenuClick={() => setSidebarOpen(true)} />
 
