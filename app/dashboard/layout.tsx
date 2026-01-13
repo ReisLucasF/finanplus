@@ -16,7 +16,8 @@ import {
     ArrowLeftRight,
     Shield,
     RefreshCw,
-    LineChart
+    LineChart,
+    Calculator
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -30,6 +31,7 @@ const navigation = [
     { name: 'Investimentos', href: '/dashboard/investments', icon: LineChart },
     { name: 'Metas', href: '/dashboard/goals', icon: Target },
     { name: 'Categorias', href: '/dashboard/categories', icon: TrendingUp },
+    { name: 'Calculadoras', href: '/dashboard/calculators/first-million', icon: Calculator },
     { name: 'Configurações', href: '/dashboard/settings', icon: Settings },
 ]
 
@@ -68,8 +70,8 @@ export default function DashboardLayout({
                                         href={item.href}
                                         onClick={() => setSidebarOpen(false)}
                                         className={`flex items-center px-2 py-2 text-sm font-medium rounded-md ${isActive
-                                                ? 'bg-blue-50 text-blue-600 dark:bg-blue-900 dark:text-blue-200'
-                                                : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'
+                                            ? 'bg-blue-50 text-blue-600 dark:bg-blue-900 dark:text-blue-200'
+                                            : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'
                                             }`}
                                     >
                                         <item.icon className="mr-3 h-5 w-5" />
@@ -105,8 +107,8 @@ export default function DashboardLayout({
                                     key={item.name}
                                     href={item.href}
                                     className={`flex items-center px-2 py-2 text-sm font-medium rounded-md ${isActive
-                                            ? 'bg-blue-50 text-blue-600 dark:bg-blue-900 dark:text-blue-200'
-                                            : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'
+                                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-900 dark:text-blue-200'
+                                        : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'
                                         }`}
                                 >
                                     <item.icon className="mr-3 h-5 w-5" />
