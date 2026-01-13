@@ -2,9 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { TrendingUp, TrendingDown, Wallet, Calendar, CreditCard, Target, PlusCircle } from 'lucide-react'
+import { TrendingUp, TrendingDown, Wallet, Calendar, CreditCard, Target, PlusCircle, DollarSign, LineChart } from 'lucide-react'
 import Link from 'next/link'
 import PieChart from './components/PieChart'
+import StatCard from './components/StatCard'
+import LoadingSpinner from './components/LoadingSpinner'
+import { formatCurrency } from '@/lib/utils'
 
 type FilterType = 'this-month' | 'last-month' | 'this-quarter' | 'this-year' | 'custom'
 
@@ -39,13 +42,7 @@ export default function DashboardPage() {
         }
     })
 
-    const formatCurrency = (value: number) => {
-        const validValue = isNaN(value) || !isFinite(value) ? 0 : value
-        return new Intl.NumberFormat('pt-BR', {
-            style: 'currency',
-            currency: 'BRL',
-        }).format(validValue)
-    }
+
 
     const getFilterLabel = () => {
         switch (filterType) {
@@ -336,11 +333,7 @@ export default function DashboardPage() {
     }
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <div className="text-lg">Carregando...</div>
-            </div>
-        )
+        return <LoadingSpinner />
     }
 
     // Calcular variações percentuais
@@ -349,199 +342,193 @@ export default function DashboardPage() {
     const balanceChange = calculatePercentageChange(stats.income - stats.expenses, stats.previousMonth.balance)
 
     return (
-        <div>
-            <div className="mb-8">
-                <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
-                    <div>
-                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-                        <p className="text-gray-600 dark:text-gray-400 mt-1">Visão geral das suas finanças</p>
-                    </div>
+        <div className="space-y-8">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+                <div>
+                    <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">
+                        Dashboard
+                    </h1>
+                    <p className="text-gray-600 dark:text-gray-400 mt-2">
+                        Visão geral completa das suas finanças
+                    </p>
                 </div>
 
-                {/* Filtros de Período */}
-                <div className="flex flex-col gap-4">
-                    <div className="flex flex-wrap gap-2">
-                        <button
-                            onClick={() => setFilterType('this-month')}
-                            className={`px-4 py-2 rounded-lg font-medium transition-colors ${filterType === 'this-month'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                                }`}
-                        >
-                            Este Mês
-                        </button>
-                        <button
-                            onClick={() => setFilterType('last-month')}
-                            className={`px-4 py-2 rounded-lg font-medium transition-colors ${filterType === 'last-month'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                                }`}
-                        >
-                            Mês Passado
-                        </button>
-                        <button
-                            onClick={() => setFilterType('this-quarter')}
-                            className={`px-4 py-2 rounded-lg font-medium transition-colors ${filterType === 'this-quarter'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                                }`}
-                        >
-                            Este Trimestre
-                        </button>
-                        <button
-                            onClick={() => setFilterType('this-year')}
-                            className={`px-4 py-2 rounded-lg font-medium transition-colors ${filterType === 'this-year'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                                }`}
-                        >
-                            Este Ano
-                        </button>
-                        <button
-                            onClick={() => setFilterType('custom')}
-                            className={`px-4 py-2 rounded-lg font-medium transition-colors ${filterType === 'custom'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                                }`}
-                        >
-                            Personalizado
-                        </button>
-                    </div>
-
-                    {/* Seletor de Datas Personalizado */}
-                    {filterType === 'custom' && (
-                        <div className="flex flex-wrap gap-4 items-center bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-                            <div className="flex flex-col">
-                                <label className="text-sm text-gray-600 dark:text-gray-400 mb-1">Data Inicial</label>
-                                <input
-                                    type="date"
-                                    value={customStartDate}
-                                    onChange={(e) => setCustomStartDate(e.target.value)}
-                                    className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                                />
-                            </div>
-                            <div className="flex flex-col">
-                                <label className="text-sm text-gray-600 dark:text-gray-400 mb-1">Data Final</label>
-                                <input
-                                    type="date"
-                                    value={customEndDate}
-                                    onChange={(e) => setCustomEndDate(e.target.value)}
-                                    className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                                />
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Label do Período Selecionado */}
-                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                        <Calendar className="h-5 w-5" />
-                        <span className="font-medium">{getFilterLabel()}</span>
-                    </div>
+                {/* Quick Actions */}
+                <div className="flex gap-2">
+                    <Link
+                        href="/dashboard/transactions"
+                        className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-blue-500/30 transition-all hover:shadow-xl hover:shadow-blue-500/40"
+                    >
+                        <PlusCircle className="h-4 w-4" />
+                        Nova Transação
+                    </Link>
                 </div>
             </div>
 
-            {/* Cards de Estatísticas com Comparação */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-                    <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Receitas</h3>
-                        <TrendingUp className="h-5 w-5 text-green-600" />
-                    </div>
-                    <p className="text-2xl font-bold">
-                        {formatCurrency(stats.income)}
-                    </p>
-                    <div className={`text-sm mt-2 flex items-center gap-1 ${incomeChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {incomeChange >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-                        {Math.abs(incomeChange).toFixed(1)}% vs período anterior
-                    </div>
+            {/* Filtros de Período */}
+            <div className="flex flex-col gap-4">
+                <div className="flex flex-wrap gap-2">
+                    <button
+                        onClick={() => setFilterType('this-month')}
+                        className={`px-4 py-2.5 rounded-xl font-medium transition-all ${filterType === 'this-month'
+                            ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30'
+                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm'
+                            }`}
+                    >
+                        Este Mês
+                    </button>
+                    <button
+                        onClick={() => setFilterType('last-month')}
+                        className={`px-4 py-2.5 rounded-xl font-medium transition-all ${filterType === 'last-month'
+                            ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30'
+                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm'
+                            }`}
+                    >
+                        Mês Passado
+                    </button>
+                    <button
+                        onClick={() => setFilterType('this-quarter')}
+                        className={`px-4 py-2.5 rounded-xl font-medium transition-all ${filterType === 'this-quarter'
+                            ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30'
+                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm'
+                            }`}
+                    >
+                        Este Trimestre
+                    </button>
+                    <button
+                        onClick={() => setFilterType('this-year')}
+                        className={`px-4 py-2.5 rounded-xl font-medium transition-all ${filterType === 'this-year'
+                            ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30'
+                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm'
+                            }`}
+                    >
+                        Este Ano
+                    </button>
+                    <button
+                        onClick={() => setFilterType('custom')}
+                        className={`px-4 py-2.5 rounded-xl font-medium transition-all ${filterType === 'custom'
+                            ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30'
+                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm'
+                            }`}
+                    >
+                        Personalizado
+                    </button>
                 </div>
 
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-                    <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Despesas</h3>
-                        <TrendingDown className="h-5 w-5 text-red-600" />
+                {/* Seletor de Datas Personalizado */}
+                {filterType === 'custom' && (
+                    <div className="flex flex-wrap gap-4 items-center bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm">
+                        <div className="flex flex-col">
+                            <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Data Inicial</label>
+                            <input
+                                type="date"
+                                value={customStartDate}
+                                onChange={(e) => setCustomStartDate(e.target.value)}
+                                className="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                        </div>
+                        <div className="flex flex-col">
+                            <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Data Final</label>
+                            <input
+                                type="date"
+                                value={customEndDate}
+                                onChange={(e) => setCustomEndDate(e.target.value)}
+                                className="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                        </div>
                     </div>
-                    <p className="text-2xl font-bold">
-                        {formatCurrency(stats.expenses)}
-                    </p>
-                    <div className={`text-sm mt-2 flex items-center gap-1 ${expensesChange <= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {expensesChange >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-                        {Math.abs(expensesChange).toFixed(1)}% vs período anterior
-                    </div>
-                </div>
+                )}
 
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-                    <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Saldo Disponível</h3>
-                        <Wallet className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <p className="text-2xl font-bold">
-                        {formatCurrency(stats.available)}
-                    </p>
-                    <div className="text-sm mt-2 text-gray-500 dark:text-gray-400">
-                        Soma de todas as contas
-                    </div>
+                {/* Label do Período Selecionado */}
+                <div className="flex items-center gap-2 rounded-xl bg-white dark:bg-gray-800 px-4 py-3 shadow-sm">
+                    <Calendar className="h-5 w-5 text-blue-600" />
+                    <span className="font-medium text-gray-900 dark:text-white">{getFilterLabel()}</span>
                 </div>
+            </div>
 
-                <Link href="/dashboard/investments" className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
-                    <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Investimentos</h3>
-                        <TrendingUp className="h-5 w-5 text-orange-600" />
-                    </div>
-                    <p className="text-2xl font-bold">
-                        {formatCurrency(stats.investments.current)}
-                    </p>
-                    <div className={`text-sm mt-2 flex items-center gap-1 ${stats.investments.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {stats.investments.profit >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-                        {formatCurrency(stats.investments.profit)} ({stats.investments.profitPercentage.toFixed(2)}%)
-                    </div>
-                </Link>
-
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-                    <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Patrimônio Total</h3>
-                        <Wallet className="h-5 w-5 text-purple-600" />
-                    </div>
-                    <p className={`text-2xl font-bold ${(stats.available + stats.investments.current) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {formatCurrency(stats.available + stats.investments.current)}
-                    </p>
-                    <div className="text-sm mt-2 text-gray-500 dark:text-gray-400">
-                        Contas + Investimentos
-                    </div>
-                </div>
-
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-                    <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Saldo Previsto</h3>
-                        <Calendar className="h-5 w-5 text-purple-600" />
-                    </div>
-                    <p className={`text-2xl font-bold ${stats.predicted >= 0 ? 'text-white' : 'text-red-600'}`}>
-                        {formatCurrency(stats.predicted)}
-                    </p>
-                    <div className="text-sm mt-2 text-gray-500 dark:text-gray-400">
-                        Com recorrências do período
-                    </div>
-                </div>
+            {/* Cards de Estatísticas */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <StatCard
+                    title="Receitas"
+                    value={formatCurrency(stats.income)}
+                    icon={TrendingUp}
+                    trend={{
+                        value: `${Math.abs(incomeChange).toFixed(1)}%`,
+                        isPositive: incomeChange >= 0
+                    }}
+                    gradient="bg-green-500"
+                    iconColor="bg-gradient-to-br from-green-500 to-green-600 text-white shadow-green-500/30"
+                />
+                <StatCard
+                    title="Despesas"
+                    value={formatCurrency(stats.expenses)}
+                    icon={TrendingDown}
+                    trend={{
+                        value: `${Math.abs(expensesChange).toFixed(1)}%`,
+                        isPositive: expensesChange <= 0
+                    }}
+                    gradient="bg-red-500"
+                    iconColor="bg-gradient-to-br from-red-500 to-red-600 text-white shadow-red-500/30"
+                />
+                <StatCard
+                    title="Saldo"
+                    value={formatCurrency(stats.income - stats.expenses)}
+                    icon={Wallet}
+                    trend={{
+                        value: `${Math.abs(balanceChange).toFixed(1)}%`,
+                        isPositive: balanceChange >= 0
+                    }}
+                    gradient="bg-blue-500"
+                    iconColor="bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-blue-500/30"
+                />
+                <StatCard
+                    title="Disponível"
+                    value={formatCurrency(stats.available)}
+                    icon={DollarSign}
+                    gradient="bg-purple-500"
+                    iconColor="bg-gradient-to-br from-purple-500 to-purple-600 text-white shadow-purple-500/30"
+                />
+                <StatCard
+                    title="Investimentos"
+                    value={formatCurrency(stats.investments.current)}
+                    icon={LineChart}
+                    trend={{
+                        value: `${stats.investments.profitPercentage.toFixed(2)}%`,
+                        isPositive: stats.investments.profit >= 0
+                    }}
+                    gradient="bg-orange-500"
+                    iconColor="bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-orange-500/30"
+                />
+                <StatCard
+                    title="Patrimônio Total"
+                    value={formatCurrency(stats.available + stats.investments.current)}
+                    icon={Target}
+                    gradient="bg-indigo-500"
+                    iconColor="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-indigo-500/30"
+                />
             </div>
 
             {/* Gráficos de Pizza */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm">
                     {stats.expensesByCategory.length > 0 ? (
                         <PieChart title="Despesas por Categoria" data={stats.expensesByCategory} />
                     ) : (
-                        <div className="text-center py-8">
-                            <p className="text-gray-600 dark:text-gray-400">Nenhuma despesa neste mês</p>
+                        <div className="text-center py-12">
+                            <TrendingDown className="mx-auto h-12 w-12 text-gray-400 mb-3" />
+                            <p className="text-gray-600 dark:text-gray-400">Nenhuma despesa neste período</p>
                         </div>
                     )}
                 </div>
 
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm">
                     {stats.incomeByCategory.length > 0 ? (
                         <PieChart title="Receitas por Categoria" data={stats.incomeByCategory} />
                     ) : (
-                        <div className="text-center py-8">
-                            <p className="text-gray-600 dark:text-gray-400">Nenhuma receita neste mês</p>
+                        <div className="text-center py-12">
+                            <TrendingUp className="mx-auto h-12 w-12 text-gray-400 mb-3" />
+                            <p className="text-gray-600 dark:text-gray-400">Nenhuma receita neste período</p>
                         </div>
                     )}
                 </div>
