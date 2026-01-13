@@ -23,8 +23,8 @@ export default function DashboardPage() {
         accounts: [],
         cards: [],
         goals: [],
-        expensesByCategory: [] as { name: string; value: number; color: string }[],
-        incomeByCategory: [] as { name: string; value: number; color: string }[],
+        expensesByCategory: [] as { name: string; value: number; color?: string }[],
+        incomeByCategory: [] as { name: string; value: number; color?: string }[],
         previousMonth: {
             income: 0,
             expenses: 0,
@@ -265,13 +265,13 @@ export default function DashboardPage() {
                 const expensesChart = Object.entries(expensesByCategory).map(([name, data]) => ({
                     name,
                     value: data.value,
-                    color: data.color || '#6B7280'
+                    ...(data.color && { color: data.color })
                 }))
 
                 const incomeChart = Object.entries(incomeByCategory).map(([name, data]) => ({
                     name,
                     value: data.value,
-                    color: data.color || '#10B981'
+                    ...(data.color && { color: data.color })
                 }))
 
                 console.log('📊 Dashboard - Despesas por categoria:', expensesChart)
