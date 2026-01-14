@@ -149,7 +149,8 @@ export default function AccountsPage() {
                     {accounts.map((account) => (
                         <div
                             key={account.id}
-                            className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 hover:shadow-lg transition"
+                            className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 hover:shadow-lg transition cursor-pointer"
+                            onClick={() => router.push(`/dashboard/accounts/${account.id}`)}
                         >
                             <div className="flex items-start justify-between mb-4">
                                 <div className="flex items-center gap-3">
@@ -164,7 +165,7 @@ export default function AccountsPage() {
                                         </p>
                                     </div>
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                                     <button
                                         onClick={() => openEditModal(account)}
                                         className="p-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
