@@ -73,6 +73,9 @@ export async function PUT(
         id,
         userId: user.userId,
       },
+      include: {
+        account: true,
+      },
     });
 
     if (!existingTransaction) {
@@ -82,21 +85,74 @@ export async function PUT(
       );
     }
 
-    const transaction = await prisma.transaction.update({
-      where: { id },
-      data: {
-        accountId: data.accountId,
-        categoryId: data.categoryId,
-        type: data.type,
-        description: data.description,
-        amount: data.amount,
-        date: new Date(data.date),
-        status: data.status,
-      },
-      include: {
-        account: true,
-        category: true,
-      },
+    // Verificar se a nova conta existe (se mudou)
+    if (data.accountId !== existingTransaction.accountId) {
+      const newAccount = await prisma.bankAccount.findFirst({
+        where: {
+          id: data.accountId,
+          userId: user.userId,
+        },
+      });
+
+      if (!newAccount) {
+        return NextResponse.json(
+          { error: "Account not found" },
+          { status: 404 }
+        );
+      }
+    }
+
+    // Atualizar transação e saldos em uma transação atômica
+    const transaction = await prisma.$transaction(async (tx) => {
+      // Reverter o efeito da transação antiga
+      const oldAmount = existingTransaction.amount.toNumber();
+      const oldType = existingTransaction.type;
+      const oldAccountId = existingTransaction.accountId;
+
+      if (oldType === "INCOME") {
+        await tx.bankAccount.update({
+          where: { id: oldAccountId },
+          data: { currentBalance: { decrement: oldAmount } },
+        });
+      } else {
+        await tx.bankAccount.update({
+          where: { id: oldAccountId },
+          data: { currentBalance: { increment: oldAmount } },
+        });
+      }
+
+      // Aplicar o efeito da nova transação
+      if (data.type === "INCOME") {
+        await tx.bankAccount.update({
+          where: { id: data.accountId },
+          data: { currentBalance: { increment: data.amount } },
+        });
+      } else {
+        await tx.bankAccount.update({
+          where: { id: data.accountId },
+          data: { currentBalance: { decrement: data.amount } },
+        });
+      }
+
+      // Atualizar a transação
+      const updatedTransaction = await tx.transaction.update({
+        where: { id },
+        data: {
+          accountId: data.accountId,
+          categoryId: data.categoryId,
+          type: data.type,
+          description: data.description,
+          amount: data.amount,
+          date: new Date(data.date),
+          status: data.status,
+        },
+        include: {
+          account: true,
+          category: true,
+        },
+      });
+
+      return updatedTransaction;
     });
 
     return NextResponse.json(transaction);
@@ -139,8 +195,31 @@ export async function DELETE(
       );
     }
 
-    await prisma.transaction.delete({
-      where: { id },
+    // Deletar transação e reverter o efeito no saldo
+    await prisma.$transaction(async (tx) => {
+      // Reverter o efeito da transação no saldo
+      const amount = existingTransaction.amount.toNumber();
+      const type = existingTransaction.type;
+      const accountId = existingTransaction.accountId;
+
+      if (type === "INCOME") {
+        // Se era receita, diminuir o saldo
+        await tx.bankAccount.update({
+          where: { id: accountId },
+          data: { currentBalance: { decrement: amount } },
+        });
+      } else {
+        // Se era despesa, aumentar o saldo
+        await tx.bankAccount.update({
+          where: { id: accountId },
+          data: { currentBalance: { increment: amount } },
+        });
+      }
+
+      // Deletar a transação
+      await tx.transaction.delete({
+        where: { id },
+      });
     });
 
     return NextResponse.json({ message: "Transaction deleted successfully" });
