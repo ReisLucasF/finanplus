@@ -329,8 +329,8 @@ export default function TransactionsPage() {
                     <button
                         onClick={() => setShowFilters(!showFilters)}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${hasActiveFilters
-                                ? 'bg-blue-600 text-white border-blue-600'
-                                : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                             }`}
                     >
                         <Filter className="h-5 w-5" />
@@ -475,7 +475,8 @@ export default function TransactionsPage() {
                                 {transactionsWithBalances.map((item, index) => {
                                     if ('type' in item && item.type === 'BALANCE_ROW') {
                                         // Linha de saldo do dia
-                                        const balanceAccounts = Array.from(item.balances.entries())
+                                        const balanceRow = item as { type: 'BALANCE_ROW', date: string, balances: Map<string, number> }
+                                        const balanceAccounts = Array.from(balanceRow.balances.entries())
                                             .map(([accountId, balance]) => {
                                                 const account = accounts.find(a => a.id === accountId)
                                                 return { accountId, accountName: account?.name || '', balance }
@@ -483,7 +484,7 @@ export default function TransactionsPage() {
                                             .filter(b => b.balance !== 0)
 
                                         return (
-                                            <tr key={`balance-${item.date}`} className="bg-blue-50 dark:bg-blue-900/20">
+                                            <tr key={`balance-${balanceRow.date}`} className="bg-blue-50 dark:bg-blue-900/20">
                                                 <td colSpan={4} className="px-6 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
                                                     Saldo do Dia
                                                 </td>
