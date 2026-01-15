@@ -57,6 +57,23 @@ CREATE TABLE `CreditCard` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
+CREATE TABLE `CreditCardPurchase` (
+    `id` VARCHAR(191) NOT NULL,
+    `creditCardId` VARCHAR(191) NOT NULL,
+    `categoryId` VARCHAR(191) NOT NULL,
+    `description` VARCHAR(191) NOT NULL,
+    `amount` DECIMAL(12, 2) NOT NULL,
+    `date` DATETIME(3) NOT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    INDEX `CreditCardPurchase_creditCardId_idx`(`creditCardId`),
+    INDEX `CreditCardPurchase_categoryId_idx`(`categoryId`),
+    INDEX `CreditCardPurchase_date_idx`(`date`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
 CREATE TABLE `Category` (
     `id` VARCHAR(191) NOT NULL,
     `userId` VARCHAR(191) NULL,
@@ -68,6 +85,7 @@ CREATE TABLE `Category` (
 
     INDEX `Category_userId_idx`(`userId`),
     INDEX `Category_type_idx`(`type`),
+    UNIQUE INDEX `Category_name_type_key`(`name`, `type`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -167,6 +185,7 @@ CREATE TABLE `Goal` (
     `currentAmount` DECIMAL(12, 2) NOT NULL DEFAULT 0,
     `targetDate` DATETIME(3) NOT NULL,
     `accountId` VARCHAR(191) NULL,
+    `includeInvestments` BOOLEAN NOT NULL DEFAULT false,
     `estimatedCompletionDate` DATETIME(3) NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
@@ -189,11 +208,56 @@ CREATE TABLE `Review` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+-- CreateTable
+CREATE TABLE `Investment` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `name` VARCHAR(191) NOT NULL,
+    `type` ENUM('STOCKS', 'CDB', 'FUNDS', 'TREASURY', 'CRYPTO', 'REAL_ESTATE', 'OTHER') NOT NULL,
+    `ticker` VARCHAR(191) NULL,
+    `cdiPercentage` DECIMAL(5, 2) NULL,
+    `institution` VARCHAR(191) NULL,
+    `notes` TEXT NULL,
+    `color` VARCHAR(191) NOT NULL DEFAULT '#3B82F6',
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    INDEX `Investment_userId_idx`(`userId`),
+    INDEX `Investment_type_idx`(`type`),
+    INDEX `Investment_ticker_idx`(`ticker`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `InvestmentTransaction` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `investmentId` VARCHAR(191) NOT NULL,
+    `type` VARCHAR(191) NOT NULL,
+    `amount` DECIMAL(12, 2) NOT NULL,
+    `quantity` DECIMAL(12, 6) NOT NULL,
+    `price` DECIMAL(12, 2) NOT NULL,
+    `date` DATETIME(3) NOT NULL,
+    `notes` TEXT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    INDEX `InvestmentTransaction_userId_idx`(`userId`),
+    INDEX `InvestmentTransaction_investmentId_idx`(`investmentId`),
+    INDEX `InvestmentTransaction_date_idx`(`date`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 -- AddForeignKey
 ALTER TABLE `BankAccount` ADD CONSTRAINT `BankAccount_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `CreditCard` ADD CONSTRAINT `CreditCard_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `CreditCardPurchase` ADD CONSTRAINT `CreditCardPurchase_creditCardId_fkey` FOREIGN KEY (`creditCardId`) REFERENCES `CreditCard`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `CreditCardPurchase` ADD CONSTRAINT `CreditCardPurchase_categoryId_fkey` FOREIGN KEY (`categoryId`) REFERENCES `Category`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `Category` ADD CONSTRAINT `Category_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
@@ -242,3 +306,12 @@ ALTER TABLE `Goal` ADD CONSTRAINT `Goal_accountId_fkey` FOREIGN KEY (`accountId`
 
 -- AddForeignKey
 ALTER TABLE `Review` ADD CONSTRAINT `Review_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Investment` ADD CONSTRAINT `Investment_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `InvestmentTransaction` ADD CONSTRAINT `InvestmentTransaction_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `InvestmentTransaction` ADD CONSTRAINT `InvestmentTransaction_investmentId_fkey` FOREIGN KEY (`investmentId`) REFERENCES `Investment`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;

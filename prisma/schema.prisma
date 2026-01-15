@@ -88,6 +88,7 @@ model User {
   reviews              Review[]
   categories           Category[]
   creditCardPayments   CreditCardPayment[]
+  creditCardPurchases  CreditCardPurchase[]
   investments          Investment[]
   investmentTransactions InvestmentTransaction[]
 
@@ -139,6 +140,7 @@ model CreditCard {
 
 model CreditCardPurchase {
   id              String   @id @default(uuid())
+  userId          String
   creditCardId    String
   categoryId      String
   description     String
@@ -148,9 +150,11 @@ model CreditCardPurchase {
   updatedAt       DateTime @updatedAt
 
   // Relações
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   creditCard      CreditCard @relation(fields: [creditCardId], references: [id], onDelete: Cascade)
   category        Category   @relation(fields: [categoryId], references: [id])
 
+  @@index([userId])
   @@index([creditCardId])
   @@index([categoryId])
   @@index([date])
@@ -168,6 +172,7 @@ model Category {
   // Relações
   user            User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions    Transaction[]
+  creditCardPurchases CreditCardPurchase[]
   recurringTransactions RecurringTransaction[]
 
   @@unique([name, type])

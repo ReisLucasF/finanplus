@@ -121,6 +121,9 @@ export async function GET(
     }
 
     const { id: cardId } = await params;
+    const { searchParams } = new URL(request.url);
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
 
     // Verificar se o cartão pertence ao usuário
     const card = await prisma.creditCard.findFirst({
@@ -134,8 +137,20 @@ export async function GET(
       );
     }
 
+    // Construir filtro de data
+    const dateFilter: any = {};
+    if (startDate) {
+      dateFilter.gte = new Date(startDate);
+    }
+    if (endDate) {
+      dateFilter.lte = new Date(endDate);
+    }
+
     const purchases = await prisma.creditCardPurchase.findMany({
-      where: { creditCardId: cardId },
+      where: {
+        creditCardId: cardId,
+        ...(Object.keys(dateFilter).length > 0 && { date: dateFilter }),
+      },
       include: {
         category: true,
       },

@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { CreditCard, Plus, Edit, Trash2, DollarSign, TrendingUp, AlertCircle, CheckCircle, ShoppingCart } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { CreditCard, Plus, Edit, Trash2, DollarSign, TrendingUp, AlertCircle, CheckCircle, ShoppingCart, Eye } from 'lucide-react'
 import LoadingSpinner from '../components/LoadingSpinner'
 
 interface Card {
@@ -28,6 +29,7 @@ interface Category {
 }
 
 export default function CardsPage() {
+    const router = useRouter()
     const [cards, setCards] = useState<Card[]>([])
     const [accounts, setAccounts] = useState<Account[]>([])
     const [categories, setCategories] = useState<Category[]>([])
@@ -469,19 +471,27 @@ export default function CardsPage() {
                                 </div>
 
                                 {/* Botões de Ação */}
-                                <div className="flex gap-2">
+                                <div className="grid grid-cols-3 gap-2">
+                                    <button
+                                        onClick={() => router.push(`/dashboard/cards/${card.id}`)}
+                                        className="py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all font-semibold shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                                        title="Ver Detalhes"
+                                    >
+                                        <Eye className="h-5 w-5" />
+                                        Ver
+                                    </button>
                                     <button
                                         onClick={() => openPurchaseModal(card)}
                                         disabled={(card.cardLimit - (card.currentDebt || 0)) <= 0}
-                                        className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all font-semibold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                        className="py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all font-semibold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                     >
                                         <ShoppingCart className="h-5 w-5" />
-                                        Nova Compra
+                                        Compra
                                     </button>
                                     <button
                                         onClick={() => openPaymentModal(card)}
                                         disabled={(card.currentDebt || 0) <= 0}
-                                        className="flex-1 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all font-semibold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                        className="py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all font-semibold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                     >
                                         <DollarSign className="h-5 w-5" />
                                         Pagar
