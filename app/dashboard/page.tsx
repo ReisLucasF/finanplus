@@ -29,6 +29,7 @@ export default function DashboardPage() {
         goals: [],
         expensesByCategory: [] as { name: string; value: number; color?: string }[],
         incomeByCategory: [] as { name: string; value: number; color?: string }[],
+        cardExpensesByCategory: [] as { name: string; value: number; color?: string }[],
         previousMonth: {
             income: 0,
             expenses: 0,
@@ -118,14 +119,15 @@ export default function DashboardPage() {
                 }
 
                 // Buscar dados do dashboard
-                const [accountsRes, cardsRes, goalsRes, transactionsRes, recurringsRes, categoriesRes, investmentsRes] = await Promise.all([
+                const [accountsRes, cardsRes, goalsRes, transactionsRes, recurringsRes, categoriesRes, investmentsRes, cardExpensesRes] = await Promise.all([
                     fetch('/api/accounts'),
                     fetch('/api/cards'),
                     fetch('/api/goals'),
                     fetch('/api/transactions'),
                     fetch('/api/recurring-transactions'),
                     fetch('/api/categories'),
-                    fetch('/api/investments')
+                    fetch('/api/investments'),
+                    fetch(`/api/cards/expenses-by-category?startDate=${dateRange.start.toISOString()}&endDate=${dateRange.end.toISOString()}`)
                 ])
 
                 const accounts = accountsRes.ok ? await accountsRes.json() : []
@@ -135,6 +137,7 @@ export default function DashboardPage() {
                 const recurrings = recurringsRes.ok ? await recurringsRes.json() : []
                 const categories = categoriesRes.ok ? await categoriesRes.json() : []
                 const investments = investmentsRes.ok ? await investmentsRes.json() : []
+                const cardExpensesByCategory = cardExpensesRes.ok ? await cardExpensesRes.json() : []
 
                 // Buscar summaries dos investimentos
                 const investmentSummaries = await Promise.all(
@@ -295,6 +298,7 @@ export default function DashboardPage() {
                     goals: goalsWithCalculated,
                     expensesByCategory: expensesChart,
                     incomeByCategory: incomeChart,
+                    cardExpensesByCategory: cardExpensesByCategory,
                     previousMonth: {
                         income: prevIncome || 0,
                         expenses: prevExpenses || 0,
@@ -539,6 +543,17 @@ export default function DashboardPage() {
                         </div>
                     )}
                 </div>
+
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm">
+                    {stats.cardExpensesByCategory.length > 0 ? (
+                        <PieChart title="Gastos com Cartão" data={stats.cardExpensesByCategory} />
+                    ) : (
+                        <div className="text-center py-12">
+                            <CreditCard className="mx-auto h-12 w-12 text-gray-400 mb-3" />
+                            <p className="text-gray-600 dark:text-gray-400">Nenhuma compra no cartão neste período</p>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Grid de Seções */}
@@ -553,7 +568,7 @@ export default function DashboardPage() {
                     </div>
                     {stats.accounts.length > 0 ? (
                         <div className="space-y-3">
-                            {stats.accounts.slice(0, 3).map((account: any) => (
+                            {stats.accounts.slice(0, 4).map((account: any) => (
                                 <div key={account.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                                     <div className="flex items-center gap-3">
                                         <div className="w-3 h-3 rounded-full" style={{ backgroundColor: account.color }} />
