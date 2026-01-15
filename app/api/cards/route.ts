@@ -21,15 +21,31 @@ export async function GET() {
 
     const cards = await prisma.creditCard.findMany({
       where: { userId: user.userId },
+      include: {
+        purchases: true,
+      },
       orderBy: { createdAt: "desc" },
     });
 
-    // Serializar os Decimals para números
-    const serializedCards = cards.map((card) => ({
-      ...card,
-      cardLimit: card.cardLimit.toNumber(),
-      initialDebt: card.initialDebt.toNumber(),
-    }));
+    // Calcular dívida atual (initialDebt + compras) e serializar
+    const serializedCards = cards.map((card) => {
+      const totalPurchases = card.purchases.reduce(
+        (sum, p) => sum + p.amount.toNumber(),
+        0
+      );
+      const currentDebt = card.initialDebt.toNumber() + totalPurchases;
+
+      return {
+        ...card,
+        cardLimit: card.cardLimit.toNumber(),
+        initialDebt: card.initialDebt.toNumber(),
+        currentDebt,
+        purchases: card.purchases.map((p) => ({
+          ...p,
+          amount: p.amount.toNumber(),
+        })),
+      };
+    });
 
     return NextResponse.json(serializedCards);
   } catch (error) {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { CreditCard, Plus, Edit, Trash2, DollarSign, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react'
+import { CreditCard, Plus, Edit, Trash2, DollarSign, TrendingUp, AlertCircle, CheckCircle, ShoppingCart } from 'lucide-react'
 import LoadingSpinner from '../components/LoadingSpinner'
 
 interface Card {
@@ -21,14 +21,23 @@ interface Account {
     balance: number
 }
 
+interface Category {
+    id: string
+    name: string
+    type: string
+}
+
 export default function CardsPage() {
     const [cards, setCards] = useState<Card[]>([])
     const [accounts, setAccounts] = useState<Account[]>([])
+    const [categories, setCategories] = useState<Category[]>([])
     const [loading, setLoading] = useState(true)
     const [showModal, setShowModal] = useState(false)
     const [showPaymentModal, setShowPaymentModal] = useState(false)
+    const [showPurchaseModal, setShowPurchaseModal] = useState(false)
     const [editingCard, setEditingCard] = useState<Card | null>(null)
     const [payingCard, setPayingCard] = useState<Card | null>(null)
+    const [purchasingCard, setPurchasingCard] = useState<Card | null>(null)
     const [formData, setFormData] = useState({
         name: '',
         cardLimit: 0 as number | string,
@@ -42,6 +51,17 @@ export default function CardsPage() {
     }>({
         amount: 0,
         accountId: '',
+    })
+    const [purchaseData, setPurchaseData] = useState<{
+        description: string
+        amount: string | number
+        categoryId: string
+        date: string
+    }>({
+        description: '',
+        amount: 0,
+        categoryId: '',
+        date: new Date().toISOString().split('T')[0],
     })
 
     // Converter valor BRL para número
@@ -63,41 +83,19 @@ export default function CardsPage() {
             if (res.ok) {
                 const data = await res.json()
 
-                // Calcular dívida atual de cada cartão
-                // Por enquanto, a dívida atual é apenas o initialDebt
-                // TODO: Implementar sistema de compras no cartão
+                // Usar currentDebt que vem da API (já calculado com compras)
                 const cardsWithDebt = data.map((card: Card) => {
-                    const initialDebt = Number(card.initialDebt) || 0
-                    const usagePercentage = (initialDebt / Number(card.cardLimit)) * 100
-
-                    console.log(`💳 ${card.name}:`, {
-                        initialDebt,
-                        cardLimit: card.cardLimit,
-                        usagePercentage
-                    })
+                    const currentDebt = card.currentDebt || Number(card.initialDebt) || 0
+                    const usagePercentage = (currentDebt / Number(card.cardLimit)) * 100
 
                     return {
                         ...card,
-                        currentDebt: initialDebt,
+                        currentDebt,
                         usagePercentage: Math.min(usagePercentage, 100)
                     }
                 })
 
                 setCards(cardsWithDebt)
-
-                console.log('💳 Cards carregados:', cardsWithDebt.map((c: Card) => ({
-                    name: c.name,
-                    cardLimit: c.cardLimit,
-                    tipo: typeof c.cardLimit,
-                    currentDebt: c.currentDebt
-                })))
-
-                const totalLimit = cardsWithDebt.reduce((sum: number, card: Card) => {
-                    const limit = Number(card.cardLimit) || 0
-                    console.log(`  ${card.name}: ${limit}`)
-                    return sum + limit
-                }, 0)
-                console.log('💰 Limite Total calculado:', totalLimit)
             }
         } catch (error) {
             console.error('Erro ao carregar cartões:', error)
@@ -118,9 +116,22 @@ export default function CardsPage() {
         }
     }
 
+    const loadCategories = async () => {
+        try {
+            const res = await fetch('/api/categories')
+            if (res.ok) {
+                const data = await res.json()
+                setCategories(data)
+            }
+        } catch (error) {
+            console.error('Erro ao carregar categorias:', error)
+        }
+    }
+
     useEffect(() => {
         loadCards()
         loadAccounts()
+        loadCategories()
     }, [])
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -237,6 +248,55 @@ export default function CardsPage() {
         setPayingCard(card)
         setPaymentData({ amount: card.currentDebt || 0, accountId: accounts[0]?.id || '' })
         setShowPaymentModal(true)
+    }
+
+    const openPurchaseModal = (card: Card) => {
+        setPurchasingCard(card)
+        setPurchaseData({
+            description: '',
+            amount: 0,
+            categoryId: categories.find(c => c.type === 'EXPENSE')?.id || '',
+            date: new Date().toISOString().split('T')[0],
+        })
+        setShowPurchaseModal(true)
+    }
+
+    const handlePurchase = async (e: React.FormEvent) => {
+        e.preventDefault()
+
+        const parsedAmount = parseBRLValue(purchaseData.amount)
+
+        if (!purchasingCard || !purchaseData.categoryId || !purchaseData.description || parsedAmount <= 0) {
+            alert('Preencha todos os campos corretamente')
+            return
+        }
+
+        try {
+            const res = await fetch(`/api/cards/${purchasingCard.id}/purchases`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    categoryId: purchaseData.categoryId,
+                    description: purchaseData.description,
+                    amount: parsedAmount,
+                    date: purchaseData.date,
+                }),
+            })
+
+            if (res.ok) {
+                setShowPurchaseModal(false)
+                setPurchasingCard(null)
+                setPurchaseData({ description: '', amount: 0, categoryId: '', date: new Date().toISOString().split('T')[0] })
+                loadCards()
+                alert('Compra registrada com sucesso!')
+            } else {
+                const error = await res.json()
+                alert(error.error || 'Erro ao registrar compra')
+            }
+        } catch (error) {
+            console.error('Erro:', error)
+            alert('Erro ao registrar compra')
+        }
     }
 
     const getProgressBarColor = (percentage: number) => {
@@ -408,15 +468,25 @@ export default function CardsPage() {
                                     </div>
                                 </div>
 
-                                {/* Botão de Pagamento */}
-                                <button
-                                    onClick={() => openPaymentModal(card)}
-                                    disabled={(card.currentDebt || 0) <= 0}
-                                    className="w-full py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all font-semibold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                                >
-                                    <DollarSign className="h-5 w-5" />
-                                    Pagar Fatura
-                                </button>
+                                {/* Botões de Ação */}
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => openPurchaseModal(card)}
+                                        disabled={(card.cardLimit - (card.currentDebt || 0)) <= 0}
+                                        className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all font-semibold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                    >
+                                        <ShoppingCart className="h-5 w-5" />
+                                        Nova Compra
+                                    </button>
+                                    <button
+                                        onClick={() => openPaymentModal(card)}
+                                        disabled={(card.currentDebt || 0) <= 0}
+                                        className="flex-1 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all font-semibold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                    >
+                                        <DollarSign className="h-5 w-5" />
+                                        Pagar
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     ))}
@@ -627,6 +697,105 @@ export default function CardsPage() {
                                     className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold"
                                 >
                                     Confirmar Pagamento
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal de Nova Compra */}
+            {showPurchaseModal && purchasingCard && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                            Nova Compra
+                        </h2>
+                        <p className="text-gray-600 dark:text-gray-400 mb-6">
+                            {purchasingCard.name} - Disponível: {formatCurrency(purchasingCard.cardLimit - (purchasingCard.currentDebt || 0))}
+                        </p>
+                        <form onSubmit={handlePurchase} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Descrição
+                                </label>
+                                <input
+                                    type="text"
+                                    value={purchaseData.description}
+                                    onChange={(e) => setPurchaseData({ ...purchaseData, description: e.target.value })}
+                                    placeholder="Ex: Supermercado, Restaurante..."
+                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Categoria
+                                </label>
+                                <select
+                                    value={purchaseData.categoryId}
+                                    onChange={(e) => setPurchaseData({ ...purchaseData, categoryId: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                    required
+                                >
+                                    <option value="">Selecione uma categoria</option>
+                                    {categories.filter(c => c.type === 'EXPENSE').map((category) => (
+                                        <option key={category.id} value={category.id}>
+                                            {category.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Valor
+                                </label>
+                                <input
+                                    type="text"
+                                    value={purchaseData.amount}
+                                    onChange={(e) => setPurchaseData({ ...purchaseData, amount: e.target.value })}
+                                    placeholder="Ex: 100,00"
+                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                    required
+                                />
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    Disponível: {formatCurrency(purchasingCard.cardLimit - (purchasingCard.currentDebt || 0))}
+                                </p>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Data da Compra
+                                </label>
+                                <input
+                                    type="date"
+                                    value={purchaseData.date}
+                                    onChange={(e) => setPurchaseData({ ...purchaseData, date: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                    required
+                                />
+                            </div>
+                            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                                <p className="text-sm text-blue-800 dark:text-blue-300">
+                                    💡 A compra será registrada no cartão e ocupará o limite disponível
+                                </p>
+                            </div>
+                            <div className="flex gap-3 pt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowPurchaseModal(false)
+                                        setPurchasingCard(null)
+                                        setPurchaseData({ description: '', amount: 0, categoryId: '', date: new Date().toISOString().split('T')[0] })
+                                    }}
+                                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
+                                >
+                                    Registrar Compra
                                 </button>
                             </div>
                         </form>
