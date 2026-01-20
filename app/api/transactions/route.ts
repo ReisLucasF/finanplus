@@ -58,7 +58,7 @@ export async function GET(request: Request) {
     console.error("Erro ao buscar transações:", error);
     return NextResponse.json(
       { error: "Erro ao buscar transações" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -85,7 +85,7 @@ export async function POST(request: Request) {
     if (!account) {
       return NextResponse.json(
         { error: "Conta não encontrada" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -96,7 +96,7 @@ export async function POST(request: Request) {
     ) {
       return NextResponse.json(
         { error: "Saldo insuficiente" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -113,16 +113,18 @@ export async function POST(request: Request) {
         },
       });
 
-      // Atualizar saldo da conta
-      const newBalance =
-        data.type === "INCOME"
-          ? account.currentBalance.toNumber() + data.amount
-          : account.currentBalance.toNumber() - data.amount;
+      // Atualizar saldo da conta apenas se a transação for COMPLETED
+      if (data.status === "COMPLETED") {
+        const newBalance =
+          data.type === "INCOME"
+            ? account.currentBalance.toNumber() + data.amount
+            : account.currentBalance.toNumber() - data.amount;
 
-      await tx.bankAccount.update({
-        where: { id: data.accountId },
-        data: { currentBalance: newBalance },
-      });
+        await tx.bankAccount.update({
+          where: { id: data.accountId },
+          data: { currentBalance: newBalance },
+        });
+      }
 
       return newTransaction;
     });
@@ -135,7 +137,7 @@ export async function POST(request: Request) {
     console.error("Erro ao criar transação:", error);
     return NextResponse.json(
       { error: "Erro ao criar transação" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

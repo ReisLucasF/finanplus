@@ -15,7 +15,7 @@ const transactionSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getCurrentUser();
@@ -39,7 +39,7 @@ export async function GET(
     if (!transaction) {
       return NextResponse.json(
         { error: "Transaction not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -48,14 +48,14 @@ export async function GET(
     console.error("Error fetching transaction:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getCurrentUser();
@@ -81,7 +81,7 @@ export async function PUT(
     if (!existingTransaction) {
       return NextResponse.json(
         { error: "Transaction not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -97,41 +97,46 @@ export async function PUT(
       if (!newAccount) {
         return NextResponse.json(
           { error: "Account not found" },
-          { status: 404 }
+          { status: 404 },
         );
       }
     }
 
     // Atualizar transação e saldos em uma transação atômica
     const transaction = await prisma.$transaction(async (tx) => {
-      // Reverter o efeito da transação antiga
       const oldAmount = existingTransaction.amount.toNumber();
       const oldType = existingTransaction.type;
+      const oldStatus = existingTransaction.status;
       const oldAccountId = existingTransaction.accountId;
 
-      if (oldType === "INCOME") {
-        await tx.bankAccount.update({
-          where: { id: oldAccountId },
-          data: { currentBalance: { decrement: oldAmount } },
-        });
-      } else {
-        await tx.bankAccount.update({
-          where: { id: oldAccountId },
-          data: { currentBalance: { increment: oldAmount } },
-        });
+      // Reverter o efeito da transação antiga apenas se era COMPLETED
+      if (oldStatus === "COMPLETED") {
+        if (oldType === "INCOME") {
+          await tx.bankAccount.update({
+            where: { id: oldAccountId },
+            data: { currentBalance: { decrement: oldAmount } },
+          });
+        } else {
+          await tx.bankAccount.update({
+            where: { id: oldAccountId },
+            data: { currentBalance: { increment: oldAmount } },
+          });
+        }
       }
 
-      // Aplicar o efeito da nova transação
-      if (data.type === "INCOME") {
-        await tx.bankAccount.update({
-          where: { id: data.accountId },
-          data: { currentBalance: { increment: data.amount } },
-        });
-      } else {
-        await tx.bankAccount.update({
-          where: { id: data.accountId },
-          data: { currentBalance: { decrement: data.amount } },
-        });
+      // Aplicar o efeito da nova transação apenas se for COMPLETED
+      if (data.status === "COMPLETED") {
+        if (data.type === "INCOME") {
+          await tx.bankAccount.update({
+            where: { id: data.accountId },
+            data: { currentBalance: { increment: data.amount } },
+          });
+        } else {
+          await tx.bankAccount.update({
+            where: { id: data.accountId },
+            data: { currentBalance: { decrement: data.amount } },
+          });
+        }
       }
 
       // Atualizar a transação
@@ -163,14 +168,14 @@ export async function PUT(
     console.error("Error updating transaction:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getCurrentUser();
@@ -191,29 +196,31 @@ export async function DELETE(
     if (!existingTransaction) {
       return NextResponse.json(
         { error: "Transaction not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     // Deletar transação e reverter o efeito no saldo
     await prisma.$transaction(async (tx) => {
-      // Reverter o efeito da transação no saldo
-      const amount = existingTransaction.amount.toNumber();
-      const type = existingTransaction.type;
-      const accountId = existingTransaction.accountId;
+      // Reverter o efeito da transação no saldo apenas se era COMPLETED
+      if (existingTransaction.status === "COMPLETED") {
+        const amount = existingTransaction.amount.toNumber();
+        const type = existingTransaction.type;
+        const accountId = existingTransaction.accountId;
 
-      if (type === "INCOME") {
-        // Se era receita, diminuir o saldo
-        await tx.bankAccount.update({
-          where: { id: accountId },
-          data: { currentBalance: { decrement: amount } },
-        });
-      } else {
-        // Se era despesa, aumentar o saldo
-        await tx.bankAccount.update({
-          where: { id: accountId },
-          data: { currentBalance: { increment: amount } },
-        });
+        if (type === "INCOME") {
+          // Se era receita, diminuir o saldo
+          await tx.bankAccount.update({
+            where: { id: accountId },
+            data: { currentBalance: { decrement: amount } },
+          });
+        } else {
+          // Se era despesa, aumentar o saldo
+          await tx.bankAccount.update({
+            where: { id: accountId },
+            data: { currentBalance: { increment: amount } },
+          });
+        }
       }
 
       // Deletar a transação
@@ -227,7 +234,7 @@ export async function DELETE(
     console.error("Error deleting transaction:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

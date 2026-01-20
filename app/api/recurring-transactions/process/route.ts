@@ -55,7 +55,7 @@ export async function POST() {
           case "WEEKLY":
             // Uma vez por semana
             const daysSinceLastProcessed = Math.floor(
-              (now.getTime() - lastProcessed.getTime()) / (1000 * 60 * 60 * 24)
+              (now.getTime() - lastProcessed.getTime()) / (1000 * 60 * 60 * 24),
             );
             if (daysSinceLastProcessed >= 7) {
               shouldProcess = true;
@@ -65,7 +65,7 @@ export async function POST() {
           case "BIWEEKLY":
             // A cada 15 dias
             const daysSinceLast = Math.floor(
-              (now.getTime() - lastProcessed.getTime()) / (1000 * 60 * 60 * 24)
+              (now.getTime() - lastProcessed.getTime()) / (1000 * 60 * 60 * 24),
             );
             if (daysSinceLast >= 15) {
               shouldProcess = true;
@@ -90,26 +90,45 @@ export async function POST() {
         const transactionDate = new Date(
           currentYear,
           currentMonth,
-          Math.min(recurring.dueDay, 31)
+          Math.min(recurring.dueDay, 31),
         );
 
-        const transaction = await prisma.transaction.create({
-          data: {
-            userId: user.userId,
-            accountId: recurring.accountId,
-            categoryId: recurring.categoryId,
-            type: recurring.type,
-            description: `[Recorrente] ${recurring.description}`,
-            amount: recurring.amount,
-            date: transactionDate,
-            status: "PENDING",
-            isRecurring: true,
-            recurringId: recurring.id,
-          },
-          include: {
-            category: true,
-            account: true,
-          },
+        // Criar transação e atualizar saldo da conta em uma transação atômica
+        const transaction = await prisma.$transaction(async (tx) => {
+          const newTransaction = await tx.transaction.create({
+            data: {
+              userId: user.userId,
+              accountId: recurring.accountId,
+              categoryId: recurring.categoryId,
+              type: recurring.type,
+              description: `[Recorrente] ${recurring.description}`,
+              amount: recurring.amount,
+              date: transactionDate,
+              status: "COMPLETED",
+              isRecurring: true,
+              recurringId: recurring.id,
+            },
+            include: {
+              category: true,
+              account: true,
+            },
+          });
+
+          // Atualizar saldo da conta
+          const amount = recurring.amount.toNumber();
+          if (recurring.type === "INCOME") {
+            await tx.bankAccount.update({
+              where: { id: recurring.accountId },
+              data: { currentBalance: { increment: amount } },
+            });
+          } else {
+            await tx.bankAccount.update({
+              where: { id: recurring.accountId },
+              data: { currentBalance: { decrement: amount } },
+            });
+          }
+
+          return newTransaction;
         });
 
         // Atualizar lastProcessedDate
@@ -131,7 +150,7 @@ export async function POST() {
     console.error("Erro ao processar recorrências:", error);
     return NextResponse.json(
       { error: "Erro ao processar recorrências" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
