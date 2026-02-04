@@ -1,0 +1,273 @@
+// FinanPlus - Prisma Schema (SQLite)
+// Sistema de controle financeiro pessoal
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// SQLite não suporta enums - usando String com valores restritos
+// Valores válidos:
+// UserRole: "USER", "ADMIN"
+// Theme: "LIGHT", "DARK"
+// AccountType: "CHECKING", "SAVINGS"
+// TransactionType: "INCOME", "EXPENSE"
+// TransactionStatus: "PENDING", "COMPLETED", "CANCELLED"
+// TransactionFrequency: "WEEKLY", "BIWEEKLY", "MONTHLY", "ANNUAL"
+// PaymentStatus: "PENDING", "PAID"
+// InvestmentType: "STOCKS", "CDB", "FUNDS", "TREASURY", "CRYPTO", "REAL_ESTATE", "OTHER"
+
+// Models
+model User {
+  id                   String   @id @default(uuid())
+  email                String   @unique
+  password             String?  // Pode ser null para usuários OAuth
+  googleId             String?  @unique
+  name                 String
+  displayName          String?
+  role                 String   @default("USER") // UserRole
+  isActive             Boolean  @default(true)
+  theme                String   @default("LIGHT") // Theme
+  country              String   @default("BR")
+  currency             String   @default("BRL")
+  monthlyLimit         Float?
+  onboardingCompleted  Boolean  @default(false)
+  dashboardLayout      String?  // JSON serializado como string
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  // Relações
+  accounts             BankAccount[]
+  creditCards          CreditCard[]
+  transactions         Transaction[]
+  recurringTransactions RecurringTransaction[]
+  transfers            Transfer[]
+  goals                Goal[]
+  reviews              Review[]
+  categories           Category[]
+  creditCardPayments   CreditCardPayment[]
+  creditCardPurchases  CreditCardPurchase[]
+  investments          Investment[]
+  investmentTransactions InvestmentTransaction[]
+}
+
+model BankAccount {
+  id              String   @id @default(uuid())
+  userId          String
+  name            String
+  type            String   // AccountType
+  initialBalance  Float
+  currentBalance  Float
+  color           String   // Hex color
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relações
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions    Transaction[]
+  recurringTransactions RecurringTransaction[]
+  transfersFrom   Transfer[] @relation("TransferFrom")
+  transfersTo     Transfer[] @relation("TransferTo")
+  goals           Goal[]
+  creditCardPayments CreditCardPayment[]
+}
+
+model CreditCard {
+  id              String   @id @default(uuid())
+  userId          String
+  name            String
+  cardLimit       Float
+  dueDay          Int      // 1-31
+  initialDebt     Float    @default(0)
+  color           String   // Hex color
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relações
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments        CreditCardPayment[]
+  purchases       CreditCardPurchase[]
+}
+
+model CreditCardPurchase {
+  id              String   @id @default(uuid())
+  userId          String
+  creditCardId    String
+  categoryId      String
+  description     String
+  amount          Float
+  date            DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relações
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  creditCard      CreditCard @relation(fields: [creditCardId], references: [id], onDelete: Cascade)
+  category        Category   @relation(fields: [categoryId], references: [id])
+}
+
+model Category {
+  id              String   @id @default(uuid())
+  userId          String?  // Null para categorias do sistema
+  name            String
+  type            String   // TransactionType
+  icon            String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relações
+  user            User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions    Transaction[]
+  creditCardPurchases CreditCardPurchase[]
+  recurringTransactions RecurringTransaction[]
+
+  @@unique([name, type])
+}
+
+model Transaction {
+  id              String   @id @default(uuid())
+  userId          String
+  accountId       String
+  categoryId      String
+  type            String   // TransactionType
+  description     String
+  amount          Float
+  date            DateTime
+  status          String   @default("PENDING") // TransactionStatus
+  isRecurring     Boolean  @default(false)
+  recurringId     String?  // ID da recorrência que gerou esta transação
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relações
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account         BankAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  category        Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+}
+
+model RecurringTransaction {
+  id              String   @id @default(uuid())
+  userId          String
+  accountId       String
+  categoryId      String
+  type            String   // TransactionType
+  description     String
+  amount          Float
+  frequency       String   // TransactionFrequency
+  startDate       DateTime
+  endDate         DateTime?
+  dueDay          Int      // 1-31
+  isActive        Boolean  @default(true)
+  lastProcessedDate DateTime? // Última data em que foi processada
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relações
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account         BankAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  category        Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+}
+
+model CreditCardPayment {
+  id              String   @id @default(uuid())
+  userId          String
+  creditCardId    String
+  accountId       String   // Conta de onde saiu o pagamento
+  amount          Float
+  dueDate         DateTime
+  paymentDate     DateTime?
+  status          String   @default("PENDING") // PaymentStatus
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relações
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  creditCard      CreditCard @relation(fields: [creditCardId], references: [id], onDelete: Cascade)
+  account         BankAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+}
+
+model Transfer {
+  id              String   @id @default(uuid())
+  userId          String
+  fromAccountId   String
+  toAccountId     String
+  amount          Float
+  description     String?
+  date            DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relações
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fromAccount     BankAccount @relation("TransferFrom", fields: [fromAccountId], references: [id], onDelete: Cascade)
+  toAccount       BankAccount @relation("TransferTo", fields: [toAccountId], references: [id], onDelete: Cascade)
+}
+
+model Goal {
+  id                      String   @id @default(uuid())
+  userId                  String
+  name                    String
+  targetAmount            Float
+  currentAmount           Float    @default(0)
+  targetDate              DateTime
+  accountId               String?
+  includeInvestments      Boolean  @default(false)
+  estimatedCompletionDate DateTime?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  // Relações
+  user                    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account                 BankAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+}
+
+model Review {
+  id              String   @id @default(uuid())
+  userId          String
+  rating          Int      // 1-5
+  comment         String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relações
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Investment {
+  id                String         @id @default(uuid())
+  userId            String
+  name              String         // Nome do investimento (ex: "Ações Petrobras", "CDB Banco X")
+  type              String         // InvestmentType
+  ticker            String?        // Ticker da ação (ex: PETR4, VALE3) - para buscar cotação automática
+  cdiPercentage     Float?         // Percentual do CDI (ex: 110.00 = 110% do CDI) - para CDB
+  institution       String?        // Corretora ou banco
+  notes             String?
+  color             String         @default("#3B82F6")
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  // Relações
+  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions      InvestmentTransaction[]
+}
+
+model InvestmentTransaction {
+  id            String   @id @default(uuid())
+  userId        String
+  investmentId  String
+  type          String   // BUY (compra), SELL (venda)
+  amount        Float    // Valor total da transação
+  quantity      Float    // Quantidade comprada/vendida
+  price         Float    // Preço unitário na transação
+  date          DateTime // Data da transação
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  // Relações
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  investment    Investment @relation(fields: [investmentId], references: [id], onDelete: Cascade)
+}

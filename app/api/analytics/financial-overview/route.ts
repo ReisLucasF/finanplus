@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { calculateAllAnalytics } from "@/lib/analytics";
 
 // Função para converter Decimal do Prisma para número
 const convertDecimalFields = (obj: any): any => {
@@ -39,122 +40,120 @@ export async function GET() {
 
     console.log("✅ Buscando dados para usuário:", currentUser.userId);
 
-    // Verificar se as views existem
+    // Tentar usar views SQL primeiro (MySQL)
+    let useViews = true;
     try {
-      const viewCheck = await prisma.$queryRawUnsafe(`
+      const viewCheck = (await prisma.$queryRawUnsafe(`
                 SELECT TABLE_NAME 
                 FROM information_schema.VIEWS 
                 WHERE TABLE_SCHEMA = DATABASE()
-                  AND TABLE_NAME LIKE 'vw_%'
-            `);
-      console.log("📊 Views encontradas:", viewCheck);
-    } catch (e) {
-      console.log("⚠️ Erro ao verificar views:", e);
+                  AND TABLE_NAME = 'vw_Dashboard_Principal'
+            `)) as any[];
+
+      if (!viewCheck || viewCheck.length === 0) {
+        console.log("⚠️ Views SQL não encontradas, usando cálculos TypeScript");
+        useViews = false;
+      } else {
+        console.log("📊 Views SQL encontradas, usando views");
+      }
+    } catch (e: any) {
+      console.log(
+        "⚠️ Banco não suporta views, usando cálculos TypeScript:",
+        e.message,
+      );
+      useViews = false;
     }
 
-    // Buscar dados do dashboard principal
-    console.log("🔍 Buscando vw_Dashboard_Principal...");
-    const dashboardData = await prisma.$queryRawUnsafe(`
-            SELECT * FROM vw_Dashboard_Principal WHERE userId = '${currentUser.userId}'
-        `);
-    console.log("📊 Dashboard data:", dashboardData);
+    let response;
 
-    // Buscar gastos por categoria
-    console.log("🔍 Buscando vw_Gastos_Por_Categoria...");
-    const expensesByCategory = await prisma.$queryRawUnsafe(`
-            SELECT * FROM vw_Gastos_Por_Categoria 
-            WHERE userId = '${currentUser.userId}'
-            ORDER BY total_ultimos_3_meses DESC
-            LIMIT 10
-        `);
-    console.log("📊 Expenses:", expensesByCategory);
+    if (useViews) {
+      // Modo MySQL: usar views SQL
+      console.log("🔍 Buscando dados das views SQL...");
 
-    // Buscar receitas
-    console.log("🔍 Buscando vw_Analise_Receitas...");
-    const incomeAnalysis = await prisma.$queryRawUnsafe(`
-            SELECT * FROM vw_Analise_Receitas 
-            WHERE userId = '${currentUser.userId}'
-            ORDER BY receita_ultimos_3_meses DESC
-        `);
-    console.log("📊 Income:", incomeAnalysis);
+      const dashboardData = await prisma.$queryRawUnsafe(`
+              SELECT * FROM vw_Dashboard_Principal WHERE userId = '${currentUser.userId}'
+          `);
+      console.log("📊 Dashboard data:", dashboardData);
 
-    // Buscar portfolio de investimentos
-    console.log("🔍 Buscando vw_Portfolio_Investimentos...");
-    const investments = await prisma.$queryRawUnsafe(`
-            SELECT * FROM vw_Portfolio_Investimentos 
-            WHERE userId = '${currentUser.userId}'
-            ORDER BY valor_investido_liquido DESC
-        `);
-    console.log("📊 Investments:", investments);
+      const expensesByCategory = await prisma.$queryRawUnsafe(`
+              SELECT * FROM vw_Gastos_Por_Categoria 
+              WHERE userId = '${currentUser.userId}'
+              ORDER BY total_ultimos_3_meses DESC
+              LIMIT 10
+          `);
 
-    // Buscar análise de cartões
-    console.log("🔍 Buscando vw_Analise_Cartoes_Credito...");
-    const creditCards = await prisma.$queryRawUnsafe(`
-            SELECT * FROM vw_Analise_Cartoes_Credito 
-            WHERE userId = '${currentUser.userId}'
-            ORDER BY score_saude_cartao ASC
-        `);
-    console.log("📊 Credit Cards:", creditCards);
+      const incomeAnalysis = await prisma.$queryRawUnsafe(`
+              SELECT * FROM vw_Analise_Receitas 
+              WHERE userId = '${currentUser.userId}'
+              ORDER BY receita_ultimos_3_meses DESC
+          `);
 
-    // Buscar evolução patrimonial (últimos 12 meses)
-    console.log("🔍 Buscando vw_Evolucao_Patrimonial...");
-    const patrimonyEvolution = await prisma.$queryRawUnsafe(`
-            SELECT * FROM vw_Evolucao_Patrimonial 
-            WHERE userId = '${currentUser.userId}'
-            ORDER BY ano DESC, mes DESC
-            LIMIT 12
-        `);
-    console.log("📊 Patrimony Evolution:", patrimonyEvolution);
+      const investments = await prisma.$queryRawUnsafe(`
+              SELECT * FROM vw_Portfolio_Investimentos 
+              WHERE userId = '${currentUser.userId}'
+              ORDER BY valor_investido_liquido DESC
+          `);
 
-    // Buscar metas
-    console.log("🔍 Buscando vw_Analise_Metas...");
-    const goals = await prisma.$queryRawUnsafe(`
-            SELECT * FROM vw_Analise_Metas 
-            WHERE userId = '${currentUser.userId}'
-            ORDER BY dias_restantes ASC
-        `);
-    console.log("📊 Goals:", goals);
+      const creditCards = await prisma.$queryRawUnsafe(`
+              SELECT * FROM vw_Analise_Cartoes_Credito 
+              WHERE userId = '${currentUser.userId}'
+              ORDER BY score_saude_cartao ASC
+          `);
 
-    // Buscar alertas
-    console.log("🔍 Buscando vw_Alertas_Financeiros...");
-    const alerts = await prisma.$queryRawUnsafe(`
-            SELECT * FROM vw_Alertas_Financeiros 
-            WHERE userId = '${currentUser.userId}'
-            ORDER BY 
-                CASE 
-                    WHEN nivel_prioridade = 'CRÍTICO' THEN 1
-                    WHEN nivel_prioridade = 'ALTO' THEN 2
-                    WHEN nivel_prioridade = 'MÉDIO' THEN 3
-                    ELSE 4
-                END
-            LIMIT 10
-        `);
-    console.log("📊 Alerts:", alerts);
+      const patrimonyEvolution = await prisma.$queryRawUnsafe(`
+              SELECT * FROM vw_Evolucao_Patrimonial 
+              WHERE userId = '${currentUser.userId}'
+              ORDER BY ano DESC, mes DESC
+              LIMIT 12
+          `);
 
-    // Converter campos Decimal para números
-    const response = {
-      dashboard:
-        convertDecimalFields(
-          Array.isArray(dashboardData) ? dashboardData[0] : dashboardData,
-        ) || null,
-      expensesByCategory: convertDecimalFields(expensesByCategory) || [],
-      incomeAnalysis: convertDecimalFields(incomeAnalysis) || [],
-      investments: convertDecimalFields(investments) || [],
-      creditCards: convertDecimalFields(creditCards) || [],
-      patrimonyEvolution: convertDecimalFields(patrimonyEvolution) || [],
-      goals: convertDecimalFields(goals) || [],
-      alerts: convertDecimalFields(alerts) || [],
-    };
+      const goals = await prisma.$queryRawUnsafe(`
+              SELECT * FROM vw_Analise_Metas 
+              WHERE userId = '${currentUser.userId}'
+              ORDER BY dias_restantes ASC
+          `);
+
+      const alerts = await prisma.$queryRawUnsafe(`
+              SELECT * FROM vw_Alertas_Financeiros 
+              WHERE userId = '${currentUser.userId}'
+              ORDER BY 
+                  CASE 
+                      WHEN nivel_prioridade = 'CRÍTICO' THEN 1
+                      WHEN nivel_prioridade = 'ALTO' THEN 2
+                      WHEN nivel_prioridade = 'MÉDIO' THEN 3
+                      ELSE 4
+                  END
+              LIMIT 10
+          `);
+
+      response = {
+        dashboard:
+          convertDecimalFields(
+            Array.isArray(dashboardData) ? dashboardData[0] : dashboardData,
+          ) || null,
+        expensesByCategory: convertDecimalFields(expensesByCategory) || [],
+        incomeAnalysis: convertDecimalFields(incomeAnalysis) || [],
+        investments: convertDecimalFields(investments) || [],
+        creditCards: convertDecimalFields(creditCards) || [],
+        patrimonyEvolution: convertDecimalFields(patrimonyEvolution) || [],
+        goals: convertDecimalFields(goals) || [],
+        alerts: convertDecimalFields(alerts) || [],
+      };
+    } else {
+      // Modo SQLite/Fallback: usar cálculos TypeScript
+      console.log("🔍 Calculando dados em TypeScript...");
+      response = await calculateAllAnalytics(currentUser.userId);
+    }
 
     console.log("✅ Retornando resposta:", {
       hasData: !!response.dashboard,
-      expensesCount: response.expensesByCategory.length,
-      incomeCount: response.incomeAnalysis.length,
-      investmentsCount: response.investments.length,
-      cardsCount: response.creditCards.length,
-      patrimonyCount: response.patrimonyEvolution.length,
-      goalsCount: response.goals.length,
-      alertsCount: response.alerts.length,
+      expensesCount: response.expensesByCategory?.length || 0,
+      incomeCount: response.incomeAnalysis?.length || 0,
+      investmentsCount: response.investments?.length || 0,
+      cardsCount: response.creditCards?.length || 0,
+      patrimonyCount: response.patrimonyEvolution?.length || 0,
+      goalsCount: response.goals?.length || 0,
+      alertsCount: response.alerts?.length || 0,
     });
 
     return NextResponse.json(response);
