@@ -89,18 +89,14 @@ export async function GET(
     } catch (error) {
       // Se for erro 403, tentar próxima URL ou usar Brapi
       if ((error as any)?.response?.status === 403) {
-        console.log(
-          `Fundamentus bloqueado (403) para ${type}, tentando próximo...`
-        );
+        // console.log(
+        //   `Fundamentus bloqueado (403) para ${type}, tentando próximo...`
+        // );
         continue;
       }
       continue;
     }
   }
-
-  // Se chegou aqui, nenhuma fonte do Fundamentus funcionou
-  // Tentar usar a Brapi como fallback
-  console.log(`Usando Brapi como fallback para dividendos de ${ticker}`);
 
   try {
     const brapiData = await buscarAtivoCompleto(ticker);

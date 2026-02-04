@@ -313,17 +313,12 @@ export default function DashboardPage() {
                 const expensesByCategory: { [key: string]: { value: number; color?: string } } = {}
                 const incomeByCategory: { [key: string]: { value: number; color?: string } } = {}
 
-                console.log('📊 Dashboard - Transações filtradas:', transactions.length)
-                console.log('📊 Dashboard - Exemplos de transações:', transactions.slice(0, 3))
-
                 transactions.forEach((t: any) => {
                     const categoryName = t.category?.name || 'Sem categoria'
                     const categoryColor = t.category?.color && t.category.color !== '#999999' && t.category.color !== ''
                         ? t.category.color
                         : undefined
                     const amount = typeof t.amount === 'number' ? t.amount : parseFloat(t.amount) || 0
-
-                    console.log(`📊 Transação: ${t.description} - Tipo: ${t.type} - Categoria: ${categoryName} - Valor: ${amount}`)
 
                     if (t.type === 'EXPENSE') {
                         if (!expensesByCategory[categoryName]) {
@@ -356,8 +351,6 @@ export default function DashboardPage() {
                     ...(data.color && { color: data.color })
                 }))
 
-                console.log('📊 Dashboard - Despesas por categoria (FINAL):', expensesChart)
-                console.log('📊 Dashboard - Receitas por categoria (FINAL):', incomeChart)
 
                 // Atualizar estado com dados essenciais
                 setStats({
@@ -386,39 +379,15 @@ export default function DashboardPage() {
                 // ===== FASE 2: Carregar dados avançados em background (não bloqueia UI) =====
                 setLoadingAdvanced(true)
                 try {
-                    console.log('🔄 Iniciando carregamento de dados avançados...')
 
                     const [advancedDashboardRes, relatorioCompletoRes] = await Promise.all([
                         fetch('/api/reports/dashboard'),
                         fetch('/api/reports/completo')
                     ])
 
-                    console.log('📡 Status das respostas:', {
-                        dashboard: advancedDashboardRes.status,
-                        relatorio: relatorioCompletoRes.status
-                    })
 
                     const advancedDashboard = advancedDashboardRes.ok ? await advancedDashboardRes.json() : {}
                     const relatorioCompleto = relatorioCompletoRes.ok ? await relatorioCompletoRes.json() : {}
-
-                    console.log('🚀 Dashboard Advanced API Response:', {
-                        advancedDashboardStatus: advancedDashboardRes.status,
-                        advancedDashboardOk: advancedDashboardRes.ok,
-                        advancedDashboard,
-                        hasData: !!advancedDashboard.dashboard,
-                        relatorioCompletoStatus: relatorioCompletoRes.status,
-                        relatorioCompletoOk: relatorioCompletoRes.ok,
-                        relatorioCompleto,
-                        hasRelatorio: !!relatorioCompleto.relatorio
-                    })
-
-                    console.log('📊 Estrutura detalhada:', {
-                        'relatorioCompleto keys': Object.keys(relatorioCompleto),
-                        'relatorioCompleto.relatorio': relatorioCompleto.relatorio,
-                        'relatorioCompleto.relatorio type': typeof relatorioCompleto.relatorio,
-                        'relatorioCompleto.relatorio is object': relatorioCompleto.relatorio && typeof relatorioCompleto.relatorio === 'object',
-                        'relatorioCompleto.relatorio keys': relatorioCompleto.relatorio ? Object.keys(relatorioCompleto.relatorio) : 'null'
-                    })
 
                     const newAdvancedData = {
                         dashboard: advancedDashboard.dashboard || {},
@@ -429,10 +398,6 @@ export default function DashboardPage() {
                         portfolioInvestimentos: advancedDashboard.portfolioInvestimentos || [],
                         relatorioCompleto: relatorioCompleto.relatorio || {}
                     }
-
-                    console.log('🎯 Setting Advanced Data:', newAdvancedData)
-                    console.log('🎯 relatorioCompleto final:', newAdvancedData.relatorioCompleto)
-                    console.log('🎯 relatorioCompleto tem dados?', Object.keys(newAdvancedData.relatorioCompleto).length > 0)
 
                     setAdvancedData(newAdvancedData)
                 } catch (error) {

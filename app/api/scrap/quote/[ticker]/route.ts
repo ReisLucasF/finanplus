@@ -255,7 +255,7 @@ export async function GET(
 
     // Se for erro 403 (Cloudflare bloqueando), usar Brapi como fallback
     if (error?.response?.status === 403 || error?.code === "ERR_BAD_REQUEST") {
-      console.log(`Fundamentus bloqueado (403), usando Brapi para ${ticker}`);
+      // console.log(`Fundamentus bloqueado (403), usando Brapi para ${ticker}`);
 
       try {
         const brapiData = await buscarAtivoCompleto(ticker);

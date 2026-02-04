@@ -9,7 +9,6 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    console.log("📊 API Dashboard - User:", user.userId);
 
     // Usar queries diretas em vez de procedures para evitar problema de collation
     const dashboardData = await prisma.$queryRaw`
@@ -213,11 +212,6 @@ export async function GET() {
       success: true,
       timestamp: new Date().toISOString(),
     };
-
-    console.log(
-      "📊 API Dashboard - Response:",
-      JSON.stringify(result, null, 2),
-    );
 
     return NextResponse.json(result);
   } catch (error) {

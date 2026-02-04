@@ -37,9 +37,6 @@ export default function PieChart({ title, data }: PieChartProps) {
                 return dataPoint
             })
 
-            console.log('📊 PieChart - Dados recebidos:', data)
-            console.log('📊 PieChart - Dados processados:', chartData)
-
             chartInstanceRef.current = Highcharts.chart(chartRef.current!, {
                 chart: {
                     type: 'pie',

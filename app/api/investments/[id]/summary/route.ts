@@ -84,25 +84,19 @@ export async function GET(
       if (investment.type === "STOCKS" && investment.ticker) {
         // Para ações, buscar cotação atual via BRAPI
         try {
-          console.log(`Buscando cotação para ${investment.ticker}...`);
           const response = await fetch(
             `https://brapi.dev/api/quote/${investment.ticker}`
           );
           const data = await response.json();
-          console.log("Resposta BRAPI:", data);
 
           if (data.results && data.results.length > 0) {
             const currentPrice = data.results[0].regularMarketPrice;
-            console.log(
-              `Preço atual (BRAPI): ${currentPrice}, Quantidade: ${totalQuantity}`
-            );
             currentValue = currentPrice * totalQuantity;
             profitLoss = currentValue - totalInvested;
             profitLossPercentage =
               totalInvested > 0 ? (profitLoss / totalInvested) * 100 : 0;
           } else {
             // Fallback: tentar buscar via scraping
-            console.log("BRAPI falhou, tentando scraping...");
             try {
               const scrapResponse = await fetch(
                 `${
@@ -115,9 +109,7 @@ export async function GET(
                 const currentPrice = parseFloat(
                   scrapData.cotacao.preco.replace(",", ".")
                 );
-                console.log(
-                  `Preço atual (Scraping): ${currentPrice}, Quantidade: ${totalQuantity}`
-                );
+               
                 currentValue = currentPrice * totalQuantity;
                 profitLoss = currentValue - totalInvested;
                 profitLossPercentage =

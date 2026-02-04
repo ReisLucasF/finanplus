@@ -47,17 +47,10 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    console.log("Body recebido no POST goals:", JSON.stringify(body, null, 2));
-    console.log("Tipos:", {
-      name: typeof body.name,
-      targetAmount: typeof body.targetAmount,
-      currentAmount: typeof body.currentAmount,
-      targetDate: typeof body.targetDate,
-    });
+    
 
     try {
       const data = goalSchema.parse(body);
-      console.log("✅ Validação de goals passou!");
     } catch (validationError) {
       console.error("❌ Erro na validação de goals:", validationError);
       throw validationError;

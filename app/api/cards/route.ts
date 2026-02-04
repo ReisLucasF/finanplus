@@ -72,17 +72,8 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    console.log("📥 Body recebido no POST:", JSON.stringify(body, null, 2));
-    console.log("📊 Tipos:", {
-      name: typeof body.name,
-      cardLimit: typeof body.cardLimit,
-      dueDay: typeof body.dueDay,
-      initialDebt: typeof body.initialDebt,
-      color: typeof body.color,
-    });
 
     const data = cardSchema.parse(body);
-    console.log("✅ Dados após validação:", JSON.stringify(data, null, 2));
 
     const card = await prisma.creditCard.create({
       data: {

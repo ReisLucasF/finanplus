@@ -9,8 +9,6 @@ export async function GET() {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    console.log("🔍 DEBUG - User ID:", user.userId);
-
     // Verificar dados básicos do usuário
     const totalTransactions = await prisma.$queryRaw`
       SELECT 

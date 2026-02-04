@@ -61,17 +61,9 @@ export async function PUT(
     const { id } = await params;
 
     const body = await request.json();
-    console.log("Body recebido no PUT:", JSON.stringify(body, null, 2));
-    console.log("Tipos no body:", {
-      name: typeof body.name,
-      cardLimit: typeof body.cardLimit,
-      dueDay: typeof body.dueDay,
-      color: typeof body.color,
-    });
 
     try {
       const data = cardSchema.parse(body);
-      console.log("✅ Validação passou!");
     } catch (validationError) {
       console.error("❌ Erro na validação:", validationError);
       throw validationError;

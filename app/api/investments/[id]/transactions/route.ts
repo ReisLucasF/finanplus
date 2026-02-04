@@ -28,9 +28,7 @@ export async function POST(
 
     const { id } = await params;
     const body = await request.json();
-    console.log("Body recebido:", body);
     const validatedData = transactionSchema.parse(body);
-    console.log("Dados validados:", validatedData);
 
     // Verificar se investimento existe e pertence ao usuário
     const investment = await prisma.investment.findFirst({

@@ -55,17 +55,9 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    console.log("📥 Body recebido:", JSON.stringify(body, null, 2));
-    console.log("📊 Tipos:", {
-      accountId: typeof body.accountId,
-      categoryId: typeof body.categoryId,
-      amount: typeof body.amount,
-      dueDay: typeof body.dueDay,
-    });
 
     try {
       const data = recurringSchema.parse(body);
-      console.log("✅ Validação passou!");
     } catch (validationError) {
       console.error("❌ Erro na validação:", validationError);
       throw validationError;

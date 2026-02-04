@@ -18,15 +18,6 @@ export async function GET(request: Request) {
     const dataFim =
       searchParams.get("dataFim") || new Date().toISOString().split("T")[0];
 
-    console.log(
-      "📅 API Relatório Período - User:",
-      user.userId,
-      "Período:",
-      dataInicio,
-      "até",
-      dataFim,
-    );
-
     // Query direta para relatório por período
     const relatorioPeriodo = await prisma.$queryRaw`
       SELECT 
