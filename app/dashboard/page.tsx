@@ -114,7 +114,7 @@ export default function DashboardPage() {
         portfolioInvestimentos: [] as PortfolioInvestimento[],
         relatorioCompleto: {} as RelatorioCompleto
     })
-    const [loadingAdvanced, setLoadingAdvanced] = useState(true)
+    const [loadingAdvanced, setLoadingAdvanced] = useState(false)
 
 
 
@@ -190,8 +190,8 @@ export default function DashboardPage() {
                     return
                 }
 
-                // Buscar dados do dashboard tradicional + novos dados avançados
-                const [accountsRes, cardsRes, goalsRes, transactionsRes, recurringsRes, categoriesRes, investmentsRes, cardExpensesRes, advancedDashboardRes, relatorioCompletoRes] = await Promise.all([
+                // ===== FASE 1: Carregar dados essenciais primeiro (rápido) =====
+                const [accountsRes, cardsRes, goalsRes, transactionsRes, recurringsRes, categoriesRes, investmentsRes, cardExpensesRes] = await Promise.all([
                     fetch('/api/accounts'),
                     fetch('/api/cards'),
                     fetch('/api/goals'),
@@ -199,9 +199,7 @@ export default function DashboardPage() {
                     fetch('/api/recurring-transactions'),
                     fetch('/api/categories'),
                     fetch('/api/investments'),
-                    fetch(`/api/cards/expenses-by-category?startDate=${dateRange.start.toISOString()}&endDate=${dateRange.end.toISOString()}`),
-                    fetch('/api/reports/dashboard'),
-                    fetch('/api/reports/completo')
+                    fetch(`/api/cards/expenses-by-category?startDate=${dateRange.start.toISOString()}&endDate=${dateRange.end.toISOString()}`)
                 ])
 
                 const accounts = accountsRes.ok ? await accountsRes.json() : []
@@ -212,29 +210,6 @@ export default function DashboardPage() {
                 const categories = categoriesRes.ok ? await categoriesRes.json() : []
                 const investments = investmentsRes.ok ? await investmentsRes.json() : []
                 const cardExpensesByCategory = cardExpensesRes.ok ? await cardExpensesRes.json() : []
-
-                // Dados avançados das views
-                const advancedDashboard = advancedDashboardRes.ok ? await advancedDashboardRes.json() : {}
-                const relatorioCompleto = relatorioCompletoRes.ok ? await relatorioCompletoRes.json() : {}
-
-                console.log('🚀 Dashboard Advanced API Response:', {
-                    advancedDashboardStatus: advancedDashboardRes.status,
-                    advancedDashboardOk: advancedDashboardRes.ok,
-                    advancedDashboard,
-                    relatorioCompletoStatus: relatorioCompletoRes.status,
-                    relatorioCompletoOk: relatorioCompletoRes.ok,
-                    relatorioCompleto
-                })
-
-                // Log detalhado dos dados recebidos
-                console.log('📊 Advanced Dashboard Data Details:', {
-                    'dashboard keys': Object.keys(advancedDashboard),
-                    'dashboard.dashboard': advancedDashboard.dashboard,
-                    'dashboard.gastosPorCategoria': advancedDashboard.gastosPorCategoria,
-                    'dashboard.alertas': advancedDashboard.alertas,
-                    'relatorio keys': Object.keys(relatorioCompleto),
-                    'relatorio.relatorio': relatorioCompleto.relatorio
-                })
 
                 // Buscar summaries dos investimentos
                 const investmentSummaries = await Promise.all(
@@ -384,6 +359,7 @@ export default function DashboardPage() {
                 console.log('📊 Dashboard - Despesas por categoria (FINAL):', expensesChart)
                 console.log('📊 Dashboard - Receitas por categoria (FINAL):', incomeChart)
 
+                // Atualizar estado com dados essenciais
                 setStats({
                     income: income || 0,
                     expenses: expenses || 0,
@@ -404,25 +380,70 @@ export default function DashboardPage() {
                     investments: investmentTotals
                 })
 
-                // Atualizar dados avançados
-                const newAdvancedData = {
-                    dashboard: advancedDashboard.dashboard || {},
-                    gastosPorCategoria: advancedDashboard.gastosPorCategoria || [],
-                    analiseReceitas: advancedDashboard.analiseReceitas || [],
-                    evolucaoPatrimonial: advancedDashboard.evolucaoPatrimonial || [],
-                    alertas: advancedDashboard.alertas || [],
-                    portfolioInvestimentos: advancedDashboard.portfolioInvestimentos || [],
-                    relatorioCompleto: relatorioCompleto.relatorio || {}
+                // Liberar a UI - já temos os dados essenciais
+                setLoading(false)
+
+                // ===== FASE 2: Carregar dados avançados em background (não bloqueia UI) =====
+                setLoadingAdvanced(true)
+                try {
+                    console.log('🔄 Iniciando carregamento de dados avançados...')
+
+                    const [advancedDashboardRes, relatorioCompletoRes] = await Promise.all([
+                        fetch('/api/reports/dashboard'),
+                        fetch('/api/reports/completo')
+                    ])
+
+                    console.log('📡 Status das respostas:', {
+                        dashboard: advancedDashboardRes.status,
+                        relatorio: relatorioCompletoRes.status
+                    })
+
+                    const advancedDashboard = advancedDashboardRes.ok ? await advancedDashboardRes.json() : {}
+                    const relatorioCompleto = relatorioCompletoRes.ok ? await relatorioCompletoRes.json() : {}
+
+                    console.log('🚀 Dashboard Advanced API Response:', {
+                        advancedDashboardStatus: advancedDashboardRes.status,
+                        advancedDashboardOk: advancedDashboardRes.ok,
+                        advancedDashboard,
+                        hasData: !!advancedDashboard.dashboard,
+                        relatorioCompletoStatus: relatorioCompletoRes.status,
+                        relatorioCompletoOk: relatorioCompletoRes.ok,
+                        relatorioCompleto,
+                        hasRelatorio: !!relatorioCompleto.relatorio
+                    })
+
+                    console.log('📊 Estrutura detalhada:', {
+                        'relatorioCompleto keys': Object.keys(relatorioCompleto),
+                        'relatorioCompleto.relatorio': relatorioCompleto.relatorio,
+                        'relatorioCompleto.relatorio type': typeof relatorioCompleto.relatorio,
+                        'relatorioCompleto.relatorio is object': relatorioCompleto.relatorio && typeof relatorioCompleto.relatorio === 'object',
+                        'relatorioCompleto.relatorio keys': relatorioCompleto.relatorio ? Object.keys(relatorioCompleto.relatorio) : 'null'
+                    })
+
+                    const newAdvancedData = {
+                        dashboard: advancedDashboard.dashboard || {},
+                        gastosPorCategoria: advancedDashboard.gastosPorCategoria || [],
+                        analiseReceitas: advancedDashboard.analiseReceitas || [],
+                        evolucaoPatrimonial: advancedDashboard.evolucaoPatrimonial || [],
+                        alertas: advancedDashboard.alertas || [],
+                        portfolioInvestimentos: advancedDashboard.portfolioInvestimentos || [],
+                        relatorioCompleto: relatorioCompleto.relatorio || {}
+                    }
+
+                    console.log('🎯 Setting Advanced Data:', newAdvancedData)
+                    console.log('🎯 relatorioCompleto final:', newAdvancedData.relatorioCompleto)
+                    console.log('🎯 relatorioCompleto tem dados?', Object.keys(newAdvancedData.relatorioCompleto).length > 0)
+
+                    setAdvancedData(newAdvancedData)
+                } catch (error) {
+                    console.error('⚠️ Erro ao carregar dados avançados (não crítico):', error)
+                    // Não falha - apenas mostra dados básicos
+                } finally {
+                    setLoadingAdvanced(false)
                 }
 
-                console.log('🎯 Setting Advanced Data:', newAdvancedData)
-
-                setAdvancedData(newAdvancedData)
-
-                setLoadingAdvanced(false)
             } catch (error) {
-                console.error('Erro ao carregar dados:', error)
-            } finally {
+                console.error('❌ Erro ao carregar dados essenciais:', error)
                 setLoading(false)
             }
         }
@@ -461,7 +482,7 @@ export default function DashboardPage() {
         }
     }
 
-    if (loading || loadingAdvanced) {
+    if (loading) {
         return <LoadingSpinner />
     }
 
@@ -663,8 +684,15 @@ export default function DashboardPage() {
                         </svg>
                     </div>
                     Alertas Financeiros
+                    {loadingAdvanced && (
+                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2 animate-pulse">Carregando...</span>
+                    )}
                 </h3>
-                {advancedData.alertas.length > 0 ? (
+                {loadingAdvanced ? (
+                    <div className="flex items-center justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+                    </div>
+                ) : advancedData.alertas.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {advancedData.alertas.map((alerta: any, index: number) => (
                             <div key={index} className={`p-4 rounded-lg border-l-4 ${alerta.prioridade === 'ALTO' ? 'bg-red-50 border-red-500' :
@@ -723,8 +751,15 @@ export default function DashboardPage() {
                         </svg>
                     </div>
                     Análise de Gastos por Categoria (Últimos 3 Meses)
+                    {loadingAdvanced && (
+                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2 animate-pulse">Carregando...</span>
+                    )}
                 </h3>
-                {advancedData.gastosPorCategoria.length > 0 ? (
+                {loadingAdvanced ? (
+                    <div className="flex items-center justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+                    </div>
+                ) : advancedData.gastosPorCategoria.length > 0 ? (
                     <div className="space-y-3">
                         {advancedData.gastosPorCategoria.map((categoria: any, index: number) => (
                             <div key={index} className="flex justify-between items-center p-4 bg-white dark:bg-gray-800 rounded-xl hover:shadow-md transition-all duration-200 border border-gray-100 dark:border-gray-700">
@@ -767,8 +802,15 @@ export default function DashboardPage() {
                         </svg>
                     </div>
                     KPIs Financeiros Avançados
+                    {loadingAdvanced && (
+                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2 animate-pulse">Carregando...</span>
+                    )}
                 </h3>
-                {Object.keys(advancedData.dashboard).length > 0 ? (
+                {loadingAdvanced ? (
+                    <div className="flex items-center justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+                    </div>
+                ) : Object.keys(advancedData.dashboard).length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         {advancedData.dashboard.receita_media_mensal !== undefined && (
                             <div className="text-center p-5 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl border border-green-200 dark:border-green-700 hover:shadow-lg transition-all duration-200">
@@ -824,65 +866,72 @@ export default function DashboardPage() {
                         </svg>
                     </div>
                     Análise Financeira Avançada
+                    {loadingAdvanced && (
+                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2 animate-pulse">Carregando...</span>
+                    )}
                 </h3>
-                {advancedData.relatorioCompleto && advancedData.relatorioCompleto.relatorio ? (
+                {loadingAdvanced ? (
+                    <div className="flex items-center justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                    </div>
+                ) : advancedData.relatorioCompleto && Object.keys(advancedData.relatorioCompleto).length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {/* Taxa de Poupança */}
-                        {advancedData.relatorioCompleto.relatorio.taxa_poupanca_historica !== undefined && (
-                            <div className={`p-5 rounded-xl border-2 hover:shadow-xl transition-all duration-200 ${advancedData.relatorioCompleto.relatorio.taxa_poupanca_historica >= 20 ? 'bg-green-50' :
-                                advancedData.relatorioCompleto.relatorio.taxa_poupanca_historica >= 10 ? 'bg-yellow-50' :
+                        {advancedData.relatorioCompleto.taxa_poupanca_historica !== undefined && (
+                            <div className={`p-5 rounded-xl border-2 hover:shadow-xl transition-all duration-200 ${advancedData.relatorioCompleto.taxa_poupanca_historica >= 20 ? 'bg-green-50' :
+                                advancedData.relatorioCompleto.taxa_poupanca_historica >= 10 ? 'bg-black-50' :
                                     'bg-red-50'
                                 }`}>
-                                <h4 className={`font-medium mb-2 ${advancedData.relatorioCompleto.relatorio.taxa_poupanca_historica >= 20 ? 'text-green-900' :
-                                    advancedData.relatorioCompleto.relatorio.taxa_poupanca_historica >= 10 ? 'text-yellow-900' :
+                                <h4 className={`font-medium mb-2 ${advancedData.relatorioCompleto.taxa_poupanca_historica >= 20 ? 'text-green-900' :
+                                    advancedData.relatorioCompleto.taxa_poupanca_historica >= 10 ? 'text-yellow-900' :
                                         'text-red-900'
                                     }`}>Taxa de Poupança</h4>
-                                <div className={`text-3xl font-bold ${advancedData.relatorioCompleto.relatorio.taxa_poupanca_historica >= 20 ? 'text-green-700' :
-                                    advancedData.relatorioCompleto.relatorio.taxa_poupanca_historica >= 10 ? 'text-yellow-700' :
+                                <div className={`text-3xl font-bold ${advancedData.relatorioCompleto.taxa_poupanca_historica >= 20 ? 'text-green-700' :
+                                    advancedData.relatorioCompleto.taxa_poupanca_historica >= 10 ? 'text-black-700' :
                                         'text-red-700'
                                     }`}>
-                                    {Number(advancedData.relatorioCompleto.relatorio.taxa_poupanca_historica).toFixed(1)}%
+                                    {Number(advancedData.relatorioCompleto.taxa_poupanca_historica).toFixed(1)}%
                                 </div>
-                                <div className="text-sm opacity-75 mt-2 font-medium">
-                                    {advancedData.relatorioCompleto.relatorio.taxa_poupanca_historica >= 20 ? 'Excelente!' :
-                                        advancedData.relatorioCompleto.relatorio.taxa_poupanca_historica >= 10 ? 'Bom progresso' :
+                                    <div className="text-sm opacity-100 mt-2 font-medium  text-black">
+                                    {advancedData.relatorioCompleto.taxa_poupanca_historica >= 20 ? 'Excelente!' :
+                                        advancedData.relatorioCompleto.taxa_poupanca_historica >= 10 ? 'Bom progresso' :
                                             'Precisa melhorar'}
                                 </div>
                             </div>
                         )}
 
                         {/* Runway */}
-                        {advancedData.relatorioCompleto.relatorio.runway_meses_reserva !== undefined && (
-                            <div className={`p-5 rounded-xl border-2 hover:shadow-xl transition-all duration-200 ${advancedData.relatorioCompleto.relatorio.runway_meses_reserva >= 6 ? 'bg-green-50' :
-                                advancedData.relatorioCompleto.relatorio.runway_meses_reserva >= 3 ? 'bg-yellow-50' :
+                        {advancedData.relatorioCompleto.runway_meses_reserva !== undefined && (
+                            <div className={`p-5 rounded-xl border-2 hover:shadow-xl transition-all duration-200 ${advancedData.relatorioCompleto.runway_meses_reserva >= 6 ? 'bg-green-50' :
+                                advancedData.relatorioCompleto.runway_meses_reserva >= 3 ? 'bg-yellow-50' :
                                     'bg-red-50'
                                 }`}>
-                                <h4 className={`font-medium mb-2 ${advancedData.relatorioCompleto.relatorio.runway_meses_reserva >= 6 ? 'text-green-900' :
-                                    advancedData.relatorioCompleto.relatorio.runway_meses_reserva >= 3 ? 'text-yellow-900' :
+                                <h4 className={`font-medium mb-2 ${advancedData.relatorioCompleto.runway_meses_reserva >= 6 ? 'text-green-900' :
+                                    advancedData.relatorioCompleto.runway_meses_reserva >= 3 ? 'text-yellow-900' :
                                         'text-red-900'
                                     }`}>Reserva de Emergência</h4>
-                                <div className={`text-3xl font-bold ${advancedData.relatorioCompleto.relatorio.runway_meses_reserva >= 6 ? 'text-green-700' :
-                                    advancedData.relatorioCompleto.relatorio.runway_meses_reserva >= 3 ? 'text-yellow-700' :
+                                <div className={`text-3xl font-bold ${advancedData.relatorioCompleto.runway_meses_reserva >= 6 ? 'text-green-700' :
+                                    advancedData.relatorioCompleto.runway_meses_reserva >= 3 ? 'text-yellow-700' :
                                         'text-red-700'
                                     }`}>
-                                    {Number(advancedData.relatorioCompleto.relatorio.runway_meses_reserva).toFixed(1)}
+                                    {Number(advancedData.relatorioCompleto.runway_meses_reserva).toFixed(1)}
                                 </div>
-                                <div className="text-sm opacity-75 mt-2 font-medium">meses de cobertura</div>
+                                <div className="text-sm opacity-100 mt-2 font-medium text-black">meses de cobertura</div>
                             </div>
                         )}
 
                         {/* Balanço Mensal */}
-                        {advancedData.relatorioCompleto.relatorio.resumo_historico && (
-                            <div className={`p-5 rounded-xl border-2 hover:shadow-xl transition-all duration-200 ${advancedData.relatorioCompleto.relatorio.resumo_historico.saldo_liquido_historico >= 0 ? 'bg-green-50' : 'bg-red-50'
+                        {advancedData.relatorioCompleto.resumo_historico && (
+                            <div className={`p-5 rounded-xl border-2 hover:shadow-xl transition-all duration-200 ${advancedData.relatorioCompleto.resumo_historico.saldo_liquido_historico >= 0 ? 'bg-green-50' : 'bg-red-50'
                                 }`}>
-                                <h4 className={`font-medium mb-2 ${advancedData.relatorioCompleto.relatorio.resumo_historico.saldo_liquido_historico >= 0 ? 'text-green-900' : 'text-red-900'
+                                <h4 className={`font-medium mb-2 ${advancedData.relatorioCompleto.resumo_historico.saldo_liquido_historico >= 0 ? 'text-green-900' : 'text-red-900'
                                     }`}>Saldo Médio Mensal</h4>
-                                <div className={`text-3xl font-bold ${advancedData.relatorioCompleto.relatorio.resumo_historico.saldo_liquido_historico >= 0 ? 'text-green-700' : 'text-red-700'
+                                <div className={`text-3xl font-bold ${advancedData.relatorioCompleto.resumo_historico.saldo_liquido_historico >= 0 ? 'text-green-700' : 'text-red-700'
                                     }`}>
-                                    R$ {Number(advancedData.relatorioCompleto.relatorio.resumo_historico.saldo_liquido_historico || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                    R$ {Number(advancedData.relatorioCompleto.resumo_historico.saldo_liquido_historico || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </div>
-                                <div className="text-xs opacity-75 mt-1">
-                                    Receita: R$ {Number(advancedData.relatorioCompleto.relatorio.resumo_historico.receita_media_mensal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} - Despesa: R$ {Number(advancedData.relatorioCompleto.relatorio.resumo_historico.despesa_media_mensal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                    <div className="text-xs opacity-100 mt-1  text-black">
+                                    Receita: R$ {Number(advancedData.relatorioCompleto.resumo_historico.receita_media_mensal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} - Despesa: R$ {Number(advancedData.relatorioCompleto.resumo_historico.despesa_media_mensal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </div>
                             </div>
                         )}
@@ -899,22 +948,22 @@ export default function DashboardPage() {
                 )}
 
                 {/* Status da Reserva de Emergência */}
-                {advancedData.relatorioCompleto && advancedData.relatorioCompleto.relatorio && advancedData.relatorioCompleto.relatorio.status_reserva_emergencia && (
-                    <div className="mt-6 p-5 rounded-xl border-2 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-750 border-gray-200 dark:border-gray-600">
+                {advancedData.relatorioCompleto && advancedData.relatorioCompleto.status_reserva_emergencia && (
+                    <div className="mt-6 p-5 rounded-xl border-2">
                         <div className="flex items-center justify-between">
                             <span className="font-medium">Status da Reserva de Emergência:</span>
-                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${advancedData.relatorioCompleto.relatorio.status_reserva_emergencia === 'ADEQUADA' ? 'bg-green-100 text-green-800' :
-                                advancedData.relatorioCompleto.relatorio.status_reserva_emergencia === 'MÍNIMA' ? 'bg-yellow-100 text-yellow-800' :
+                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${advancedData.relatorioCompleto.status_reserva_emergencia === 'ADEQUADA' ? 'bg-green-100 text-green-800' :
+                                advancedData.relatorioCompleto.status_reserva_emergencia === 'MÍNIMA' ? 'bg-yellow-100 text-yellow-800' :
                                     'bg-red-100 text-red-800'
                                 }`}>
-                                {advancedData.relatorioCompleto.relatorio.status_reserva_emergencia}
+                                {advancedData.relatorioCompleto.status_reserva_emergencia}
                             </span>
                         </div>
                     </div>
                 )}
 
                 {/* Resumo Executivo */}
-                {advancedData.relatorioCompleto && advancedData.relatorioCompleto.relatorio && advancedData.relatorioCompleto.relatorio.resumo_executivo_pessoal && (
+                {advancedData.relatorioCompleto && advancedData.relatorioCompleto.resumo_executivo_pessoal && (
                     <div className="mt-6 p-5 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-2 border-blue-200 dark:border-blue-700">
                         <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
                             <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -923,7 +972,7 @@ export default function DashboardPage() {
                             Resumo Executivo
                         </h4>
                         <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                            {advancedData.relatorioCompleto.relatorio.resumo_executivo_pessoal}
+                            {advancedData.relatorioCompleto.resumo_executivo_pessoal}
                         </p>
                     </div>
                 )}
