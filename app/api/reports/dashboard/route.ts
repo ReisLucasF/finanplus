@@ -64,27 +64,27 @@ export async function GET() {
           c.name as categoria,
           c.type as tipo_categoria,
           
-          COALESCE(SUM(CASE WHEN t.date >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) THEN t.amount END), 0) as total_transacoes_ultimo_mes,
-          COALESCE(SUM(CASE WHEN cp.date >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) THEN cp.amount END), 0) as total_cartao_ultimo_mes,
+          COALESCE(SUM(CASE WHEN t.date >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) THEN t.amount END), 0) +
+          COALESCE(SUM(CASE WHEN cp.date >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) THEN cp.amount END), 0) as total_ultimo_mes,
           
-          COALESCE(SUM(CASE WHEN t.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH) THEN t.amount END), 0) as total_transacoes_3_meses,
-          COALESCE(SUM(CASE WHEN cp.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH) THEN cp.amount END), 0) as total_cartao_3_meses,
+          COALESCE(SUM(CASE WHEN t.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH) THEN t.amount END), 0) +
+          COALESCE(SUM(CASE WHEN cp.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH) THEN cp.amount END), 0) as total_ultimos_3_meses,
           
-          COUNT(DISTINCT t.id) as quantidade_transacoes,
-          COUNT(DISTINCT cp.id) as quantidade_compras_cartao
+          COUNT(t.id) as quantidade_transacoes,
+          COUNT(cp.id) as quantidade_compras_cartao
 
       FROM Category c
       LEFT JOIN Transaction t ON c.id = t.categoryId 
           AND t.type = 'EXPENSE' 
-          AND t.status IN ('COMPLETED', 'PENDING')
+          AND t.status = 'COMPLETED'
           AND t.userId = ${user.userId}
       LEFT JOIN CreditCardPurchase cp ON c.id = cp.categoryId 
           AND cp.userId = ${user.userId}
       WHERE c.type = 'EXPENSE' 
         AND (c.userId = ${user.userId} OR c.userId IS NULL)
       GROUP BY c.id, c.name, c.type
-      HAVING (total_transacoes_3_meses + total_cartao_3_meses) > 0
-      ORDER BY (total_transacoes_3_meses + total_cartao_3_meses) DESC
+      HAVING total_ultimos_3_meses > 0
+      ORDER BY total_ultimos_3_meses DESC
       LIMIT 10
     `;
 
@@ -94,13 +94,14 @@ export async function GET() {
              'Gastos acima da média detectados' as mensagem,
              'MEDIO' as prioridade,
              NOW() as data_alerta
-      UNION ALL
-      SELECT 'DASHBOARD_OK' as tipo_alerta, 
-             'Dashboard carregado com sucesso' as mensagem,
-             'BAIXO' as prioridade,
-             NOW() as data_alerta
       LIMIT 5
     `;
+
+    // UNION ALL
+    //   SELECT 'DASHBOARD_OK' as tipo_alerta,
+    //          'Dashboard carregado com sucesso' as mensagem,
+    //          'BAIXO' as prioridade,
+    //          NOW() as data_alerta
 
     const dashboard = Array.isArray(dashboardData) ? dashboardData[0] : {};
 
@@ -117,12 +118,10 @@ export async function GET() {
       ? gastosPorCategoria.map((item: any) => ({
           categoria: item.categoria,
           tipo_categoria: item.tipo_categoria,
-          total_ultimo_mes:
-            convertBigIntToNumber(item.total_transacoes_ultimo_mes) +
-            convertBigIntToNumber(item.total_cartao_ultimo_mes),
-          total_ultimos_3_meses:
-            convertBigIntToNumber(item.total_transacoes_3_meses) +
-            convertBigIntToNumber(item.total_cartao_3_meses),
+          total_ultimo_mes: convertBigIntToNumber(item.total_ultimo_mes),
+          total_ultimos_3_meses: convertBigIntToNumber(
+            item.total_ultimos_3_meses,
+          ),
           quantidade_transacoes: convertBigIntToNumber(
             item.quantidade_transacoes,
           ),
