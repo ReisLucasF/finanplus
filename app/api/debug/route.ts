@@ -1,15 +1,15 @@
-import { NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    console.log('🔍 DEBUG - User ID:', user.userId);
+    console.log("🔍 DEBUG - User ID:", user.userId);
 
     // Verificar dados básicos do usuário
     const totalTransactions = await prisma.$queryRaw`
@@ -48,7 +48,7 @@ export async function GET() {
 
     // Converter BigInt para Number
     const convertBigIntToNumber = (value: any): number => {
-      if (typeof value === 'bigint') {
+      if (typeof value === "bigint") {
         return Number(value);
       }
       return Number(value) || 0;
@@ -59,12 +59,12 @@ export async function GET() {
       if (Array.isArray(obj)) {
         return obj.map(processObject);
       }
-      if (obj && typeof obj === 'object') {
+      if (obj && typeof obj === "object") {
         const processed: any = {};
         for (const [key, value] of Object.entries(obj)) {
-          if (typeof value === 'bigint') {
+          if (typeof value === "bigint") {
             processed[key] = convertBigIntToNumber(value);
-          } else if (typeof value === 'object') {
+          } else if (typeof value === "object") {
             processed[key] = processObject(value);
           } else {
             processed[key] = value;
@@ -78,19 +78,25 @@ export async function GET() {
     return NextResponse.json({
       debug: processObject({
         userId: user.userId,
-        totalTransactions: Array.isArray(totalTransactions) ? totalTransactions[0] : totalTransactions,
+        totalTransactions: Array.isArray(totalTransactions)
+          ? totalTransactions[0]
+          : totalTransactions,
         recentTransactions,
-        accountBalances: Array.isArray(accountBalances) ? accountBalances[0] : accountBalances,
-        categories: Array.isArray(categories) ? categories[0] : categories
+        accountBalances: Array.isArray(accountBalances)
+          ? accountBalances[0]
+          : accountBalances,
+        categories: Array.isArray(categories) ? categories[0] : categories,
       }),
-      success: true
+      success: true,
     });
-
   } catch (error) {
-    console.error('Erro no debug:', error);
-    return NextResponse.json({
-      error: 'Erro interno do servidor',
-      message: error instanceof Error ? error.message : 'Erro desconhecido'
-    }, { status: 500 });
+    console.error("Erro no debug:", error);
+    return NextResponse.json(
+      {
+        error: "Erro interno do servidor",
+        message: error instanceof Error ? error.message : "Erro desconhecido",
+      },
+      { status: 500 },
+    );
   }
 }

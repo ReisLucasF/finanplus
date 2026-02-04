@@ -10,10 +10,22 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const dataInicio = searchParams.get("dataInicio") || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    const dataFim = searchParams.get("dataFim") || new Date().toISOString().split('T')[0];
+    const dataInicio =
+      searchParams.get("dataInicio") ||
+      new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0];
+    const dataFim =
+      searchParams.get("dataFim") || new Date().toISOString().split("T")[0];
 
-    console.log("📅 API Relatório Período - User:", user.userId, "Período:", dataInicio, "até", dataFim);
+    console.log(
+      "📅 API Relatório Período - User:",
+      user.userId,
+      "Período:",
+      dataInicio,
+      "até",
+      dataFim,
+    );
 
     // Query direta para relatório por período
     const relatorioPeriodo = await prisma.$queryRaw`
@@ -43,13 +55,15 @@ export async function GET(request: Request) {
 
     // Converter BigInt para Number para evitar erro de serialização
     const convertBigIntToNumber = (value: any): number => {
-      if (typeof value === 'bigint') {
+      if (typeof value === "bigint") {
         return Number(value);
       }
       return Number(value) || 0;
     };
 
-    const relatorio = Array.isArray(relatorioPeriodo) ? relatorioPeriodo[0] : {};
+    const relatorio = Array.isArray(relatorioPeriodo)
+      ? relatorioPeriodo[0]
+      : {};
     const relatorioProcessed = {
       tipo: relatorio.tipo,
       data_inicio: relatorio.data_inicio,
@@ -60,24 +74,23 @@ export async function GET(request: Request) {
       qtd_receitas: convertBigIntToNumber(relatorio.qtd_receitas),
       qtd_despesas: convertBigIntToNumber(relatorio.qtd_despesas),
       media_receitas: convertBigIntToNumber(relatorio.media_receitas),
-      media_despesas: convertBigIntToNumber(relatorio.media_despesas)
+      media_despesas: convertBigIntToNumber(relatorio.media_despesas),
     };
 
     return NextResponse.json({
       relatorioPeriodo: relatorioProcessed,
       success: true,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
     console.error("Erro ao buscar relatório por período:", error);
     return NextResponse.json(
       {
         error: "Erro interno do servidor",
         message: error instanceof Error ? error.message : "Erro desconhecido",
-        success: false
+        success: false,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

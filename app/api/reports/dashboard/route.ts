@@ -106,21 +106,29 @@ export async function GET() {
 
     // Converter BigInt para Number para evitar erro de serialização
     const convertBigIntToNumber = (value: any): number => {
-      if (typeof value === 'bigint') {
+      if (typeof value === "bigint") {
         return Number(value);
       }
       return Number(value) || 0;
     };
 
     // Processar gastos por categoria
-    const gastosPorCategoriaProcessed = Array.isArray(gastosPorCategoria) 
+    const gastosPorCategoriaProcessed = Array.isArray(gastosPorCategoria)
       ? gastosPorCategoria.map((item: any) => ({
           categoria: item.categoria,
           tipo_categoria: item.tipo_categoria,
-          total_ultimo_mes: convertBigIntToNumber(item.total_transacoes_ultimo_mes) + convertBigIntToNumber(item.total_cartao_ultimo_mes),
-          total_ultimos_3_meses: convertBigIntToNumber(item.total_transacoes_3_meses) + convertBigIntToNumber(item.total_cartao_3_meses),
-          quantidade_transacoes: convertBigIntToNumber(item.quantidade_transacoes),
-          quantidade_compras_cartao: convertBigIntToNumber(item.quantidade_compras_cartao)
+          total_ultimo_mes:
+            convertBigIntToNumber(item.total_transacoes_ultimo_mes) +
+            convertBigIntToNumber(item.total_cartao_ultimo_mes),
+          total_ultimos_3_meses:
+            convertBigIntToNumber(item.total_transacoes_3_meses) +
+            convertBigIntToNumber(item.total_cartao_3_meses),
+          quantidade_transacoes: convertBigIntToNumber(
+            item.quantidade_transacoes,
+          ),
+          quantidade_compras_cartao: convertBigIntToNumber(
+            item.quantidade_compras_cartao,
+          ),
         }))
       : [];
 
@@ -130,20 +138,31 @@ export async function GET() {
           tipo_alerta: item.tipo_alerta,
           mensagem: item.mensagem,
           prioridade: item.prioridade,
-          data_alerta: item.data_alerta
+          data_alerta: item.data_alerta,
         }))
       : [];
 
     const result = {
       dashboard: {
-        receita_media_mensal: convertBigIntToNumber(dashboard.receita_media_mensal),
-        despesa_media_mensal: convertBigIntToNumber(dashboard.despesa_media_mensal),
+        receita_media_mensal: convertBigIntToNumber(
+          dashboard.receita_media_mensal,
+        ),
+        despesa_media_mensal: convertBigIntToNumber(
+          dashboard.despesa_media_mensal,
+        ),
         saldo_bancos: convertBigIntToNumber(dashboard.saldo_bancos),
         divida_cartoes: convertBigIntToNumber(dashboard.divida_cartoes),
-        valor_investimentos: convertBigIntToNumber(dashboard.valor_investimentos),
+        valor_investimentos: convertBigIntToNumber(
+          dashboard.valor_investimentos,
+        ),
         total_metas: convertBigIntToNumber(dashboard.total_metas),
-        progresso_metas_percentual: convertBigIntToNumber(dashboard.progresso_metas_percentual),
-        patrimonio_liquido: convertBigIntToNumber(dashboard.saldo_bancos) + convertBigIntToNumber(dashboard.valor_investimentos) - convertBigIntToNumber(dashboard.divida_cartoes)
+        progresso_metas_percentual: convertBigIntToNumber(
+          dashboard.progresso_metas_percentual,
+        ),
+        patrimonio_liquido:
+          convertBigIntToNumber(dashboard.saldo_bancos) +
+          convertBigIntToNumber(dashboard.valor_investimentos) -
+          convertBigIntToNumber(dashboard.divida_cartoes),
       },
       gastosPorCategoria: gastosPorCategoriaProcessed,
       alertas: alertasProcessed,
@@ -151,22 +170,24 @@ export async function GET() {
       portfolioInvestimentos: [],
       evolucaoPatrimonial: [],
       success: true,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
-    console.log("📊 API Dashboard - Response:", JSON.stringify(result, null, 2));
+    console.log(
+      "📊 API Dashboard - Response:",
+      JSON.stringify(result, null, 2),
+    );
 
     return NextResponse.json(result);
-
   } catch (error) {
     console.error("Erro ao buscar dados do dashboard:", error);
     return NextResponse.json(
       {
         error: "Erro interno do servidor",
         message: error instanceof Error ? error.message : "Erro desconhecido",
-        success: false
+        success: false,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
