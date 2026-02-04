@@ -666,13 +666,13 @@ export default function DashboardPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {advancedData.alertas.map((alerta: any, index: number) => (
                             <div key={index} className={`p-4 rounded-lg border-l-4 ${alerta.prioridade === 'ALTO' ? 'bg-red-50 border-red-500' :
-                                    alerta.prioridade === 'MEDIO' ? 'bg-yellow-50 border-yellow-500' :
-                                        'bg-green-50 border-green-500'
+                                alerta.prioridade === 'MEDIO' ? 'bg-yellow-50 border-yellow-500' :
+                                    'bg-green-50 border-green-500'
                                 }`}>
                                 <div className="flex items-center justify-between mb-2">
                                     <span className={`text-sm font-medium ${alerta.prioridade === 'ALTO' ? 'text-red-800' :
-                                            alerta.prioridade === 'MEDIO' ? 'text-yellow-800' :
-                                                'text-green-800'
+                                        alerta.prioridade === 'MEDIO' ? 'text-yellow-800' :
+                                            'text-green-800'
                                         }`}>
                                         {alerta.tipo_alerta === 'GASTO_ALTO' ? '💳 Gasto Alto' :
                                             alerta.tipo_alerta === 'LIMITE_CARTAO' ? '⚠️ Limite Cartão' :
@@ -680,8 +680,8 @@ export default function DashboardPage() {
                                                     alerta.tipo_alerta === 'DASHBOARD_OK' ? '✅ Sistema OK' : alerta.tipo_alerta}
                                     </span>
                                     <span className={`px-2 py-1 rounded text-xs font-bold ${alerta.prioridade === 'ALTO' ? 'bg-red-100 text-red-800' :
-                                            alerta.prioridade === 'MEDIO' ? 'bg-yellow-100 text-yellow-800' :
-                                                'bg-green-100 text-green-800'
+                                        alerta.prioridade === 'MEDIO' ? 'bg-yellow-100 text-yellow-800' :
+                                            'bg-green-100 text-green-800'
                                         }`}>
                                         {alerta.prioridade}
                                     </span>
@@ -793,16 +793,16 @@ export default function DashboardPage() {
                         {/* Taxa de Poupança */}
                         {advancedData.relatorioCompleto.relatorio.taxa_poupanca_historica !== undefined && (
                             <div className={`p-4 rounded-lg ${advancedData.relatorioCompleto.relatorio.taxa_poupanca_historica >= 20 ? 'bg-green-50' :
-                                    advancedData.relatorioCompleto.relatorio.taxa_poupanca_historica >= 10 ? 'bg-yellow-50' :
-                                        'bg-red-50'
+                                advancedData.relatorioCompleto.relatorio.taxa_poupanca_historica >= 10 ? 'bg-yellow-50' :
+                                    'bg-red-50'
                                 }`}>
                                 <h4 className={`font-medium mb-2 ${advancedData.relatorioCompleto.relatorio.taxa_poupanca_historica >= 20 ? 'text-green-900' :
-                                        advancedData.relatorioCompleto.relatorio.taxa_poupanca_historica >= 10 ? 'text-yellow-900' :
-                                            'text-red-900'
+                                    advancedData.relatorioCompleto.relatorio.taxa_poupanca_historica >= 10 ? 'text-yellow-900' :
+                                        'text-red-900'
                                     }`}>Taxa de Poupança</h4>
                                 <div className={`text-2xl font-bold ${advancedData.relatorioCompleto.relatorio.taxa_poupanca_historica >= 20 ? 'text-green-700' :
-                                        advancedData.relatorioCompleto.relatorio.taxa_poupanca_historica >= 10 ? 'text-yellow-700' :
-                                            'text-red-700'
+                                    advancedData.relatorioCompleto.relatorio.taxa_poupanca_historica >= 10 ? 'text-yellow-700' :
+                                        'text-red-700'
                                     }`}>
                                     {Number(advancedData.relatorioCompleto.relatorio.taxa_poupanca_historica).toFixed(1)}%
                                 </div>
@@ -817,16 +817,16 @@ export default function DashboardPage() {
                         {/* Runway */}
                         {advancedData.relatorioCompleto.relatorio.runway_meses_reserva !== undefined && (
                             <div className={`p-4 rounded-lg ${advancedData.relatorioCompleto.relatorio.runway_meses_reserva >= 6 ? 'bg-green-50' :
-                                    advancedData.relatorioCompleto.relatorio.runway_meses_reserva >= 3 ? 'bg-yellow-50' :
-                                        'bg-red-50'
+                                advancedData.relatorioCompleto.relatorio.runway_meses_reserva >= 3 ? 'bg-yellow-50' :
+                                    'bg-red-50'
                                 }`}>
                                 <h4 className={`font-medium mb-2 ${advancedData.relatorioCompleto.relatorio.runway_meses_reserva >= 6 ? 'text-green-900' :
-                                        advancedData.relatorioCompleto.relatorio.runway_meses_reserva >= 3 ? 'text-yellow-900' :
-                                            'text-red-900'
+                                    advancedData.relatorioCompleto.relatorio.runway_meses_reserva >= 3 ? 'text-yellow-900' :
+                                        'text-red-900'
                                     }`}>Reserva de Emergência</h4>
                                 <div className={`text-2xl font-bold ${advancedData.relatorioCompleto.relatorio.runway_meses_reserva >= 6 ? 'text-green-700' :
-                                        advancedData.relatorioCompleto.relatorio.runway_meses_reserva >= 3 ? 'text-yellow-700' :
-                                            'text-red-700'
+                                    advancedData.relatorioCompleto.relatorio.runway_meses_reserva >= 3 ? 'text-yellow-700' :
+                                        'text-red-700'
                                     }`}>
                                     {Number(advancedData.relatorioCompleto.relatorio.runway_meses_reserva).toFixed(1)}
                                 </div>
@@ -857,8 +857,8 @@ export default function DashboardPage() {
                             <div className="flex items-center justify-between">
                                 <span className="font-medium">Status da Reserva de Emergência:</span>
                                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${advancedData.relatorioCompleto.relatorio.status_reserva_emergencia === 'ADEQUADA' ? 'bg-green-100 text-green-800' :
-                                        advancedData.relatorioCompleto.relatorio.status_reserva_emergencia === 'MÍNIMA' ? 'bg-yellow-100 text-yellow-800' :
-                                            'bg-red-100 text-red-800'
+                                    advancedData.relatorioCompleto.relatorio.status_reserva_emergencia === 'MÍNIMA' ? 'bg-yellow-100 text-yellow-800' :
+                                        'bg-red-100 text-red-800'
                                     }`}>
                                     {advancedData.relatorioCompleto.relatorio.status_reserva_emergencia}
                                 </span>

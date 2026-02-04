@@ -4,6 +4,32 @@ import { useEffect, useState, useMemo } from 'react'
 import { Receipt, Plus, TrendingUp, TrendingDown, Edit2, Trash2, Filter, X } from 'lucide-react'
 import LoadingSpinner from '../components/LoadingSpinner'
 
+// Funções utilitárias para trabalhar com datas sem problemas de timezone
+const dateUtils = {
+    // Converte data ISO ou Date para string YYYY-MM-DD
+    toDateString: (dateInput: string | Date): string => {
+        if (typeof dateInput === 'string') {
+            return dateInput.split('T')[0]
+        }
+        const year = dateInput.getFullYear()
+        const month = String(dateInput.getMonth() + 1).padStart(2, '0')
+        const day = String(dateInput.getDate()).padStart(2, '0')
+        return `${year}-${month}-${day}`
+    },
+
+    // Formata para exibição brasileira (dd/mm/yyyy) sem usar new Date
+    formatBR: (dateStr: string): string => {
+        const [year, month, day] = dateStr.split('T')[0].split('-')
+        return `${day}/${month}/${year}`
+    },
+
+    // Obtém a data atual em formato YYYY-MM-DD
+    today: (): string => {
+        const now = new Date()
+        return dateUtils.toDateString(now)
+    }
+}
+
 interface Account {
     id: string
     name: string
@@ -64,7 +90,7 @@ export default function TransactionsPage() {
         type: 'EXPENSE',
         description: '',
         amount: 0,
-        date: new Date().toISOString().split('T')[0],
+        date: dateUtils.today(),
         status: 'COMPLETED',
     })
 
@@ -95,19 +121,17 @@ export default function TransactionsPage() {
     // Filtrar transações
     const filteredTransactions = useMemo(() => {
         return transactions.filter(transaction => {
-            // Filtro de data inicial
-            if (filters.startDate && new Date(transaction.date) < new Date(filters.startDate)) {
+            const transactionDate = dateUtils.toDateString(transaction.date)
+
+            if (filters.startDate && transactionDate < filters.startDate) {
                 return false
             }
-            // Filtro de data final
-            if (filters.endDate && new Date(transaction.date) > new Date(filters.endDate)) {
+            if (filters.endDate && transactionDate > filters.endDate) {
                 return false
             }
-            // Filtro de conta
             if (filters.accountId && transaction.account.id !== filters.accountId) {
                 return false
             }
-            // Filtro de categoria
             if (filters.categoryId && transaction.category.id !== filters.categoryId) {
                 return false
             }
@@ -121,16 +145,14 @@ export default function TransactionsPage() {
 
         // Agrupar transações por data
         const transactionsByDate = filteredTransactions.reduce((acc, transaction) => {
-            const dateKey = new Date(transaction.date).toISOString().split('T')[0]
+            const dateKey = dateUtils.toDateString(transaction.date)
             if (!acc[dateKey]) acc[dateKey] = []
             acc[dateKey].push(transaction)
             return acc
         }, {} as Record<string, Transaction[]>)
 
-        // Ordenar datas (mais recente primeiro)
-        const sortedDates = Object.keys(transactionsByDate).sort((a, b) =>
-            new Date(b).getTime() - new Date(a).getTime()
-        )
+        // Ordenar datas (mais recente primeiro) - comparação de strings
+        const sortedDates = Object.keys(transactionsByDate).sort((a, b) => b.localeCompare(a))
 
         // Calcular saldo acumulado
         const accountBalances = new Map<string, number>()
@@ -144,9 +166,9 @@ export default function TransactionsPage() {
 
         // Criar lista de todas as operações (transactions + transfers) ordenadas por data
         const allOperations: Array<{ date: string, type: 'transaction' | 'transfer', data: Transaction | Transfer }> = [
-            ...transactions.map(t => ({ date: t.date, type: 'transaction' as const, data: t })),
-            ...transfers.map(t => ({ date: t.date, type: 'transfer' as const, data: t }))
-        ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+            ...transactions.map(t => ({ date: dateUtils.toDateString(t.date), type: 'transaction' as const, data: t })),
+            ...transfers.map(t => ({ date: dateUtils.toDateString(t.date), type: 'transfer' as const, data: t }))
+        ].sort((a, b) => a.date.localeCompare(b.date))
 
         // Processar operações em ordem cronológica
         allOperations.forEach(op => {
@@ -176,9 +198,7 @@ export default function TransactionsPage() {
 
         allDates.forEach(date => {
             // Processar todas as operações até essa data
-            const relevantOps = allOperations.filter(op =>
-                new Date(op.date).toISOString().split('T')[0] <= date
-            )
+            const relevantOps = allOperations.filter(op => op.date <= date)
 
             // Resetar e recalcular
             accounts.forEach(account => {
@@ -211,7 +231,7 @@ export default function TransactionsPage() {
 
         sortedDates.forEach(date => {
             const dayTransactions = transactionsByDate[date].sort((a, b) =>
-                new Date(b.date).getTime() - new Date(a.date).getTime()
+                b.date.localeCompare(a.date)
             )
 
             result.push(...dayTransactions)
@@ -246,7 +266,7 @@ export default function TransactionsPage() {
             type: transaction.type,
             description: transaction.description,
             amount: transaction.amount,
-            date: new Date(transaction.date).toISOString().split('T')[0],
+            date: dateUtils.toDateString(transaction.date),
             status: transaction.status
         })
         setShowModal(true)
@@ -275,7 +295,7 @@ export default function TransactionsPage() {
                     type: 'EXPENSE',
                     description: '',
                     amount: 0,
-                    date: new Date().toISOString().split('T')[0],
+                    date: dateUtils.today(),
                     status: 'COMPLETED',
                 })
                 loadData()
@@ -350,7 +370,7 @@ export default function TransactionsPage() {
                                 type: 'EXPENSE',
                                 description: '',
                                 amount: 0,
-                                date: new Date().toISOString().split('T')[0],
+                                date: dateUtils.today(),
                                 status: 'COMPLETED'
                             })
                             setShowModal(true)
@@ -505,7 +525,7 @@ export default function TransactionsPage() {
                                     return (
                                         <tr key={transaction.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                                {new Date(transaction.date).toLocaleDateString('pt-BR')}
+                                                {dateUtils.formatBR(transaction.date)}
                                             </td>
                                             <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
                                                 <div className="flex items-center gap-2">
