@@ -11,7 +11,8 @@ import {
     ArrowLeftRight,
     RefreshCw,
     LineChart,
-    Calculator
+    Calculator,
+    BarChart3
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import Sidebar from './components/Sidebar'
@@ -20,6 +21,7 @@ import { cn } from '@/lib/utils'
 
 const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    { name: 'Análise Financeira', href: '/dashboard/analytics', icon: BarChart3 },
     { name: 'Contas', href: '/dashboard/accounts', icon: Wallet },
     { name: 'Transações', href: '/dashboard/transactions', icon: Receipt },
     { name: 'Cartões', href: '/dashboard/cards', icon: CreditCard },

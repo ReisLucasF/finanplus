@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { TrendingUp, TrendingDown, Wallet, Calendar, CreditCard, Target, PlusCircle, DollarSign, LineChart } from 'lucide-react'
+import { TrendingUp, TrendingDown, Wallet, Calendar, CreditCard, Target, PlusCircle, DollarSign, LineChart, AlertTriangle, PiggyBank, Shield } from 'lucide-react'
 import Link from 'next/link'
 import PieChart from './components/PieChart'
 import StatCard from './components/StatCard'
@@ -42,6 +42,14 @@ export default function DashboardPage() {
             profit: 0,
             profitPercentage: 0
         }
+    })
+
+    // Estados para dados de análise financeira das views
+    const [analytics, setAnalytics] = useState<any>({
+        dashboard: null,
+        alerts: [],
+        creditCards: [],
+        patrimonyEvolution: []
     })
 
 
@@ -119,7 +127,7 @@ export default function DashboardPage() {
                 }
 
                 // Buscar dados do dashboard
-                const [accountsRes, cardsRes, goalsRes, transactionsRes, recurringsRes, categoriesRes, investmentsRes, cardExpensesRes] = await Promise.all([
+                const [accountsRes, cardsRes, goalsRes, transactionsRes, recurringsRes, categoriesRes, investmentsRes, cardExpensesRes, analyticsRes] = await Promise.all([
                     fetch('/api/accounts'),
                     fetch('/api/cards'),
                     fetch('/api/goals'),
@@ -127,7 +135,8 @@ export default function DashboardPage() {
                     fetch('/api/recurring-transactions'),
                     fetch('/api/categories'),
                     fetch('/api/investments'),
-                    fetch(`/api/cards/expenses-by-category?startDate=${dateRange.start.toISOString()}&endDate=${dateRange.end.toISOString()}`)
+                    fetch(`/api/cards/expenses-by-category?startDate=${dateRange.start.toISOString()}&endDate=${dateRange.end.toISOString()}`),
+                    fetch('/api/analytics/financial-overview')
                 ])
 
                 const accounts = accountsRes.ok ? await accountsRes.json() : []
@@ -138,6 +147,10 @@ export default function DashboardPage() {
                 const categories = categoriesRes.ok ? await categoriesRes.json() : []
                 const investments = investmentsRes.ok ? await investmentsRes.json() : []
                 const cardExpensesByCategory = cardExpensesRes.ok ? await cardExpensesRes.json() : []
+                const analyticsData = analyticsRes.ok ? await analyticsRes.json() : { dashboard: null, alerts: [], creditCards: [], patrimonyEvolution: [] }
+
+                // Atualizar estado de analytics
+                setAnalytics(analyticsData)
 
                 // Buscar summaries dos investimentos
                 const investmentSummaries = await Promise.all(
@@ -462,6 +475,92 @@ export default function DashboardPage() {
                 </div>
             </div>
 
+            {/* Alertas Financeiros */}
+            {analytics.alerts && analytics.alerts.length > 0 && (
+                <div className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 border-l-4 border-red-500 p-6 rounded-2xl shadow-sm">
+                    <div className="flex items-start gap-4">
+                        <div className="flex-shrink-0">
+                            <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-lg font-bold text-red-900 dark:text-red-100 mb-3">
+                                ⚠️ Alertas Financeiros ({analytics.alerts.length})
+                            </h3>
+                            <div className="space-y-3">
+                                {analytics.alerts.slice(0, 3).map((alert: any, idx: number) => (
+                                    <div key={idx} className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-red-200 dark:border-red-800">
+                                        <div className="flex items-start justify-between mb-2">
+                                            <span className="font-semibold text-gray-900 dark:text-white">{alert.titulo}</span>
+                                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${alert.nivel_prioridade === 'CRÍTICO' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
+                                                    alert.nivel_prioridade === 'ALTO' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
+                                                        'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                                }`}>
+                                                {alert.nivel_prioridade}
+                                            </span>
+                                        </div>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{alert.mensagem}</p>
+                                        <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">💡 {alert.acao_sugerida}</p>
+                                    </div>
+                                ))}
+                            </div>
+                            {analytics.alerts.length > 3 && (
+                                <Link href="/dashboard/analytics" className="text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium mt-3 inline-block">
+                                    Ver todos os {analytics.alerts.length} alertas →
+                                </Link>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Indicadores de Saúde Financeira */}
+            {analytics.dashboard && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 p-6 rounded-2xl shadow-sm border border-blue-200 dark:border-blue-800">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Patrimônio Líquido</h3>
+                            <DollarSign className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <p className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                            {formatCurrency(analytics.dashboard.patrimonio_liquido_atual || 0)}
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                            Contas: {formatCurrency(analytics.dashboard.saldo_contas_correntes || 0)}<br />
+                            Investimentos: {formatCurrency(analytics.dashboard.valor_investido_total || 0)}<br />
+                            Dívidas: {formatCurrency(analytics.dashboard.divida_cartoes_atual || 0)}
+                        </p>
+                    </div>
+
+                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-6 rounded-2xl shadow-sm border border-green-200 dark:border-green-800">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Taxa de Poupança</h3>
+                            <PiggyBank className="h-5 w-5 text-green-600 dark:text-green-400" />
+                        </div>
+                        <p className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                            {(analytics.dashboard.taxa_poupanca_percentual || 0).toFixed(1)}%
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                            Meta recomendada: 20-30%<br />
+                            Status: {analytics.dashboard.status_saude_financeira || 'N/A'}
+                        </p>
+                    </div>
+
+                    <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 p-6 rounded-2xl shadow-sm border border-purple-200 dark:border-purple-800">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Reserva de Emergência</h3>
+                            <Shield className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                        </div>
+                        <p className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                            {(analytics.dashboard.meses_reserva_emergencia || 0).toFixed(1)} meses
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                            Meta: 6 meses de despesas<br />
+                            {(analytics.dashboard.meses_reserva_emergencia || 0) >= 6 ? '✅ Meta atingida!' : '⚠️ Abaixo do recomendado'}
+                        </p>
+                    </div>
+                </div>
+            )}
+
             {/* Cards de Estatísticas */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <StatCard
@@ -519,6 +618,305 @@ export default function DashboardPage() {
                     iconColor="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-indigo-500/30"
                 />
             </div>
+
+            {/* Análise de Receitas por Tipo */}
+            {analytics.incomeAnalysis && analytics.incomeAnalysis.length > 0 && (
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm">
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                        <TrendingUp className="h-5 w-5 text-green-600" />
+                        Análise de Receitas (Últimos 3 Meses)
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        {/* Resumo por Tipo */}
+                        {(() => {
+                            const porTipo = analytics.incomeAnalysis.reduce((acc: any, item: any) => {
+                                const tipo = item.tipo_renda || 'OUTRAS'
+                                acc[tipo] = (acc[tipo] || 0) + (item.receita_ultimos_3_meses || 0)
+                                return acc
+                            }, {})
+
+                            const tipoLabels: any = {
+                                'ATIVA_PRINCIPAL': { label: 'Renda Ativa', color: 'bg-blue-500', icon: '💼' },
+                                'PASSIVA': { label: 'Renda Passiva', color: 'bg-green-500', icon: '💰' },
+                                'EXTRA_VARIÁVEL': { label: 'Renda Extra', color: 'bg-purple-500', icon: '⚡' },
+                                'OUTRAS': { label: 'Outras', color: 'bg-gray-500', icon: '📊' }
+                            }
+
+                            return Object.entries(porTipo).map(([tipo, valor]: [string, any]) => {
+                                const info = tipoLabels[tipo] || tipoLabels['OUTRAS']
+                                return (
+                                    <div key={tipo} className="bg-gradient-to-br from-gray-50 to-white dark:from-gray-700 dark:to-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className="text-2xl">{info.icon}</span>
+                                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{info.label}</span>
+                                        </div>
+                                        <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(valor)}</p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                                            {((valor / analytics.incomeAnalysis.reduce((s: number, i: any) => s + i.receita_ultimos_3_meses, 0)) * 100).toFixed(1)}% do total
+                                        </p>
+                                    </div>
+                                )
+                            })
+                        })()}
+                    </div>
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                        {analytics.incomeAnalysis.map((income: any, idx: number) => (
+                            <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-semibold text-gray-900 dark:text-white">{income.fonte_receita}</span>
+                                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${income.tipo_renda === 'ATIVA_PRINCIPAL' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+                                                income.tipo_renda === 'PASSIVA' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                                                    income.tipo_renda === 'EXTRA_VARIÁVEL' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' :
+                                                        'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                                            }`}>
+                                            {income.regularidade}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-600 dark:text-gray-400">
+                                        <span>Média: {formatCurrency(income.media_mensal_3_meses)}/mês</span>
+                                        <span>•</span>
+                                        <span>{income.quantidade_transacoes} transações</span>
+                                        {income.dias_desde_ultima_receita !== undefined && (
+                                            <><span>•</span><span>Há {income.dias_desde_ultima_receita} dias</span></>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-lg font-bold text-green-600 dark:text-green-400">{formatCurrency(income.receita_ultimos_3_meses)}</p>
+                                    <p className="text-xs text-gray-500">{income.percentual_renda_total_3_meses?.toFixed(1)}% do total</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Análise de Despesas por Classificação */}
+            {analytics.expensesByCategory && analytics.expensesByCategory.length > 0 && (
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm">
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                        <TrendingDown className="h-5 w-5 text-red-600" />
+                        Análise de Despesas por Categoria (Últimos 3 Meses)
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        {/* Resumo por Classificação */}
+                        {(() => {
+                            const porClassificacao = analytics.expensesByCategory.reduce((acc: any, item: any) => {
+                                const classif = item.classificacao_categoria || 'OUTROS'
+                                acc[classif] = (acc[classif] || 0) + (item.total_ultimos_3_meses || 0)
+                                return acc
+                            }, {})
+
+                            const classifLabels: any = {
+                                'ESSENCIAL': { label: 'Essenciais', color: 'bg-red-500', icon: '🏠', desc: '50% orçamento' },
+                                'IMPORTANTE': { label: 'Importantes', color: 'bg-orange-500', icon: '📱', desc: '30% orçamento' },
+                                'SUPÉRFLUO': { label: 'Supérfluos', color: 'bg-yellow-500', icon: '🎉', desc: '20% orçamento' },
+                                'OUTROS': { label: 'Outros', color: 'bg-gray-500', icon: '📦', desc: 'Diversos' }
+                            }
+
+                            return Object.entries(porClassificacao).map(([classif, valor]: [string, any]) => {
+                                const info = classifLabels[classif] || classifLabels['OUTROS']
+                                return (
+                                    <div key={classif} className="bg-gradient-to-br from-gray-50 to-white dark:from-gray-700 dark:to-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className="text-2xl">{info.icon}</span>
+                                            <div>
+                                                <span className="text-sm font-medium text-gray-600 dark:text-gray-400 block">{info.label}</span>
+                                                <span className="text-xs text-gray-400 dark:text-gray-500">{info.desc}</span>
+                                            </div>
+                                        </div>
+                                        <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(valor)}</p>
+                                    </div>
+                                )
+                            })
+                        })()}
+                    </div>
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                        {analytics.expensesByCategory.map((expense: any, idx: number) => (
+                            <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-semibold text-gray-900 dark:text-white">{expense.categoria}</span>
+                                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${expense.classificacao_categoria === 'ESSENCIAL' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
+                                                expense.classificacao_categoria === 'IMPORTANTE' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
+                                                    expense.classificacao_categoria === 'SUPÉRFLUO' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                                                        'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                                            }`}>
+                                            {expense.frequencia_uso}
+                                        </span>
+                                        {expense.alerta_variacao !== 'NORMAL' && (
+                                            <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 font-medium">⚠️ {expense.alerta_variacao}</span>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-600 dark:text-gray-400">
+                                        <span>Média: {formatCurrency(expense.media_mensal_3_meses)}/mês</span>
+                                        <span>•</span>
+                                        <span>{expense.transacoes_ultimos_3_meses} transações</span>
+                                        <span>•</span>
+                                        <span>Ticket: {formatCurrency(expense.ticket_medio)}</span>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-lg font-bold text-red-600 dark:text-red-400">{formatCurrency(expense.total_ultimos_3_meses)}</p>
+                                    {expense.variacao_mes_anterior_percentual !== 0 && (
+                                        <p className={`text-xs font-medium ${expense.variacao_mes_anterior_percentual > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'
+                                            }`}>
+                                            {expense.variacao_mes_anterior_percentual > 0 ? '↑' : '↓'} {Math.abs(expense.variacao_mes_anterior_percentual).toFixed(1)}%
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Portfolio de Investimentos Detalhado */}
+            {analytics.investments && analytics.investments.length > 0 && (
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm">
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                        <LineChart className="h-5 w-5 text-blue-600" />
+                        Portfolio de Investimentos
+                    </h2>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                        <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 p-3 rounded-xl">
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Total Investido</p>
+                            <p className="text-lg font-bold text-gray-900 dark:text-white">
+                                {formatCurrency(analytics.investments.reduce((s: number, i: any) => s + i.valor_investido_liquido, 0))}
+                            </p>
+                        </div>
+                        <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/30 p-3 rounded-xl">
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Aportes 3 Meses</p>
+                            <p className="text-lg font-bold text-gray-900 dark:text-white">
+                                {formatCurrency(analytics.investments.reduce((s: number, i: any) => s + i.aportes_3_meses, 0))}
+                            </p>
+                        </div>
+                        <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/30 p-3 rounded-xl">
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Ativos</p>
+                            <p className="text-lg font-bold text-gray-900 dark:text-white">{analytics.investments.length}</p>
+                        </div>
+                        <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/30 dark:to-orange-800/30 p-3 rounded-xl">
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Frequência</p>
+                            <p className="text-sm font-bold text-gray-900 dark:text-white">
+                                {(() => {
+                                    const freq = analytics.investments.filter((i: any) => i.frequencia_aportes === 'MENSAL').length
+                                    return freq > 0 ? `${freq} mensal` : 'Variável'
+                                })()}
+                            </p>
+                        </div>
+                    </div>
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                        {analytics.investments.map((inv: any, idx: number) => (
+                            <div key={idx} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                                <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: inv.color || '#3B82F6' }}></div>
+                                            <span className="font-semibold text-gray-900 dark:text-white">{inv.nome_investimento}</span>
+                                            {inv.ticker && <span className="text-xs text-gray-500">({inv.ticker})</span>}
+                                        </div>
+                                        <div className="flex flex-wrap items-center gap-2 text-xs">
+                                            <span className={`px-2 py-0.5 rounded-full font-medium ${inv.nivel_risco === 'BAIXO' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                                                    inv.nivel_risco === 'MEDIO' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                                                        inv.nivel_risco === 'ALTO' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
+                                                            'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                                }`}>
+                                                Risco: {inv.nivel_risco}
+                                            </span>
+                                            <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 font-medium">
+                                                {inv.tipo_investimento}
+                                            </span>
+                                            <span className="text-gray-600 dark:text-gray-400">
+                                                {inv.corretora_ou_banco}
+                                            </span>
+                                            {inv.percentual_cdi && (
+                                                <span className="text-gray-600 dark:text-gray-400">
+                                                    {inv.percentual_cdi}% CDI
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-3 mt-1 text-xs text-gray-600 dark:text-gray-400">
+                                            <span>{inv.quantidade_atual} {inv.quantidade_atual === 1 ? 'cota' : 'cotas'}</span>
+                                            <span>•</span>
+                                            <span>Preço médio: {formatCurrency(inv.preco_medio_compra)}</span>
+                                            <span>•</span>
+                                            <span>{inv.percentual_portfolio?.toFixed(1)}% portfolio</span>
+                                        </div>
+                                    </div>
+                                    <div className="text-right ml-4">
+                                        <p className="text-lg font-bold text-gray-900 dark:text-white">{formatCurrency(inv.valor_investido_liquido)}</p>
+                                        <p className="text-xs text-gray-500">Alocação: {inv.alocacao_recomendada}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Evolução Patrimonial Mensal */}
+            {analytics.patrimonyEvolution && analytics.patrimonyEvolution.length > 0 && (
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm">
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                        <Calendar className="h-5 w-5 text-purple-600" />
+                        Evolução Patrimonial Mensal
+                    </h2>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead className="bg-gray-50 dark:bg-gray-700">
+                                <tr>
+                                    <th className="text-left p-3 font-semibold text-gray-700 dark:text-gray-300">Mês</th>
+                                    <th className="text-right p-3 font-semibold text-gray-700 dark:text-gray-300">Receitas</th>
+                                    <th className="text-right p-3 font-semibold text-gray-700 dark:text-gray-300">Despesas</th>
+                                    <th className="text-right p-3 font-semibold text-gray-700 dark:text-gray-300">Saldo</th>
+                                    <th className="text-right p-3 font-semibold text-gray-700 dark:text-gray-300">Taxa Poupança</th>
+                                    <th className="text-center p-3 font-semibold text-gray-700 dark:text-gray-300">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                                {analytics.patrimonyEvolution.map((month: any, idx: number) => (
+                                    <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                        <td className="p-3">
+                                            <div className="font-medium text-gray-900 dark:text-white">{month.mes_ano}</div>
+                                            <div className="text-xs text-gray-500">{month.quantidade_transacoes} transações</div>
+                                        </td>
+                                        <td className="p-3 text-right text-green-600 dark:text-green-400 font-medium">
+                                            {formatCurrency(month.receita_mes)}
+                                        </td>
+                                        <td className="p-3 text-right text-red-600 dark:text-red-400 font-medium">
+                                            {formatCurrency(month.despesa_mes)}
+                                        </td>
+                                        <td className={`p-3 text-right font-bold ${month.saldo_liquido_real_mes > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                                            }`}>
+                                            {formatCurrency(month.saldo_liquido_real_mes)}
+                                        </td>
+                                        <td className="p-3 text-right">
+                                            <span className={`inline-block px-2 py-1 rounded-full text-xs font-bold ${month.taxa_poupanca_mes_percentual >= 30 ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                                                    month.taxa_poupanca_mes_percentual >= 20 ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+                                                        month.taxa_poupanca_mes_percentual >= 10 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                                                            'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                                }`}>
+                                                {month.taxa_poupanca_mes_percentual?.toFixed(1)}%
+                                            </span>
+                                        </td>
+                                        <td className="p-3 text-center">
+                                            <span className={`text-xs px-2 py-1 rounded-full font-medium ${month.classificacao_resultado === 'EXCELENTE_POUPANCA' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                                                    month.classificacao_resultado === 'BOA_POUPANCA' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+                                                        month.classificacao_resultado === 'POUPANCA_MODERADA' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                                                            month.classificacao_resultado === 'POUPANCA_BAIXA' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
+                                                                'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                                }`}>
+                                                {month.desempenho_mes}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
 
             {/* Gráficos de Pizza */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -595,13 +993,20 @@ export default function DashboardPage() {
                     )}
                 </div>
 
-                {/* Cartões de Crédito */}
+                {/* Cartões de Crédito com Analytics */}
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Cartões de Crédito</h2>
-                        <Link href="/dashboard/cards" className="text-blue-600 hover:text-blue-700 text-sm">
-                            Ver todos
-                        </Link>
+                        <div className="flex gap-2">
+                            {analytics.dashboard && (
+                                <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full font-medium">
+                                    Uso: {(analytics.dashboard.utilizacao_limite_percentual || 0).toFixed(0)}%
+                                </span>
+                            )}
+                            <Link href="/dashboard/cards" className="text-blue-600 hover:text-blue-700 text-sm">
+                                Ver todos
+                            </Link>
+                        </div>
                     </div>
                     {stats.cards.length > 0 ? (
                         <div className="space-y-3">
@@ -639,9 +1044,16 @@ export default function DashboardPage() {
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow lg:col-span-2">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Metas Financeiras</h2>
-                        <Link href="/dashboard/goals" className="text-blue-600 hover:text-blue-700 text-sm">
-                            Ver todas
-                        </Link>
+                        <div className="flex gap-2 items-center">
+                            {analytics.dashboard && (
+                                <span className="text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded-full font-medium">
+                                    Progresso médio: {(analytics.dashboard.progresso_medio_metas_percentual || 0).toFixed(0)}%
+                                </span>
+                            )}
+                            <Link href="/dashboard/goals" className="text-blue-600 hover:text-blue-700 text-sm">
+                                Ver todas
+                            </Link>
+                        </div>
                     </div>
                     {stats.goals.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
