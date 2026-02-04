@@ -492,8 +492,8 @@ export default function DashboardPage() {
                                         <div className="flex items-start justify-between mb-2">
                                             <span className="font-semibold text-gray-900 dark:text-white">{alert.titulo}</span>
                                             <span className={`px-2 py-1 rounded-full text-xs font-bold ${alert.nivel_prioridade === 'CRÍTICO' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
-                                                    alert.nivel_prioridade === 'ALTO' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
-                                                        'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                                alert.nivel_prioridade === 'ALTO' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
+                                                    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
                                                 }`}>
                                                 {alert.nivel_prioridade}
                                             </span>
@@ -601,7 +601,11 @@ export default function DashboardPage() {
                 />
                 <StatCard
                     title="Investimentos"
-                    value={formatCurrency(stats.investments.current)}
+                    value={formatCurrency(
+                        analytics.investments && analytics.investments.length > 0
+                            ? analytics.investments.reduce((sum: number, inv: any) => sum + (inv.valor_investido_liquido || 0), 0)
+                            : stats.investments.current
+                    )}
                     icon={LineChart}
                     trend={{
                         value: `${stats.investments.profitPercentage.toFixed(2)}%`,
@@ -612,7 +616,13 @@ export default function DashboardPage() {
                 />
                 <StatCard
                     title="Patrimônio Total"
-                    value={formatCurrency(stats.available + stats.investments.current)}
+                    value={formatCurrency(
+                        stats.available + (
+                            analytics.investments && analytics.investments.length > 0
+                                ? analytics.investments.reduce((sum: number, inv: any) => sum + (inv.valor_investido_liquido || 0), 0)
+                                : stats.investments.current
+                        )
+                    )}
                     icon={Target}
                     gradient="bg-indigo-500"
                     iconColor="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-indigo-500/30"
@@ -666,9 +676,9 @@ export default function DashboardPage() {
                                     <div className="flex items-center gap-2">
                                         <span className="font-semibold text-gray-900 dark:text-white">{income.fonte_receita}</span>
                                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${income.tipo_renda === 'ATIVA_PRINCIPAL' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
-                                                income.tipo_renda === 'PASSIVA' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                                                    income.tipo_renda === 'EXTRA_VARIÁVEL' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' :
-                                                        'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                                            income.tipo_renda === 'PASSIVA' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                                                income.tipo_renda === 'EXTRA_VARIÁVEL' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' :
+                                                    'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
                                             }`}>
                                             {income.regularidade}
                                         </span>
@@ -739,9 +749,9 @@ export default function DashboardPage() {
                                     <div className="flex items-center gap-2">
                                         <span className="font-semibold text-gray-900 dark:text-white">{expense.categoria}</span>
                                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${expense.classificacao_categoria === 'ESSENCIAL' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
-                                                expense.classificacao_categoria === 'IMPORTANTE' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
-                                                    expense.classificacao_categoria === 'SUPÉRFLUO' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
-                                                        'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                                            expense.classificacao_categoria === 'IMPORTANTE' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
+                                                expense.classificacao_categoria === 'SUPÉRFLUO' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                                                    'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
                                             }`}>
                                             {expense.frequencia_uso}
                                         </span>
@@ -775,10 +785,15 @@ export default function DashboardPage() {
             {/* Portfolio de Investimentos Detalhado */}
             {analytics.investments && analytics.investments.length > 0 && (
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm">
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                        <LineChart className="h-5 w-5 text-blue-600" />
-                        Portfolio de Investimentos
-                    </h2>
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            <LineChart className="h-5 w-5 text-blue-600" />
+                            Portfolio de Investimentos
+                        </h2>
+                        <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full font-medium">
+                            📊 Dados completos (atemporal)
+                        </span>
+                    </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                         <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 p-3 rounded-xl">
                             <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Total Investido</p>
@@ -818,9 +833,9 @@ export default function DashboardPage() {
                                         </div>
                                         <div className="flex flex-wrap items-center gap-2 text-xs">
                                             <span className={`px-2 py-0.5 rounded-full font-medium ${inv.nivel_risco === 'BAIXO' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                                                    inv.nivel_risco === 'MEDIO' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
-                                                        inv.nivel_risco === 'ALTO' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
-                                                            'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                                inv.nivel_risco === 'MEDIO' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                                                    inv.nivel_risco === 'ALTO' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
+                                                        'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                                                 }`}>
                                                 Risco: {inv.nivel_risco}
                                             </span>
@@ -893,19 +908,19 @@ export default function DashboardPage() {
                                         </td>
                                         <td className="p-3 text-right">
                                             <span className={`inline-block px-2 py-1 rounded-full text-xs font-bold ${month.taxa_poupanca_mes_percentual >= 30 ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                                                    month.taxa_poupanca_mes_percentual >= 20 ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
-                                                        month.taxa_poupanca_mes_percentual >= 10 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
-                                                            'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                                month.taxa_poupanca_mes_percentual >= 20 ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+                                                    month.taxa_poupanca_mes_percentual >= 10 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                                                        'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                                                 }`}>
                                                 {month.taxa_poupanca_mes_percentual?.toFixed(1)}%
                                             </span>
                                         </td>
                                         <td className="p-3 text-center">
                                             <span className={`text-xs px-2 py-1 rounded-full font-medium ${month.classificacao_resultado === 'EXCELENTE_POUPANCA' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                                                    month.classificacao_resultado === 'BOA_POUPANCA' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
-                                                        month.classificacao_resultado === 'POUPANCA_MODERADA' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
-                                                            month.classificacao_resultado === 'POUPANCA_BAIXA' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
-                                                                'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                                month.classificacao_resultado === 'BOA_POUPANCA' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+                                                    month.classificacao_resultado === 'POUPANCA_MODERADA' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                                                        month.classificacao_resultado === 'POUPANCA_BAIXA' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
+                                                            'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                                                 }`}>
                                                 {month.desempenho_mes}
                                             </span>
@@ -1045,6 +1060,9 @@ export default function DashboardPage() {
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Metas Financeiras</h2>
                         <div className="flex gap-2 items-center">
+                            <span className="text-xs bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-2 py-1 rounded-full font-medium">
+                                📊 Dados completos
+                            </span>
                             {analytics.dashboard && (
                                 <span className="text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded-full font-medium">
                                     Progresso médio: {(analytics.dashboard.progresso_medio_metas_percentual || 0).toFixed(0)}%
