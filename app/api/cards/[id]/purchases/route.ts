@@ -13,7 +13,7 @@ const purchaseSchema = z.object({
 // POST - Registrar compra no cartão
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getCurrentUser();
@@ -33,7 +33,7 @@ export async function POST(
     if (!card) {
       return NextResponse.json(
         { error: "Cartão não encontrado" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -49,7 +49,7 @@ export async function POST(
     if (!category) {
       return NextResponse.json(
         { error: "Categoria não encontrada" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -60,7 +60,7 @@ export async function POST(
 
     const totalPurchases = purchases.reduce(
       (sum, p) => sum + p.amount.toNumber(),
-      0
+      0,
     );
     const currentDebt = card.initialDebt.toNumber() + totalPurchases;
 
@@ -68,11 +68,11 @@ export async function POST(
     if (currentDebt + data.amount > card.cardLimit.toNumber()) {
       return NextResponse.json(
         { error: "Limite do cartão insuficiente" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Criar compra
+    // Criar compra (NÃO incrementa initialDebt)
     const purchase = await prisma.creditCardPurchase.create({
       data: {
         userId: user.userId,
@@ -98,13 +98,13 @@ export async function POST(
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Dados inválidos", details: error.issues },
-        { status: 400 }
+        { status: 400 },
       );
     }
     console.error("Erro ao registrar compra:", error);
     return NextResponse.json(
       { error: "Erro ao registrar compra" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -112,7 +112,7 @@ export async function POST(
 // GET - Listar compras do cartão
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getCurrentUser();
@@ -133,7 +133,7 @@ export async function GET(
     if (!card) {
       return NextResponse.json(
         { error: "Cartão não encontrado" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -168,7 +168,7 @@ export async function GET(
     console.error("Erro ao buscar compras:", error);
     return NextResponse.json(
       { error: "Erro ao buscar compras" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

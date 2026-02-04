@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     if (!card) {
       return NextResponse.json(
         { error: "Cartão não encontrado" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     if (!account) {
       return NextResponse.json(
         { error: "Conta não encontrada" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     if (account.currentBalance.toNumber() < amount) {
       return NextResponse.json(
         { error: "Saldo insuficiente" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
       const transaction = await tx.transaction.create({
         data: {
           description: `Pagamento ${card.name}`,
-          amount: amount, // Valor positivo - o sistema já trata despesas adequadamente
+          amount: amount,
           type: "EXPENSE",
           date: new Date(),
           userId: user.userId,
@@ -92,13 +92,20 @@ export async function POST(request: Request) {
         data: { currentBalance: { decrement: amount } },
       });
 
-      // Reduzir a dívida do cartão
-      await tx.creditCard.update({
-        where: { id: cardId },
-        data: { initialDebt: { decrement: amount } },
+      // Criar registro do pagamento no cartão (NÃO decrementa initialDebt)
+      const payment = await tx.creditCardPayment.create({
+        data: {
+          userId: user.userId,
+          creditCardId: cardId,
+          accountId: accountId,
+          amount: amount,
+          dueDate: new Date(),
+          paymentDate: new Date(),
+          status: "PAID",
+        },
       });
 
-      return transaction;
+      return { transaction, payment };
     });
 
     return NextResponse.json(result, { status: 201 });
@@ -106,13 +113,13 @@ export async function POST(request: Request) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Dados inválidos", details: error.issues },
-        { status: 400 }
+        { status: 400 },
       );
     }
     console.error("Erro ao processar pagamento:", error);
     return NextResponse.json(
       { error: "Erro ao processar pagamento" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
