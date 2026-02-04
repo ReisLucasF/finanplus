@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
-import { Receipt, Plus, TrendingUp, TrendingDown, Edit2, Trash2, Filter, X } from 'lucide-react'
+import { Receipt, Plus, TrendingUp, TrendingDown, Edit2, Trash2, Filter, X, ArrowLeftRight } from 'lucide-react'
 import LoadingSpinner from '../components/LoadingSpinner'
 
 // Funções utilitárias para trabalhar com datas sem problemas de timezone
@@ -63,6 +63,8 @@ interface Transfer {
     fromAccount: { id: string, name: string }
     toAccount: { id: string, name: string }
 }
+
+type TransactionOrTransfer = Transaction | (Transfer & { type: 'TRANSFER' })
 
 interface DailyBalance {
     date: string
@@ -139,20 +141,46 @@ export default function TransactionsPage() {
         })
     }, [transactions, filters])
 
-    // Agrupar transações por dia e calcular saldos
-    const transactionsWithBalances = useMemo(() => {
-        if (filteredTransactions.length === 0) return []
+    // Filtrar transferências
+    const filteredTransfers = useMemo(() => {
+        return transfers.filter(transfer => {
+            const transferDate = dateUtils.toDateString(transfer.date)
 
-        // Agrupar transações por data
-        const transactionsByDate = filteredTransactions.reduce((acc, transaction) => {
-            const dateKey = dateUtils.toDateString(transaction.date)
+            if (filters.startDate && transferDate < filters.startDate) {
+                return false
+            }
+            if (filters.endDate && transferDate > filters.endDate) {
+                return false
+            }
+            // Filtrar por conta (origem ou destino)
+            if (filters.accountId && transfer.fromAccount.id !== filters.accountId && transfer.toAccount.id !== filters.accountId) {
+                return false
+            }
+            // Transferências não têm categoria, então ignorar esse filtro
+            return true
+        })
+    }, [transfers, filters])
+
+    // Agrupar transações e transferências por dia e calcular saldos
+    const transactionsWithBalances = useMemo(() => {
+        if (filteredTransactions.length === 0 && filteredTransfers.length === 0) return []
+
+        // Combinar transações e transferências
+        const allItems: TransactionOrTransfer[] = [
+            ...filteredTransactions,
+            ...filteredTransfers.map(t => ({ ...t, type: 'TRANSFER' as const }))
+        ]
+
+        // Agrupar por data
+        const itemsByDate = allItems.reduce((acc, item) => {
+            const dateKey = dateUtils.toDateString(item.date)
             if (!acc[dateKey]) acc[dateKey] = []
-            acc[dateKey].push(transaction)
+            acc[dateKey].push(item)
             return acc
-        }, {} as Record<string, Transaction[]>)
+        }, {} as Record<string, TransactionOrTransfer[]>)
 
         // Ordenar datas (mais recente primeiro) - comparação de strings
-        const sortedDates = Object.keys(transactionsByDate).sort((a, b) => b.localeCompare(a))
+        const sortedDates = Object.keys(itemsByDate).sort((a, b) => b.localeCompare(a))
 
         // Calcular saldo acumulado
         const accountBalances = new Map<string, number>()
@@ -226,15 +254,15 @@ export default function TransactionsPage() {
             dailyBalancesMap.set(date, new Map(filteredBalances))
         })
 
-        // Construir lista de transações com saldos diários
-        const result: Array<Transaction | { type: 'BALANCE_ROW', date: string, balances: Map<string, number> }> = []
+        // Construir lista de transações e transferências com saldos diários
+        const result: Array<TransactionOrTransfer | { type: 'BALANCE_ROW', date: string, balances: Map<string, number> }> = []
 
         sortedDates.forEach(date => {
-            const dayTransactions = transactionsByDate[date].sort((a, b) =>
+            const dayItems = itemsByDate[date].sort((a, b) =>
                 b.date.localeCompare(a.date)
             )
 
-            result.push(...dayTransactions)
+            result.push(...dayItems)
 
             // Adicionar linha de saldo
             result.push({
@@ -245,7 +273,7 @@ export default function TransactionsPage() {
         })
 
         return result
-    }, [filteredTransactions, accounts, transactions, transfers])
+    }, [filteredTransactions, filteredTransfers, accounts, transactions, transfers])
 
     const clearFilters = () => {
         setFilters({
@@ -341,7 +369,7 @@ export default function TransactionsPage() {
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Transações</h1>
                     <p className="text-gray-600 dark:text-gray-400 mt-1">
-                        {filteredTransactions.length} transação(ões)
+                        {filteredTransactions.length} transação(ões) e {filteredTransfers.length} transferência(s)
                         {hasActiveFilters && ' (filtrado)'}
                     </p>
                 </div>
@@ -521,7 +549,44 @@ export default function TransactionsPage() {
                                         )
                                     }
 
-                                    const transaction = item as Transaction
+                                    const typedItem = item as TransactionOrTransfer
+
+                                    // Verificar se é transferência
+                                    if ('type' in typedItem && typedItem.type === 'TRANSFER') {
+                                        const transfer = typedItem as Transfer & { type: 'TRANSFER' }
+                                        return (
+                                            <tr key={`transfer-${transfer.id}`} className="hover:bg-purple-50 dark:hover:bg-purple-900/10 bg-purple-50/30 dark:bg-purple-900/5">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                                                    {dateUtils.formatBR(transfer.date)}
+                                                </td>
+                                                <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                                                    <div className="flex items-center gap-2">
+                                                        <ArrowLeftRight className="h-4 w-4 text-purple-600" />
+                                                        {transfer.description || 'Transferência entre contas'}
+                                                        <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">(somente visualização)</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                                                    Transferência
+                                                </td>
+                                                <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-red-600 dark:text-red-400">↓ {transfer.fromAccount.name}</span>
+                                                        <span className="text-green-600 dark:text-green-400">↑ {transfer.toAccount.name}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-semibold text-purple-600 dark:text-purple-400">
+                                                    R$ {transfer.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-400">
+                                                    -
+                                                </td>
+                                            </tr>
+                                        )
+                                    }
+
+                                    // É uma transação normal
+                                    const transaction = typedItem as Transaction
                                     return (
                                         <tr key={transaction.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">

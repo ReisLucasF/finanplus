@@ -655,14 +655,16 @@ export default function DashboardPage() {
             )} */}
 
             {/* Alertas Financeiros */}
-            {advancedData.alertas.length > 0 && (
-                <div className="bg-white rounded-lg shadow-sm border p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                        <svg className="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+                    <div className="p-2 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-xl shadow-lg shadow-yellow-500/30">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
                         </svg>
-                        Alertas Financeiros
-                    </h3>
+                    </div>
+                    Alertas Financeiros
+                </h3>
+                {advancedData.alertas.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {advancedData.alertas.map((alerta: any, index: number) => (
                             <div key={index} className={`p-4 rounded-lg border-l-4 ${alerta.prioridade === 'ALTO' ? 'bg-red-50 border-red-500' :
@@ -699,53 +701,77 @@ export default function DashboardPage() {
                             </div>
                         ))}
                     </div>
-                </div>
-            )}
+                ) : (
+                    <div className="text-center py-12">
+                        <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full mb-4">
+                            <svg className="w-8 h-8 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <p className="text-gray-600 dark:text-gray-400 font-medium">Nenhum alerta financeiro no momento</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">Suas finanças estão em ordem!</p>
+                    </div>
+                )}
+            </div>
 
             {/* Gastos por Categoria - Dados Avançados */}
-            {advancedData.gastosPorCategoria.length > 0 && (
-                <div className="bg-white rounded-lg shadow-sm border p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                        <svg className="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+                    <div className="p-2 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg shadow-purple-500/30">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                         </svg>
-                        Análise de Gastos por Categoria (Últimos 3 Meses)
-                    </h3>
-                    <div className="space-y-4">
+                    </div>
+                    Análise de Gastos por Categoria (Últimos 3 Meses)
+                </h3>
+                {advancedData.gastosPorCategoria.length > 0 ? (
+                    <div className="space-y-3">
                         {advancedData.gastosPorCategoria.map((categoria: any, index: number) => (
-                            <div key={index} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                            <div key={index} className="flex justify-between items-center p-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-750 rounded-xl hover:shadow-md transition-all duration-200 border border-gray-200 dark:border-gray-600">
                                 <div>
-                                    <div className="font-medium text-gray-900">{categoria.categoria}</div>
-                                    <div className="text-sm text-gray-600">
+                                    <div className="font-semibold text-gray-900 dark:text-white">{categoria.categoria}</div>
+                                    <div className="text-sm text-gray-600 dark:text-gray-400">
                                         {categoria.quantidade_transacoes} transações + {categoria.quantidade_compras_cartao} compras no cartão
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <div className="font-bold text-lg text-gray-900">
+                                    <div className="font-bold text-lg text-gray-900 dark:text-white">
                                         R$ {Number(categoria.total_ultimos_3_meses || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                     </div>
-                                    <div className="text-sm text-gray-600">
+                                    {/* <div className="text-sm text-gray-600">
                                         R$ {Number(categoria.total_ultimo_mes || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} este mês
-                                    </div>
+                                    </div> */}
                                 </div>
                             </div>
                         ))}
                     </div>
-                </div>
-            )}
+                ) : (
+                    <div className="text-center py-12">
+                        <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full mb-4">
+                            <svg className="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                        </div>
+                        <p className="text-gray-600 dark:text-gray-400 font-medium">Nenhum gasto registrado</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">Adicione transações para ver a análise por categoria</p>
+                    </div>
+                )}
+            </div>
 
             {/* KPIs do Dashboard Avançado */}
-            {Object.keys(advancedData.dashboard).length > 0 && (
-                <div className="bg-white rounded-lg shadow-sm border p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                        <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+                    <div className="p-2 bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg shadow-green-500/30">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                         </svg>
-                        KPIs Financeiros Avançados
-                    </h3>
+                    </div>
+                    KPIs Financeiros Avançados
+                </h3>
+                {Object.keys(advancedData.dashboard).length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         {advancedData.dashboard.receita_media_mensal !== undefined && (
-                            <div className="text-center p-4 bg-green-50 rounded-lg">
+                            <div className="text-center p-5 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl border border-green-200 dark:border-green-700 hover:shadow-lg transition-all duration-200">
                                 <div className="text-2xl font-bold text-green-600">
                                     R$ {Number(advancedData.dashboard.receita_media_mensal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </div>
@@ -753,46 +779,57 @@ export default function DashboardPage() {
                             </div>
                         )}
                         {advancedData.dashboard.despesa_media_mensal !== undefined && (
-                            <div className="text-center p-4 bg-red-50 rounded-lg">
-                                <div className="text-2xl font-bold text-red-600">
+                            <div className="text-center p-5 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 rounded-xl border border-red-200 dark:border-red-700 hover:shadow-lg transition-all duration-200">
+                                <div className="text-2xl font-bold text-red-600 dark:text-red-400">
                                     R$ {Number(advancedData.dashboard.despesa_media_mensal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </div>
-                                <div className="text-sm text-gray-600">Despesa Média Mensal</div>
+                                <div className="text-sm text-gray-600 dark:text-gray-400 mt-1 font-medium">Despesa Média Mensal</div>
                             </div>
                         )}
                         {advancedData.dashboard.patrimonio_liquido !== undefined && (
-                            <div className="text-center p-4 bg-blue-50 rounded-lg">
-                                <div className="text-2xl font-bold text-blue-600">
+                            <div className="text-center p-5 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl border border-blue-200 dark:border-blue-700 hover:shadow-lg transition-all duration-200">
+                                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                                     R$ {Number(advancedData.dashboard.patrimonio_liquido || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </div>
-                                <div className="text-sm text-gray-600">Patrimônio Líquido</div>
+                                <div className="text-sm text-gray-600 dark:text-gray-400 mt-1 font-medium">Patrimônio Líquido</div>
                             </div>
                         )}
                         {advancedData.dashboard.total_metas !== undefined && (
-                            <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                                <div className="text-2xl font-bold text-yellow-600">
+                            <div className="text-center p-5 bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 rounded-xl border border-yellow-200 dark:border-yellow-700 hover:shadow-lg transition-all duration-200">
+                                <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
                                     {Number(advancedData.dashboard.total_metas || 0)}
                                 </div>
-                                <div className="text-sm text-gray-600">Metas Ativas</div>
+                                <div className="text-sm text-gray-600 dark:text-gray-400 mt-1 font-medium">Metas Ativas</div>
                             </div>
                         )}
                     </div>
-                </div>
-            )}
+                ) : (
+                    <div className="text-center py-12">
+                        <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full mb-4">
+                            <svg className="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                            </svg>
+                        </div>
+                        <p className="text-gray-600 dark:text-gray-400 font-medium">Carregando KPIs...</p>
+                    </div>
+                )}
+            </div>
 
             {/* Insights do Relatório Avançado */}
-            {advancedData.relatorioCompleto && advancedData.relatorioCompleto.relatorio && (
-                <div className="bg-white rounded-lg shadow-sm border p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                        <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+                    <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg shadow-blue-500/30">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                         </svg>
-                        Análise Financeira Avançada
-                    </h3>
+                    </div>
+                    Análise Financeira Avançada
+                </h3>
+                {advancedData.relatorioCompleto && advancedData.relatorioCompleto.relatorio ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {/* Taxa de Poupança */}
                         {advancedData.relatorioCompleto.relatorio.taxa_poupanca_historica !== undefined && (
-                            <div className={`p-4 rounded-lg ${advancedData.relatorioCompleto.relatorio.taxa_poupanca_historica >= 20 ? 'bg-green-50' :
+                            <div className={`p-5 rounded-xl border-2 hover:shadow-xl transition-all duration-200 ${advancedData.relatorioCompleto.relatorio.taxa_poupanca_historica >= 20 ? 'bg-green-50' :
                                 advancedData.relatorioCompleto.relatorio.taxa_poupanca_historica >= 10 ? 'bg-yellow-50' :
                                     'bg-red-50'
                                 }`}>
@@ -800,13 +837,13 @@ export default function DashboardPage() {
                                     advancedData.relatorioCompleto.relatorio.taxa_poupanca_historica >= 10 ? 'text-yellow-900' :
                                         'text-red-900'
                                     }`}>Taxa de Poupança</h4>
-                                <div className={`text-2xl font-bold ${advancedData.relatorioCompleto.relatorio.taxa_poupanca_historica >= 20 ? 'text-green-700' :
+                                <div className={`text-3xl font-bold ${advancedData.relatorioCompleto.relatorio.taxa_poupanca_historica >= 20 ? 'text-green-700' :
                                     advancedData.relatorioCompleto.relatorio.taxa_poupanca_historica >= 10 ? 'text-yellow-700' :
                                         'text-red-700'
                                     }`}>
                                     {Number(advancedData.relatorioCompleto.relatorio.taxa_poupanca_historica).toFixed(1)}%
                                 </div>
-                                <div className="text-sm opacity-75 mt-1">
+                                <div className="text-sm opacity-75 mt-2 font-medium">
                                     {advancedData.relatorioCompleto.relatorio.taxa_poupanca_historica >= 20 ? 'Excelente!' :
                                         advancedData.relatorioCompleto.relatorio.taxa_poupanca_historica >= 10 ? 'Bom progresso' :
                                             'Precisa melhorar'}
@@ -816,7 +853,7 @@ export default function DashboardPage() {
 
                         {/* Runway */}
                         {advancedData.relatorioCompleto.relatorio.runway_meses_reserva !== undefined && (
-                            <div className={`p-4 rounded-lg ${advancedData.relatorioCompleto.relatorio.runway_meses_reserva >= 6 ? 'bg-green-50' :
+                            <div className={`p-5 rounded-xl border-2 hover:shadow-xl transition-all duration-200 ${advancedData.relatorioCompleto.relatorio.runway_meses_reserva >= 6 ? 'bg-green-50' :
                                 advancedData.relatorioCompleto.relatorio.runway_meses_reserva >= 3 ? 'bg-yellow-50' :
                                     'bg-red-50'
                                 }`}>
@@ -824,23 +861,23 @@ export default function DashboardPage() {
                                     advancedData.relatorioCompleto.relatorio.runway_meses_reserva >= 3 ? 'text-yellow-900' :
                                         'text-red-900'
                                     }`}>Reserva de Emergência</h4>
-                                <div className={`text-2xl font-bold ${advancedData.relatorioCompleto.relatorio.runway_meses_reserva >= 6 ? 'text-green-700' :
+                                <div className={`text-3xl font-bold ${advancedData.relatorioCompleto.relatorio.runway_meses_reserva >= 6 ? 'text-green-700' :
                                     advancedData.relatorioCompleto.relatorio.runway_meses_reserva >= 3 ? 'text-yellow-700' :
                                         'text-red-700'
                                     }`}>
                                     {Number(advancedData.relatorioCompleto.relatorio.runway_meses_reserva).toFixed(1)}
                                 </div>
-                                <div className="text-sm opacity-75 mt-1">meses de cobertura</div>
+                                <div className="text-sm opacity-75 mt-2 font-medium">meses de cobertura</div>
                             </div>
                         )}
 
                         {/* Balanço Mensal */}
                         {advancedData.relatorioCompleto.relatorio.resumo_historico && (
-                            <div className={`p-4 rounded-lg ${advancedData.relatorioCompleto.relatorio.resumo_historico.saldo_liquido_historico >= 0 ? 'bg-green-50' : 'bg-red-50'
+                            <div className={`p-5 rounded-xl border-2 hover:shadow-xl transition-all duration-200 ${advancedData.relatorioCompleto.relatorio.resumo_historico.saldo_liquido_historico >= 0 ? 'bg-green-50' : 'bg-red-50'
                                 }`}>
                                 <h4 className={`font-medium mb-2 ${advancedData.relatorioCompleto.relatorio.resumo_historico.saldo_liquido_historico >= 0 ? 'text-green-900' : 'text-red-900'
                                     }`}>Saldo Médio Mensal</h4>
-                                <div className={`text-2xl font-bold ${advancedData.relatorioCompleto.relatorio.resumo_historico.saldo_liquido_historico >= 0 ? 'text-green-700' : 'text-red-700'
+                                <div className={`text-3xl font-bold ${advancedData.relatorioCompleto.relatorio.resumo_historico.saldo_liquido_historico >= 0 ? 'text-green-700' : 'text-red-700'
                                     }`}>
                                     R$ {Number(advancedData.relatorioCompleto.relatorio.resumo_historico.saldo_liquido_historico || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </div>
@@ -850,33 +887,47 @@ export default function DashboardPage() {
                             </div>
                         )}
                     </div>
-
-                    {/* Status da Reserva de Emergência */}
-                    {advancedData.relatorioCompleto.relatorio.status_reserva_emergencia && (
-                        <div className="mt-4 p-4 rounded-lg border">
-                            <div className="flex items-center justify-between">
-                                <span className="font-medium">Status da Reserva de Emergência:</span>
-                                <span className={`px-3 py-1 rounded-full text-sm font-medium ${advancedData.relatorioCompleto.relatorio.status_reserva_emergencia === 'ADEQUADA' ? 'bg-green-100 text-green-800' :
-                                    advancedData.relatorioCompleto.relatorio.status_reserva_emergencia === 'MÍNIMA' ? 'bg-yellow-100 text-yellow-800' :
-                                        'bg-red-100 text-red-800'
-                                    }`}>
-                                    {advancedData.relatorioCompleto.relatorio.status_reserva_emergencia}
-                                </span>
-                            </div>
+                ) : (
+                    <div className="text-center py-12">
+                        <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full mb-4">
+                            <svg className="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
                         </div>
-                    )}
+                        <p className="text-gray-600 dark:text-gray-400 font-medium">Carregando análise financeira...</p>
+                    </div>
+                )}
 
-                    {/* Resumo Executivo */}
-                    {advancedData.relatorioCompleto.relatorio.resumo_executivo_pessoal && (
-                        <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                            <h4 className="font-medium text-gray-900 mb-2">Resumo Executivo</h4>
-                            <p className="text-sm text-gray-700">
-                                {advancedData.relatorioCompleto.relatorio.resumo_executivo_pessoal}
-                            </p>
+                {/* Status da Reserva de Emergência */}
+                {advancedData.relatorioCompleto && advancedData.relatorioCompleto.relatorio && advancedData.relatorioCompleto.relatorio.status_reserva_emergencia && (
+                    <div className="mt-6 p-5 rounded-xl border-2 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-750 border-gray-200 dark:border-gray-600">
+                        <div className="flex items-center justify-between">
+                            <span className="font-medium">Status da Reserva de Emergência:</span>
+                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${advancedData.relatorioCompleto.relatorio.status_reserva_emergencia === 'ADEQUADA' ? 'bg-green-100 text-green-800' :
+                                advancedData.relatorioCompleto.relatorio.status_reserva_emergencia === 'MÍNIMA' ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-red-100 text-red-800'
+                                }`}>
+                                {advancedData.relatorioCompleto.relatorio.status_reserva_emergencia}
+                            </span>
                         </div>
-                    )}
-                </div>
-            )}
+                    </div>
+                )}
+
+                {/* Resumo Executivo */}
+                {advancedData.relatorioCompleto && advancedData.relatorioCompleto.relatorio && advancedData.relatorioCompleto.relatorio.resumo_executivo_pessoal && (
+                    <div className="mt-6 p-5 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-2 border-blue-200 dark:border-blue-700">
+                        <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                            <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            Resumo Executivo
+                        </h4>
+                        <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                            {advancedData.relatorioCompleto.relatorio.resumo_executivo_pessoal}
+                        </p>
+                    </div>
+                )}
+            </div>
 
             {/* Gráficos de Pizza */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
