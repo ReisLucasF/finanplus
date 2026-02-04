@@ -97,6 +97,32 @@ export async function GET() {
       LIMIT 5
     `;
 
+    // Buscar análise de receitas por categoria
+    const analiseReceitas = await prisma.$queryRaw`
+      SELECT 
+        c.name as fonte_receita,
+        COALESCE(SUM(CASE WHEN t.date >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) THEN t.amount END), 0) as receita_ultimo_mes,
+        COALESCE(SUM(CASE WHEN t.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH) THEN t.amount END), 0) as receita_ultimos_3_meses,
+        'ATIVA_PRINCIPAL' as tipo_renda,
+        CASE 
+          WHEN COUNT(t.id) >= 3 THEN 'REGULAR'
+          ELSE 'IRREGULAR'
+        END as regularidade,
+        COUNT(t.id) as quantidade_transacoes
+      FROM Category c
+      LEFT JOIN Transaction t ON c.id = t.categoryId 
+        AND t.type = 'INCOME' 
+        AND t.status IN ('COMPLETED', 'PAID')
+        AND t.userId = ${user.userId}
+        AND t.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
+      WHERE c.type = 'INCOME' 
+        AND (c.userId = ${user.userId} OR c.userId IS NULL)
+      GROUP BY c.id, c.name
+      HAVING receita_ultimos_3_meses > 0
+      ORDER BY receita_ultimos_3_meses DESC
+      LIMIT 10
+    `;
+
     // UNION ALL
     //   SELECT 'DASHBOARD_OK' as tipo_alerta,
     //          'Dashboard carregado com sucesso' as mensagem,
@@ -141,6 +167,22 @@ export async function GET() {
         }))
       : [];
 
+    // Processar análise de receitas
+    const analiseReceitasProcessed = Array.isArray(analiseReceitas)
+      ? analiseReceitas.map((item: any) => ({
+          fonte_receita: item.fonte_receita,
+          receita_ultimo_mes: convertBigIntToNumber(item.receita_ultimo_mes),
+          receita_ultimos_3_meses: convertBigIntToNumber(
+            item.receita_ultimos_3_meses,
+          ),
+          tipo_renda: item.tipo_renda,
+          regularidade: item.regularidade,
+          quantidade_transacoes: convertBigIntToNumber(
+            item.quantidade_transacoes,
+          ),
+        }))
+      : [];
+
     const result = {
       dashboard: {
         receita_media_mensal: convertBigIntToNumber(
@@ -165,7 +207,7 @@ export async function GET() {
       },
       gastosPorCategoria: gastosPorCategoriaProcessed,
       alertas: alertasProcessed,
-      analiseReceitas: [],
+      analiseReceitas: analiseReceitasProcessed,
       portfolioInvestimentos: [],
       evolucaoPatrimonial: [],
       success: true,

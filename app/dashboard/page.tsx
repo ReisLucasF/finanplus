@@ -892,7 +892,7 @@ export default function DashboardPage() {
                                     }`}>
                                     {Number(advancedData.relatorioCompleto.taxa_poupanca_historica).toFixed(1)}%
                                 </div>
-                                    <div className="text-sm opacity-100 mt-2 font-medium  text-black">
+                                <div className="text-sm opacity-100 mt-2 font-medium  text-black">
                                     {advancedData.relatorioCompleto.taxa_poupanca_historica >= 20 ? 'Excelente!' :
                                         advancedData.relatorioCompleto.taxa_poupanca_historica >= 10 ? 'Bom progresso' :
                                             'Precisa melhorar'}
@@ -930,7 +930,7 @@ export default function DashboardPage() {
                                     }`}>
                                     R$ {Number(advancedData.relatorioCompleto.resumo_historico.saldo_liquido_historico || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </div>
-                                    <div className="text-xs opacity-100 mt-1  text-black">
+                                <div className="text-xs opacity-100 mt-1  text-black">
                                     Receita: R$ {Number(advancedData.relatorioCompleto.resumo_historico.receita_media_mensal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} - Despesa: R$ {Number(advancedData.relatorioCompleto.resumo_historico.despesa_media_mensal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </div>
                             </div>
@@ -1131,11 +1131,26 @@ export default function DashboardPage() {
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                             <Target className="h-5 w-5 text-blue-500" />
                             Análise de Gastos por Categoria
+                            {loadingAdvanced && (
+                                <span className="text-xs text-gray-500 dark:text-gray-400 ml-2 animate-pulse">Carregando...</span>
+                            )}
                         </h2>
                     </div>
                     <div className="space-y-4">
-                        {advancedData.gastosPorCategoria.length === 0 ? (
-                            <p className="text-gray-500 text-center py-8">Carregando análise de gastos...</p>
+                        {loadingAdvanced ? (
+                            <div className="flex items-center justify-center py-8">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                            </div>
+                        ) : advancedData.gastosPorCategoria.length === 0 ? (
+                            <div className="text-center py-8">
+                                <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full mb-4">
+                                    <svg className="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                    </svg>
+                                </div>
+                                <p className="text-gray-600 dark:text-gray-400 font-medium">Nenhum gasto registrado</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">Adicione transações para ver a análise</p>
+                            </div>
                         ) : (
                             <>
                                 <div className="grid grid-cols-2 gap-4 mb-4">
@@ -1186,11 +1201,26 @@ export default function DashboardPage() {
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                             <TrendingUp className="h-5 w-5 text-green-500" />
                             Fontes de Receita
+                            {loadingAdvanced && (
+                                <span className="text-xs text-gray-500 dark:text-gray-400 ml-2 animate-pulse">Carregando...</span>
+                            )}
                         </h2>
                     </div>
                     <div className="space-y-4">
-                        {advancedData.analiseReceitas.length === 0 ? (
-                            <p className="text-gray-500 text-center py-8">Carregando análise de receitas...</p>
+                        {loadingAdvanced ? (
+                            <div className="flex items-center justify-center py-8">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+                            </div>
+                        ) : advancedData.analiseReceitas.length === 0 ? (
+                            <div className="text-center py-8">
+                                <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full mb-4">
+                                    <svg className="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                    </svg>
+                                </div>
+                                <p className="text-gray-600 dark:text-gray-400 font-medium">Nenhuma análise de receitas disponível</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">Adicione transações de receita para ver a análise</p>
+                            </div>
                         ) : (
                             <>
                                 <div className="grid grid-cols-2 gap-4 mb-4">
