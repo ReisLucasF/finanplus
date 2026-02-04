@@ -727,7 +727,7 @@ export default function DashboardPage() {
                 {advancedData.gastosPorCategoria.length > 0 ? (
                     <div className="space-y-3">
                         {advancedData.gastosPorCategoria.map((categoria: any, index: number) => (
-                            <div key={index} className="flex justify-between items-center p-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-750 rounded-xl hover:shadow-md transition-all duration-200 border border-gray-200 dark:border-gray-600">
+                            <div key={index} className="flex justify-between items-center p-4 bg-white dark:bg-gray-800 rounded-xl hover:shadow-md transition-all duration-200 border border-gray-100 dark:border-gray-700">
                                 <div>
                                     <div className="font-semibold text-gray-900 dark:text-white">{categoria.categoria}</div>
                                     <div className="text-sm text-gray-600 dark:text-gray-400">
