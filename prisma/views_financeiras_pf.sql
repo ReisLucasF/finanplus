@@ -1278,14 +1278,81 @@ SELECT
     g.id as goalId,
     g.name as nome_meta,
     g.targetAmount as valor_objetivo,
-    g.currentAmount as valor_atual,
+    
+    -- ========== VALOR ATUAL CALCULADO ==========
+    -- Se includeInvestments = true: soma saldo das contas + valor dos investimentos
+    -- Se accountId está definido: usa o saldo da conta vinculada
+    -- Caso contrário: soma saldo de TODAS as contas do usuário
+    CASE 
+        WHEN g.includeInvestments = TRUE THEN
+            -- Soma saldo de TODAS as contas do usuário + valor dos investimentos
+            COALESCE((SELECT SUM(ba.currentBalance) FROM BankAccount ba WHERE ba.userId = g.userId), 0) +
+            COALESCE((
+                SELECT SUM(
+                    CASE 
+                        WHEN it.type = 'BUY' THEN it.amount
+                        WHEN it.type = 'SELL' THEN -it.amount
+                        ELSE 0
+                    END
+                )
+                FROM InvestmentTransaction it
+                JOIN Investment i ON it.investmentId = i.id
+                WHERE i.userId = g.userId
+            ), 0)
+        WHEN g.accountId IS NOT NULL THEN
+            -- Usa o saldo da conta vinculada
+            COALESCE((SELECT ba.currentBalance FROM BankAccount ba WHERE ba.id = g.accountId), 0)
+        ELSE 
+            -- Soma saldo de TODAS as contas do usuário
+            COALESCE((SELECT SUM(ba.currentBalance) FROM BankAccount ba WHERE ba.userId = g.userId), 0)
+    END as valor_atual,
+    
     g.targetDate as data_objetivo,
     g.includeInvestments as incluir_investimentos,
     
     -- ========== PROGRESSO ==========
-    (g.currentAmount / NULLIF(g.targetAmount, 0)) * 100 as progresso_percentual,
+    -- Progresso calculado com base no valor_atual dinâmico
+    (CASE 
+        WHEN g.includeInvestments = TRUE THEN
+            COALESCE((SELECT SUM(ba.currentBalance) FROM BankAccount ba WHERE ba.userId = g.userId), 0) +
+            COALESCE((
+                SELECT SUM(
+                    CASE 
+                        WHEN it.type = 'BUY' THEN it.amount
+                        WHEN it.type = 'SELL' THEN -it.amount
+                        ELSE 0
+                    END
+                )
+                FROM InvestmentTransaction it
+                JOIN Investment i ON it.investmentId = i.id
+                WHERE i.userId = g.userId
+            ), 0)
+        WHEN g.accountId IS NOT NULL THEN
+            COALESCE((SELECT ba.currentBalance FROM BankAccount ba WHERE ba.id = g.accountId), 0)
+        ELSE 
+            COALESCE((SELECT SUM(ba.currentBalance) FROM BankAccount ba WHERE ba.userId = g.userId), 0)
+    END / NULLIF(g.targetAmount, 0)) * 100 as progresso_percentual,
     
-    g.targetAmount - g.currentAmount as valor_restante,
+    g.targetAmount - (CASE 
+        WHEN g.includeInvestments = TRUE THEN
+            COALESCE((SELECT SUM(ba.currentBalance) FROM BankAccount ba WHERE ba.userId = g.userId), 0) +
+            COALESCE((
+                SELECT SUM(
+                    CASE 
+                        WHEN it.type = 'BUY' THEN it.amount
+                        WHEN it.type = 'SELL' THEN -it.amount
+                        ELSE 0
+                    END
+                )
+                FROM InvestmentTransaction it
+                JOIN Investment i ON it.investmentId = i.id
+                WHERE i.userId = g.userId
+            ), 0)
+        WHEN g.accountId IS NOT NULL THEN
+            COALESCE((SELECT ba.currentBalance FROM BankAccount ba WHERE ba.id = g.accountId), 0)
+        ELSE 
+            COALESCE((SELECT SUM(ba.currentBalance) FROM BankAccount ba WHERE ba.userId = g.userId), 0)
+    END) as valor_restante,
     
     -- ========== ANÁLISE TEMPORAL ==========
     DATEDIFF(g.targetDate, CURDATE()) as dias_restantes,
@@ -1299,84 +1366,220 @@ SELECT
     END as status_prazo,
     
     -- ========== ANÁLISE DE VIABILIDADE ==========
-    -- Quanto precisa poupar por mês para atingir a meta
+    -- Quanto precisa poupar por mês para atingir a meta (usando valor_atual calculado)
     CASE 
         WHEN DATEDIFF(g.targetDate, CURDATE()) > 0 THEN
-            (g.targetAmount - g.currentAmount) / (DATEDIFF(g.targetDate, CURDATE()) / 30)
+            (g.targetAmount - (CASE 
+                WHEN g.includeInvestments = TRUE THEN
+                    COALESCE((SELECT SUM(ba.currentBalance) FROM BankAccount ba WHERE ba.userId = g.userId), 0) +
+                    COALESCE((
+                        SELECT SUM(CASE WHEN it.type = 'BUY' THEN it.amount WHEN it.type = 'SELL' THEN -it.amount ELSE 0 END)
+                        FROM InvestmentTransaction it
+                        JOIN Investment i ON it.investmentId = i.id
+                        WHERE i.userId = g.userId
+                    ), 0)
+                WHEN g.accountId IS NOT NULL THEN
+                    COALESCE((SELECT ba.currentBalance FROM BankAccount ba WHERE ba.id = g.accountId), 0)
+                ELSE COALESCE((SELECT SUM(ba.currentBalance) FROM BankAccount ba WHERE ba.userId = g.userId), 0)
+            END)) / (DATEDIFF(g.targetDate, CURDATE()) / 30)
         ELSE 0
     END as valor_necessario_por_mes,
     
     -- Comparar com capacidade de poupança do usuário
+    -- NOTA: Usa receita total - despesas + aportes em investimentos = capacidade real de poupar
     CASE 
-        WHEN (SELECT AVG(saldo_liquido_mes)
+        WHEN (SELECT AVG(poupanca_mes)
               FROM (
-                  SELECT SUM(CASE WHEN t.type = 'INCOME' THEN t.amount ELSE -t.amount END) as saldo_liquido_mes
-                  FROM Transaction t
-                  WHERE t.userId = g.userId
-                    AND t.status = 'COMPLETED'
-                    AND t.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
-                  GROUP BY DATE_FORMAT(t.date, '%Y-%m')
+                  -- Capacidade de poupança = Receitas - Despesas (transações) + Aportes em Investimentos
+                  SELECT 
+                      COALESCE((
+                          SELECT SUM(t.amount)
+                          FROM Transaction t
+                          WHERE t.userId = g.userId
+                            AND t.status = 'COMPLETED'
+                            AND t.type = 'INCOME'
+                            AND DATE_FORMAT(t.date, '%Y-%m') = mes_ref.mes_ano
+                      ), 0) 
+                      - COALESCE((
+                          SELECT SUM(t.amount)
+                          FROM Transaction t
+                          WHERE t.userId = g.userId
+                            AND t.status = 'COMPLETED'
+                            AND t.type = 'EXPENSE'
+                            AND DATE_FORMAT(t.date, '%Y-%m') = mes_ref.mes_ano
+                      ), 0)
+                      - COALESCE((
+                          SELECT SUM(cp.amount)
+                          FROM CreditCardPurchase cp
+                          WHERE cp.userId = g.userId
+                            AND DATE_FORMAT(cp.date, '%Y-%m') = mes_ref.mes_ano
+                      ), 0)
+                      + COALESCE((
+                          SELECT SUM(CASE WHEN it.type = 'BUY' THEN it.amount ELSE 0 END)
+                          FROM InvestmentTransaction it
+                          JOIN Investment i ON it.investmentId = i.id
+                          WHERE i.userId = g.userId
+                            AND DATE_FORMAT(it.date, '%Y-%m') = mes_ref.mes_ano
+                      ), 0) as poupanca_mes
+                  FROM (
+                      SELECT DISTINCT DATE_FORMAT(t.date, '%Y-%m') as mes_ano
+                      FROM Transaction t
+                      WHERE t.userId = g.userId
+                        AND t.status = 'COMPLETED'
+                        AND t.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
+                  ) as mes_ref
               ) as ultimos_meses) > 0 
              AND DATEDIFF(g.targetDate, CURDATE()) > 0 
         THEN
             -- Percentual da poupança atual que precisa destinar
-            (((g.targetAmount - g.currentAmount) / (DATEDIFF(g.targetDate, CURDATE()) / 30)) /
-             (SELECT AVG(saldo_liquido_mes)
+            (((g.targetAmount - (CASE 
+                WHEN g.includeInvestments = TRUE THEN
+                    COALESCE((SELECT SUM(ba.currentBalance) FROM BankAccount ba WHERE ba.userId = g.userId), 0) +
+                    COALESCE((
+                        SELECT SUM(CASE WHEN it.type = 'BUY' THEN it.amount WHEN it.type = 'SELL' THEN -it.amount ELSE 0 END)
+                        FROM InvestmentTransaction it
+                        JOIN Investment i ON it.investmentId = i.id
+                        WHERE i.userId = g.userId
+                    ), 0)
+                WHEN g.accountId IS NOT NULL THEN
+                    COALESCE((SELECT ba.currentBalance FROM BankAccount ba WHERE ba.id = g.accountId), 0)
+                ELSE COALESCE((SELECT SUM(ba.currentBalance) FROM BankAccount ba WHERE ba.userId = g.userId), 0)
+            END)) / (DATEDIFF(g.targetDate, CURDATE()) / 30)) /
+             (SELECT AVG(poupanca_mes)
               FROM (
-                  SELECT SUM(CASE WHEN t.type = 'INCOME' THEN t.amount ELSE -t.amount END) as saldo_liquido_mes
-                  FROM Transaction t
-                  WHERE t.userId = g.userId
-                    AND t.status = 'COMPLETED'
-                    AND t.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
-                  GROUP BY DATE_FORMAT(t.date, '%Y-%m')
+                  SELECT 
+                      COALESCE((
+                          SELECT SUM(t.amount)
+                          FROM Transaction t
+                          WHERE t.userId = g.userId
+                            AND t.status = 'COMPLETED'
+                            AND t.type = 'INCOME'
+                            AND DATE_FORMAT(t.date, '%Y-%m') = mes_ref.mes_ano
+                      ), 0) 
+                      - COALESCE((
+                          SELECT SUM(t.amount)
+                          FROM Transaction t
+                          WHERE t.userId = g.userId
+                            AND t.status = 'COMPLETED'
+                            AND t.type = 'EXPENSE'
+                            AND DATE_FORMAT(t.date, '%Y-%m') = mes_ref.mes_ano
+                      ), 0)
+                      - COALESCE((
+                          SELECT SUM(cp.amount)
+                          FROM CreditCardPurchase cp
+                          WHERE cp.userId = g.userId
+                            AND DATE_FORMAT(cp.date, '%Y-%m') = mes_ref.mes_ano
+                      ), 0)
+                      + COALESCE((
+                          SELECT SUM(CASE WHEN it.type = 'BUY' THEN it.amount ELSE 0 END)
+                          FROM InvestmentTransaction it
+                          JOIN Investment i ON it.investmentId = i.id
+                          WHERE i.userId = g.userId
+                            AND DATE_FORMAT(it.date, '%Y-%m') = mes_ref.mes_ano
+                      ), 0) as poupanca_mes
+                  FROM (
+                      SELECT DISTINCT DATE_FORMAT(t.date, '%Y-%m') as mes_ano
+                      FROM Transaction t
+                      WHERE t.userId = g.userId
+                        AND t.status = 'COMPLETED'
+                        AND t.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
+                  ) as mes_ref
               ) as ultimos_meses)) * 100
         ELSE 0
     END as percentual_poupanca_necessario,
     
     -- ========== CLASSIFICAÇÃO DE VIABILIDADE ==========
     CASE 
-        -- Meta já alcançada
-        WHEN g.currentAmount >= g.targetAmount THEN 'ALCANÇADA'
+        -- Meta já alcançada (usando valor_atual calculado)
+        WHEN (CASE 
+                WHEN g.includeInvestments = TRUE THEN
+                    COALESCE((SELECT SUM(ba.currentBalance) FROM BankAccount ba WHERE ba.userId = g.userId), 0) +
+                    COALESCE((
+                        SELECT SUM(CASE WHEN it.type = 'BUY' THEN it.amount WHEN it.type = 'SELL' THEN -it.amount ELSE 0 END)
+                        FROM InvestmentTransaction it
+                        JOIN Investment i ON it.investmentId = i.id
+                        WHERE i.userId = g.userId
+                    ), 0)
+                WHEN g.accountId IS NOT NULL THEN
+                    COALESCE((SELECT ba.currentBalance FROM BankAccount ba WHERE ba.id = g.accountId), 0)
+                ELSE COALESCE((SELECT SUM(ba.currentBalance) FROM BankAccount ba WHERE ba.userId = g.userId), 0)
+            END) >= g.targetAmount THEN 'ALCANÇADA'
         
         -- Meta vencida e não alcançada
-        WHEN DATEDIFF(g.targetDate, CURDATE()) < 0 AND g.currentAmount < g.targetAmount THEN 'NÃO_ALCANÇADA'
+        WHEN DATEDIFF(g.targetDate, CURDATE()) < 0 AND (CASE 
+                WHEN g.includeInvestments = TRUE THEN
+                    COALESCE((SELECT SUM(ba.currentBalance) FROM BankAccount ba WHERE ba.userId = g.userId), 0) +
+                    COALESCE((
+                        SELECT SUM(CASE WHEN it.type = 'BUY' THEN it.amount WHEN it.type = 'SELL' THEN -it.amount ELSE 0 END)
+                        FROM InvestmentTransaction it
+                        JOIN Investment i ON it.investmentId = i.id
+                        WHERE i.userId = g.userId
+                    ), 0)
+                WHEN g.accountId IS NOT NULL THEN
+                    COALESCE((SELECT ba.currentBalance FROM BankAccount ba WHERE ba.id = g.accountId), 0)
+                ELSE COALESCE((SELECT SUM(ba.currentBalance) FROM BankAccount ba WHERE ba.userId = g.userId), 0)
+            END) < g.targetAmount THEN 'NÃO_ALCANÇADA'
         
-        -- Viabilidade baseada na poupança atual
-        WHEN (SELECT AVG(saldo_liquido_mes)
+        -- Viabilidade baseada na poupança atual (RECEITA - DESPESA - CARTÃO + APORTES)
+        WHEN (SELECT AVG(poupanca_mes)
               FROM (
-                  SELECT SUM(CASE WHEN t.type = 'INCOME' THEN t.amount ELSE -t.amount END) as saldo_liquido_mes
-                  FROM Transaction t
-                  WHERE t.userId = g.userId
-                    AND t.status = 'COMPLETED'
-                    AND t.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
-                  GROUP BY DATE_FORMAT(t.date, '%Y-%m')
+                  SELECT 
+                      COALESCE((SELECT SUM(t2.amount) FROM Transaction t2 WHERE t2.userId = g.userId AND t2.status = 'COMPLETED' AND t2.type = 'INCOME' AND DATE_FORMAT(t2.date, '%Y-%m') = mes_ref.mes_ano), 0) 
+                      - COALESCE((SELECT SUM(t2.amount) FROM Transaction t2 WHERE t2.userId = g.userId AND t2.status = 'COMPLETED' AND t2.type = 'EXPENSE' AND DATE_FORMAT(t2.date, '%Y-%m') = mes_ref.mes_ano), 0)
+                      - COALESCE((SELECT SUM(cp.amount) FROM CreditCardPurchase cp WHERE cp.userId = g.userId AND DATE_FORMAT(cp.date, '%Y-%m') = mes_ref.mes_ano), 0)
+                      + COALESCE((SELECT SUM(CASE WHEN it.type = 'BUY' THEN it.amount ELSE 0 END) FROM InvestmentTransaction it JOIN Investment i ON it.investmentId = i.id WHERE i.userId = g.userId AND DATE_FORMAT(it.date, '%Y-%m') = mes_ref.mes_ano), 0) as poupanca_mes
+                  FROM (SELECT DISTINCT DATE_FORMAT(t.date, '%Y-%m') as mes_ano FROM Transaction t WHERE t.userId = g.userId AND t.status = 'COMPLETED' AND t.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)) as mes_ref
               ) as ultimos_meses) > 0 
              AND DATEDIFF(g.targetDate, CURDATE()) > 0 
         THEN
             CASE 
                 -- Viável: precisa de menos de 50% da poupança atual
-                WHEN (((g.targetAmount - g.currentAmount) / (DATEDIFF(g.targetDate, CURDATE()) / 30)) /
-                     (SELECT AVG(saldo_liquido_mes)
+                WHEN (((g.targetAmount - (CASE 
+                        WHEN g.includeInvestments = TRUE THEN
+                            COALESCE((SELECT SUM(ba.currentBalance) FROM BankAccount ba WHERE ba.userId = g.userId), 0) +
+                            COALESCE((
+                                SELECT SUM(CASE WHEN it.type = 'BUY' THEN it.amount WHEN it.type = 'SELL' THEN -it.amount ELSE 0 END)
+                                FROM InvestmentTransaction it
+                                JOIN Investment i ON it.investmentId = i.id
+                                WHERE i.userId = g.userId
+                            ), 0)
+                        WHEN g.accountId IS NOT NULL THEN
+                            COALESCE((SELECT ba.currentBalance FROM BankAccount ba WHERE ba.id = g.accountId), 0)
+                        ELSE COALESCE((SELECT SUM(ba.currentBalance) FROM BankAccount ba WHERE ba.userId = g.userId), 0)
+                    END)) / (DATEDIFF(g.targetDate, CURDATE()) / 30)) /
+                     (SELECT AVG(poupanca_mes)
                       FROM (
-                          SELECT SUM(CASE WHEN t.type = 'INCOME' THEN t.amount ELSE -t.amount END) as saldo_liquido_mes
-                          FROM Transaction t
-                          WHERE t.userId = g.userId
-                            AND t.status = 'COMPLETED'
-                            AND t.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
-                          GROUP BY DATE_FORMAT(t.date, '%Y-%m')
+                          SELECT 
+                              COALESCE((SELECT SUM(t2.amount) FROM Transaction t2 WHERE t2.userId = g.userId AND t2.status = 'COMPLETED' AND t2.type = 'INCOME' AND DATE_FORMAT(t2.date, '%Y-%m') = mes_ref.mes_ano), 0) 
+                              - COALESCE((SELECT SUM(t2.amount) FROM Transaction t2 WHERE t2.userId = g.userId AND t2.status = 'COMPLETED' AND t2.type = 'EXPENSE' AND DATE_FORMAT(t2.date, '%Y-%m') = mes_ref.mes_ano), 0)
+                              - COALESCE((SELECT SUM(cp.amount) FROM CreditCardPurchase cp WHERE cp.userId = g.userId AND DATE_FORMAT(cp.date, '%Y-%m') = mes_ref.mes_ano), 0)
+                              + COALESCE((SELECT SUM(CASE WHEN it.type = 'BUY' THEN it.amount ELSE 0 END) FROM InvestmentTransaction it JOIN Investment i ON it.investmentId = i.id WHERE i.userId = g.userId AND DATE_FORMAT(it.date, '%Y-%m') = mes_ref.mes_ano), 0) as poupanca_mes
+                          FROM (SELECT DISTINCT DATE_FORMAT(t.date, '%Y-%m') as mes_ano FROM Transaction t WHERE t.userId = g.userId AND t.status = 'COMPLETED' AND t.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)) as mes_ref
                       ) as ultimos_meses)) * 100 <= 50 
                 THEN 'VIÁVEL'
                 
                 -- Desafiadora: precisa de 50-100% da poupança
-                WHEN (((g.targetAmount - g.currentAmount) / (DATEDIFF(g.targetDate, CURDATE()) / 30)) /
-                     (SELECT AVG(saldo_liquido_mes)
+                WHEN (((g.targetAmount - (CASE 
+                        WHEN g.includeInvestments = TRUE THEN
+                            COALESCE((SELECT SUM(ba.currentBalance) FROM BankAccount ba WHERE ba.userId = g.userId), 0) +
+                            COALESCE((
+                                SELECT SUM(CASE WHEN it.type = 'BUY' THEN it.amount WHEN it.type = 'SELL' THEN -it.amount ELSE 0 END)
+                                FROM InvestmentTransaction it
+                                JOIN Investment i ON it.investmentId = i.id
+                                WHERE i.userId = g.userId
+                            ), 0)
+                        WHEN g.accountId IS NOT NULL THEN
+                            COALESCE((SELECT ba.currentBalance FROM BankAccount ba WHERE ba.id = g.accountId), 0)
+                        ELSE COALESCE((SELECT SUM(ba.currentBalance) FROM BankAccount ba WHERE ba.userId = g.userId), 0)
+                    END)) / (DATEDIFF(g.targetDate, CURDATE()) / 30)) /
+                     (SELECT AVG(poupanca_mes)
                       FROM (
-                          SELECT SUM(CASE WHEN t.type = 'INCOME' THEN t.amount ELSE -t.amount END) as saldo_liquido_mes
-                          FROM Transaction t
-                          WHERE t.userId = g.userId
-                            AND t.status = 'COMPLETED'
-                            AND t.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
-                          GROUP BY DATE_FORMAT(t.date, '%Y-%m')
+                          SELECT 
+                              COALESCE((SELECT SUM(t2.amount) FROM Transaction t2 WHERE t2.userId = g.userId AND t2.status = 'COMPLETED' AND t2.type = 'INCOME' AND DATE_FORMAT(t2.date, '%Y-%m') = mes_ref.mes_ano), 0) 
+                              - COALESCE((SELECT SUM(t2.amount) FROM Transaction t2 WHERE t2.userId = g.userId AND t2.status = 'COMPLETED' AND t2.type = 'EXPENSE' AND DATE_FORMAT(t2.date, '%Y-%m') = mes_ref.mes_ano), 0)
+                              - COALESCE((SELECT SUM(cp.amount) FROM CreditCardPurchase cp WHERE cp.userId = g.userId AND DATE_FORMAT(cp.date, '%Y-%m') = mes_ref.mes_ano), 0)
+                              + COALESCE((SELECT SUM(CASE WHEN it.type = 'BUY' THEN it.amount ELSE 0 END) FROM InvestmentTransaction it JOIN Investment i ON it.investmentId = i.id WHERE i.userId = g.userId AND DATE_FORMAT(it.date, '%Y-%m') = mes_ref.mes_ano), 0) as poupanca_mes
+                          FROM (SELECT DISTINCT DATE_FORMAT(t.date, '%Y-%m') as mes_ano FROM Transaction t WHERE t.userId = g.userId AND t.status = 'COMPLETED' AND t.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)) as mes_ref
                       ) as ultimos_meses)) * 100 <= 100 
                 THEN 'DESAFIADORA'
                 
@@ -1387,29 +1590,53 @@ SELECT
     END as viabilidade,
     
     -- ========== DATA ESTIMADA DE CONCLUSÃO ==========
-    -- Baseado na poupança média atual
+    -- Baseado na poupança média atual (RECEITA - DESPESA - CARTÃO + APORTES)
     CASE 
-        WHEN g.currentAmount >= g.targetAmount THEN CURDATE()
-        WHEN (SELECT AVG(saldo_liquido_mes)
+        WHEN (CASE 
+                WHEN g.includeInvestments = TRUE THEN
+                    COALESCE((SELECT SUM(ba.currentBalance) FROM BankAccount ba WHERE ba.userId = g.userId), 0) +
+                    COALESCE((
+                        SELECT SUM(CASE WHEN it.type = 'BUY' THEN it.amount WHEN it.type = 'SELL' THEN -it.amount ELSE 0 END)
+                        FROM InvestmentTransaction it
+                        JOIN Investment i ON it.investmentId = i.id
+                        WHERE i.userId = g.userId
+                    ), 0)
+                WHEN g.accountId IS NOT NULL THEN
+                    COALESCE((SELECT ba.currentBalance FROM BankAccount ba WHERE ba.id = g.accountId), 0)
+                ELSE COALESCE((SELECT SUM(ba.currentBalance) FROM BankAccount ba WHERE ba.userId = g.userId), 0)
+            END) >= g.targetAmount THEN CURDATE()
+        WHEN (SELECT AVG(poupanca_mes)
               FROM (
-                  SELECT SUM(CASE WHEN t.type = 'INCOME' THEN t.amount ELSE -t.amount END) as saldo_liquido_mes
-                  FROM Transaction t
-                  WHERE t.userId = g.userId
-                    AND t.status = 'COMPLETED'
-                    AND t.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
-                  GROUP BY DATE_FORMAT(t.date, '%Y-%m')
+                  SELECT 
+                      COALESCE((SELECT SUM(t2.amount) FROM Transaction t2 WHERE t2.userId = g.userId AND t2.status = 'COMPLETED' AND t2.type = 'INCOME' AND DATE_FORMAT(t2.date, '%Y-%m') = mes_ref.mes_ano), 0) 
+                      - COALESCE((SELECT SUM(t2.amount) FROM Transaction t2 WHERE t2.userId = g.userId AND t2.status = 'COMPLETED' AND t2.type = 'EXPENSE' AND DATE_FORMAT(t2.date, '%Y-%m') = mes_ref.mes_ano), 0)
+                      - COALESCE((SELECT SUM(cp.amount) FROM CreditCardPurchase cp WHERE cp.userId = g.userId AND DATE_FORMAT(cp.date, '%Y-%m') = mes_ref.mes_ano), 0)
+                      + COALESCE((SELECT SUM(CASE WHEN it.type = 'BUY' THEN it.amount ELSE 0 END) FROM InvestmentTransaction it JOIN Investment i ON it.investmentId = i.id WHERE i.userId = g.userId AND DATE_FORMAT(it.date, '%Y-%m') = mes_ref.mes_ano), 0) as poupanca_mes
+                  FROM (SELECT DISTINCT DATE_FORMAT(t.date, '%Y-%m') as mes_ano FROM Transaction t WHERE t.userId = g.userId AND t.status = 'COMPLETED' AND t.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)) as mes_ref
               ) as ultimos_meses) > 0 
         THEN
             DATE_ADD(CURDATE(), INTERVAL 
-                CEILING(((g.targetAmount - g.currentAmount) / 
-                (SELECT AVG(saldo_liquido_mes)
+                CEILING(((g.targetAmount - (CASE 
+                    WHEN g.includeInvestments = TRUE THEN
+                        COALESCE((SELECT SUM(ba.currentBalance) FROM BankAccount ba WHERE ba.userId = g.userId), 0) +
+                        COALESCE((
+                            SELECT SUM(CASE WHEN it.type = 'BUY' THEN it.amount WHEN it.type = 'SELL' THEN -it.amount ELSE 0 END)
+                            FROM InvestmentTransaction it
+                            JOIN Investment i ON it.investmentId = i.id
+                            WHERE i.userId = g.userId
+                        ), 0)
+                    WHEN g.accountId IS NOT NULL THEN
+                        COALESCE((SELECT ba.currentBalance FROM BankAccount ba WHERE ba.id = g.accountId), 0)
+                    ELSE COALESCE((SELECT SUM(ba.currentBalance) FROM BankAccount ba WHERE ba.userId = g.userId), 0)
+                END)) / 
+                (SELECT AVG(poupanca_mes)
                  FROM (
-                     SELECT SUM(CASE WHEN t.type = 'INCOME' THEN t.amount ELSE -t.amount END) as saldo_liquido_mes
-                     FROM Transaction t
-                     WHERE t.userId = g.userId
-                       AND t.status = 'COMPLETED'
-                       AND t.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
-                     GROUP BY DATE_FORMAT(t.date, '%Y-%m')
+                     SELECT 
+                         COALESCE((SELECT SUM(t2.amount) FROM Transaction t2 WHERE t2.userId = g.userId AND t2.status = 'COMPLETED' AND t2.type = 'INCOME' AND DATE_FORMAT(t2.date, '%Y-%m') = mes_ref.mes_ano), 0) 
+                         - COALESCE((SELECT SUM(t2.amount) FROM Transaction t2 WHERE t2.userId = g.userId AND t2.status = 'COMPLETED' AND t2.type = 'EXPENSE' AND DATE_FORMAT(t2.date, '%Y-%m') = mes_ref.mes_ano), 0)
+                         - COALESCE((SELECT SUM(cp.amount) FROM CreditCardPurchase cp WHERE cp.userId = g.userId AND DATE_FORMAT(cp.date, '%Y-%m') = mes_ref.mes_ano), 0)
+                         + COALESCE((SELECT SUM(CASE WHEN it.type = 'BUY' THEN it.amount ELSE 0 END) FROM InvestmentTransaction it JOIN Investment i ON it.investmentId = i.id WHERE i.userId = g.userId AND DATE_FORMAT(it.date, '%Y-%m') = mes_ref.mes_ano), 0) as poupanca_mes
+                     FROM (SELECT DISTINCT DATE_FORMAT(t.date, '%Y-%m') as mes_ano FROM Transaction t WHERE t.userId = g.userId AND t.status = 'COMPLETED' AND t.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)) as mes_ref
                  ) as ultimos_meses))) 
             MONTH)
         ELSE NULL
@@ -1417,43 +1644,79 @@ SELECT
     
     -- ========== RECOMENDAÇÃO ==========
     CASE 
-        WHEN g.currentAmount >= g.targetAmount THEN 'Meta alcançada! Parabéns! 🎉'
+        WHEN (CASE 
+                WHEN g.includeInvestments = TRUE THEN
+                    COALESCE((SELECT SUM(ba.currentBalance) FROM BankAccount ba WHERE ba.userId = g.userId), 0) +
+                    COALESCE((
+                        SELECT SUM(CASE WHEN it.type = 'BUY' THEN it.amount WHEN it.type = 'SELL' THEN -it.amount ELSE 0 END)
+                        FROM InvestmentTransaction it
+                        JOIN Investment i ON it.investmentId = i.id
+                        WHERE i.userId = g.userId
+                    ), 0)
+                WHEN g.accountId IS NOT NULL THEN
+                    COALESCE((SELECT ba.currentBalance FROM BankAccount ba WHERE ba.id = g.accountId), 0)
+                ELSE COALESCE((SELECT SUM(ba.currentBalance) FROM BankAccount ba WHERE ba.userId = g.userId), 0)
+            END) >= g.targetAmount THEN 'Meta alcançada! Parabéns! 🎉'
         
         WHEN DATEDIFF(g.targetDate, CURDATE()) < 0 THEN 'Meta vencida. Considere revisar o prazo ou o valor.'
         
-        WHEN (SELECT AVG(saldo_liquido_mes)
+        WHEN (SELECT AVG(poupanca_mes)
               FROM (
-                  SELECT SUM(CASE WHEN t.type = 'INCOME' THEN t.amount ELSE -t.amount END) as saldo_liquido_mes
-                  FROM Transaction t
-                  WHERE t.userId = g.userId
-                    AND t.status = 'COMPLETED'
-                    AND t.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
-                  GROUP BY DATE_FORMAT(t.date, '%Y-%m')
+                  SELECT 
+                      COALESCE((SELECT SUM(t2.amount) FROM Transaction t2 WHERE t2.userId = g.userId AND t2.status = 'COMPLETED' AND t2.type = 'INCOME' AND DATE_FORMAT(t2.date, '%Y-%m') = mes_ref.mes_ano), 0) 
+                      - COALESCE((SELECT SUM(t2.amount) FROM Transaction t2 WHERE t2.userId = g.userId AND t2.status = 'COMPLETED' AND t2.type = 'EXPENSE' AND DATE_FORMAT(t2.date, '%Y-%m') = mes_ref.mes_ano), 0)
+                      - COALESCE((SELECT SUM(cp.amount) FROM CreditCardPurchase cp WHERE cp.userId = g.userId AND DATE_FORMAT(cp.date, '%Y-%m') = mes_ref.mes_ano), 0)
+                      + COALESCE((SELECT SUM(CASE WHEN it.type = 'BUY' THEN it.amount ELSE 0 END) FROM InvestmentTransaction it JOIN Investment i ON it.investmentId = i.id WHERE i.userId = g.userId AND DATE_FORMAT(it.date, '%Y-%m') = mes_ref.mes_ano), 0) as poupanca_mes
+                  FROM (SELECT DISTINCT DATE_FORMAT(t.date, '%Y-%m') as mes_ano FROM Transaction t WHERE t.userId = g.userId AND t.status = 'COMPLETED' AND t.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)) as mes_ref
               ) as ultimos_meses) > 0 
              AND DATEDIFF(g.targetDate, CURDATE()) > 0 
         THEN
             CASE 
-                WHEN (((g.targetAmount - g.currentAmount) / (DATEDIFF(g.targetDate, CURDATE()) / 30)) /
-                     (SELECT AVG(saldo_liquido_mes)
+                WHEN (((g.targetAmount - (CASE 
+                        WHEN g.includeInvestments = TRUE THEN
+                            COALESCE((SELECT SUM(ba.currentBalance) FROM BankAccount ba WHERE ba.userId = g.userId), 0) +
+                            COALESCE((
+                                SELECT SUM(CASE WHEN it.type = 'BUY' THEN it.amount WHEN it.type = 'SELL' THEN -it.amount ELSE 0 END)
+                                FROM InvestmentTransaction it
+                                JOIN Investment i ON it.investmentId = i.id
+                                WHERE i.userId = g.userId
+                            ), 0)
+                        WHEN g.accountId IS NOT NULL THEN
+                            COALESCE((SELECT ba.currentBalance FROM BankAccount ba WHERE ba.id = g.accountId), 0)
+                        ELSE COALESCE((SELECT SUM(ba.currentBalance) FROM BankAccount ba WHERE ba.userId = g.userId), 0)
+                    END)) / (DATEDIFF(g.targetDate, CURDATE()) / 30)) /
+                     (SELECT AVG(poupanca_mes)
                       FROM (
-                          SELECT SUM(CASE WHEN t.type = 'INCOME' THEN t.amount ELSE -t.amount END) as saldo_liquido_mes
-                          FROM Transaction t
-                          WHERE t.userId = g.userId
-                            AND t.status = 'COMPLETED'
-                            AND t.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
-                          GROUP BY DATE_FORMAT(t.date, '%Y-%m')
+                          SELECT 
+                              COALESCE((SELECT SUM(t2.amount) FROM Transaction t2 WHERE t2.userId = g.userId AND t2.status = 'COMPLETED' AND t2.type = 'INCOME' AND DATE_FORMAT(t2.date, '%Y-%m') = mes_ref.mes_ano), 0) 
+                              - COALESCE((SELECT SUM(t2.amount) FROM Transaction t2 WHERE t2.userId = g.userId AND t2.status = 'COMPLETED' AND t2.type = 'EXPENSE' AND DATE_FORMAT(t2.date, '%Y-%m') = mes_ref.mes_ano), 0)
+                              - COALESCE((SELECT SUM(cp.amount) FROM CreditCardPurchase cp WHERE cp.userId = g.userId AND DATE_FORMAT(cp.date, '%Y-%m') = mes_ref.mes_ano), 0)
+                              + COALESCE((SELECT SUM(CASE WHEN it.type = 'BUY' THEN it.amount ELSE 0 END) FROM InvestmentTransaction it JOIN Investment i ON it.investmentId = i.id WHERE i.userId = g.userId AND DATE_FORMAT(it.date, '%Y-%m') = mes_ref.mes_ano), 0) as poupanca_mes
+                          FROM (SELECT DISTINCT DATE_FORMAT(t.date, '%Y-%m') as mes_ano FROM Transaction t WHERE t.userId = g.userId AND t.status = 'COMPLETED' AND t.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)) as mes_ref
                       ) as ultimos_meses)) * 100 <= 50 
                 THEN 'Ótimo! Você está no caminho certo. Continue assim! 💪'
                 
-                WHEN (((g.targetAmount - g.currentAmount) / (DATEDIFF(g.targetDate, CURDATE()) / 30)) /
-                     (SELECT AVG(saldo_liquido_mes)
+                WHEN (((g.targetAmount - (CASE 
+                        WHEN g.includeInvestments = TRUE THEN
+                            COALESCE((SELECT SUM(ba.currentBalance) FROM BankAccount ba WHERE ba.userId = g.userId), 0) +
+                            COALESCE((
+                                SELECT SUM(CASE WHEN it.type = 'BUY' THEN it.amount WHEN it.type = 'SELL' THEN -it.amount ELSE 0 END)
+                                FROM InvestmentTransaction it
+                                JOIN Investment i ON it.investmentId = i.id
+                                WHERE i.userId = g.userId
+                            ), 0)
+                        WHEN g.accountId IS NOT NULL THEN
+                            COALESCE((SELECT ba.currentBalance FROM BankAccount ba WHERE ba.id = g.accountId), 0)
+                        ELSE COALESCE((SELECT SUM(ba.currentBalance) FROM BankAccount ba WHERE ba.userId = g.userId), 0)
+                    END)) / (DATEDIFF(g.targetDate, CURDATE()) / 30)) /
+                     (SELECT AVG(poupanca_mes)
                       FROM (
-                          SELECT SUM(CASE WHEN t.type = 'INCOME' THEN t.amount ELSE -t.amount END) as saldo_liquido_mes
-                          FROM Transaction t
-                          WHERE t.userId = g.userId
-                            AND t.status = 'COMPLETED'
-                            AND t.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
-                          GROUP BY DATE_FORMAT(t.date, '%Y-%m')
+                          SELECT 
+                              COALESCE((SELECT SUM(t2.amount) FROM Transaction t2 WHERE t2.userId = g.userId AND t2.status = 'COMPLETED' AND t2.type = 'INCOME' AND DATE_FORMAT(t2.date, '%Y-%m') = mes_ref.mes_ano), 0) 
+                              - COALESCE((SELECT SUM(t2.amount) FROM Transaction t2 WHERE t2.userId = g.userId AND t2.status = 'COMPLETED' AND t2.type = 'EXPENSE' AND DATE_FORMAT(t2.date, '%Y-%m') = mes_ref.mes_ano), 0)
+                              - COALESCE((SELECT SUM(cp.amount) FROM CreditCardPurchase cp WHERE cp.userId = g.userId AND DATE_FORMAT(cp.date, '%Y-%m') = mes_ref.mes_ano), 0)
+                              + COALESCE((SELECT SUM(CASE WHEN it.type = 'BUY' THEN it.amount ELSE 0 END) FROM InvestmentTransaction it JOIN Investment i ON it.investmentId = i.id WHERE i.userId = g.userId AND DATE_FORMAT(it.date, '%Y-%m') = mes_ref.mes_ano), 0) as poupanca_mes
+                          FROM (SELECT DISTINCT DATE_FORMAT(t.date, '%Y-%m') as mes_ano FROM Transaction t WHERE t.userId = g.userId AND t.status = 'COMPLETED' AND t.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)) as mes_ref
                       ) as ultimos_meses)) * 100 <= 100 
                 THEN 'Meta desafiadora. Considere aumentar a poupança ou revisar o prazo.'
                 

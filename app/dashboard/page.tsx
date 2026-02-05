@@ -555,7 +555,7 @@ export default function DashboardPage() {
                         </p>
                         <p className="text-xs text-gray-600 dark:text-gray-400">
                             Meta: 6 meses de despesas<br />
-                            {(analytics.dashboard.meses_reserva_emergencia || 0) >= 6 ? '✅ Meta atingida!' : '⚠️ Abaixo do recomendado'}
+                            {(analytics.dashboard.meses_reserva_emergencia || 0) >= 6 ? 'Meta atingida!' : 'Abaixo do recomendado'}
                         </p>
                     </div>
                 </div>
@@ -756,7 +756,7 @@ export default function DashboardPage() {
                                             {expense.frequencia_uso}
                                         </span>
                                         {expense.alerta_variacao !== 'NORMAL' && (
-                                            <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 font-medium">⚠️ {expense.alerta_variacao}</span>
+                                            <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 font-medium">{expense.alerta_variacao}</span>
                                         )}
                                     </div>
                                     <div className="flex items-center gap-3 mt-1 text-xs text-gray-600 dark:text-gray-400">
