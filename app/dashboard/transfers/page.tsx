@@ -4,6 +4,18 @@ import { useEffect, useState } from 'react'
 import { ArrowLeftRight, Plus } from 'lucide-react'
 import LoadingSpinner from '../components/LoadingSpinner'
 
+const dateUtils = {
+    toDateString: (dateInput: Date | string) => {
+        if (typeof dateInput === 'string') return dateInput.split('T')[0]
+        return dateInput.toISOString().split('T')[0]
+    },
+    formatBR: (dateStr: string) => {
+        const [year, month, day] = dateStr.split('-')
+        return `${day}/${month}/${year}`
+    },
+    today: () => dateUtils.toDateString(new Date())
+}
+
 interface Transfer {
     id: string
     fromAccount: { name: string }
@@ -23,7 +35,7 @@ export default function TransfersPage() {
         toAccountId: '',
         amount: 0,
         description: '',
-        date: new Date().toISOString().split('T')[0],
+        date: dateUtils.today(),
     })
 
     const loadData = async () => {
@@ -62,7 +74,7 @@ export default function TransfersPage() {
                     toAccountId: '',
                     amount: 0,
                     description: '',
-                    date: new Date().toISOString().split('T')[0],
+                    date: dateUtils.today(),
                 })
                 loadData()
             } else {
@@ -127,7 +139,7 @@ export default function TransfersPage() {
                                 {transfers.map((transfer) => (
                                     <tr key={transfer.id}>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                            {new Date(transfer.date).toLocaleDateString('pt-BR')}
+                                            {dateUtils.formatBR(dateUtils.toDateString(transfer.date))}
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
                                             {transfer.fromAccount.name}

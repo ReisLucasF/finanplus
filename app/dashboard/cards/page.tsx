@@ -157,7 +157,6 @@ export default function CardsPage() {
                     color: formData.color
                 }
 
-            console.log('📤 Payload enviado:', JSON.stringify(payload, null, 2))
 
             const res = await fetch(url, {
                 method,
