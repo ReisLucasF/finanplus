@@ -154,7 +154,7 @@ SELECT
     END as taxa_poupanca_percentual,
     
     -- ========== RESERVA DE EMERGÊNCIA ==========
-    -- Quantos meses de despesas o saldo atual cobre?
+    -- Quantos meses de despesas o patrimônio líquido cobre?
     CASE 
         WHEN (COALESCE((
             SELECT AVG(despesa_mes) FROM (
@@ -173,7 +173,15 @@ SELECT
                 GROUP BY DATE_FORMAT(date, '%Y-%m')
             ) AS c
         ), 0)) > 0 THEN
-            COALESCE((SELECT SUM(currentBalance) FROM BankAccount WHERE userId = u.id), 0) /
+            -- Patrimônio líquido disponível = Contas + Investimentos - Dívidas
+            (COALESCE((SELECT SUM(currentBalance) FROM BankAccount WHERE userId = u.id), 0) +
+             COALESCE((
+                 SELECT SUM(CASE WHEN it.type = 'BUY' THEN it.amount ELSE -it.amount END)
+                 FROM InvestmentTransaction it
+                 JOIN Investment i ON it.investmentId = i.id
+                 WHERE i.userId = u.id
+             ), 0) -
+             COALESCE((SELECT SUM(initialDebt) FROM CreditCard WHERE userId = u.id), 0)) /
             (COALESCE((
                 SELECT AVG(despesa_mes) FROM (
                     SELECT SUM(amount) as despesa_mes
@@ -199,10 +207,29 @@ SELECT
     
     COALESCE((SELECT COUNT(*) FROM Goal WHERE userId = u.id AND targetDate < CURDATE() AND currentAmount < targetAmount), 0) as metas_atrasadas,
     
+    -- Progresso médio das metas (usando cálculo dinâmico de valor atual)
     COALESCE((
-        SELECT AVG((currentAmount / targetAmount) * 100)
-        FROM Goal
-        WHERE userId = u.id AND targetDate >= CURDATE() AND targetAmount > 0
+        SELECT AVG(
+            (CASE 
+                WHEN g.includeInvestments = TRUE THEN
+                    -- Soma todas as contas + investimentos
+                    COALESCE((SELECT SUM(ba.currentBalance) FROM BankAccount ba WHERE ba.userId = g.userId), 0) +
+                    COALESCE((
+                        SELECT SUM(CASE WHEN it.type = 'BUY' THEN it.amount WHEN it.type = 'SELL' THEN -it.amount ELSE 0 END)
+                        FROM InvestmentTransaction it
+                        JOIN Investment i ON it.investmentId = i.id
+                        WHERE i.userId = g.userId
+                    ), 0)
+                WHEN g.accountId IS NOT NULL THEN
+                    -- Usa o saldo da conta vinculada
+                    COALESCE((SELECT ba.currentBalance FROM BankAccount ba WHERE ba.id = g.accountId), 0)
+                ELSE 
+                    -- Soma todas as contas do usuário
+                    COALESCE((SELECT SUM(ba.currentBalance) FROM BankAccount ba WHERE ba.userId = g.userId), 0)
+            END / NULLIF(g.targetAmount, 0)) * 100
+        )
+        FROM Goal g
+        WHERE g.userId = u.id AND g.targetDate >= CURDATE() AND g.targetAmount > 0
     ), 0) as progresso_medio_metas_percentual,
     
     -- ========== CARTÕES DE CRÉDITO ==========
@@ -236,9 +263,10 @@ SELECT
     ), 0) as aportes_investimentos_3_meses,
     
     -- ========== CLASSIFICAÇÃO DE SAÚDE FINANCEIRA ==========
+    -- Usa a coluna meses_reserva_emergencia já calculada acima (que considera patrimônio líquido completo)
     CASE 
+        -- EXCELENTE: Reserva >= 6 meses + Taxa poupança >= 20% + Dívida < 30% da receita
         WHEN (
-            -- Boa reserva E taxa de poupança positiva E baixa dívida
             (CASE 
                 WHEN (COALESCE((
                     SELECT AVG(despesa_mes) FROM (
@@ -257,7 +285,14 @@ SELECT
                         GROUP BY DATE_FORMAT(date, '%Y-%m')
                     ) AS c
                 ), 0)) > 0 THEN
-                    COALESCE((SELECT SUM(currentBalance) FROM BankAccount WHERE userId = u.id), 0) /
+                    (COALESCE((SELECT SUM(currentBalance) FROM BankAccount WHERE userId = u.id), 0) +
+                     COALESCE((
+                         SELECT SUM(CASE WHEN it.type = 'BUY' THEN it.amount ELSE -it.amount END)
+                         FROM InvestmentTransaction it
+                         JOIN Investment i ON it.investmentId = i.id
+                         WHERE i.userId = u.id
+                     ), 0) -
+                     COALESCE((SELECT SUM(initialDebt) FROM CreditCard WHERE userId = u.id), 0)) /
                     (COALESCE((
                         SELECT AVG(despesa_mes) FROM (
                             SELECT SUM(amount) as despesa_mes
@@ -277,6 +312,53 @@ SELECT
                     ), 0))
                 ELSE 999
             END >= 6) AND
+            (CASE 
+                WHEN COALESCE((
+                    SELECT AVG(receita_mes) FROM (
+                        SELECT SUM(amount) as receita_mes
+                        FROM Transaction
+                        WHERE userId = u.id AND type = 'INCOME' AND status = 'COMPLETED'
+                          AND date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
+                        GROUP BY DATE_FORMAT(date, '%Y-%m')
+                    ) AS ultimos_3_meses
+                ), 0) > 0 THEN
+                    (((COALESCE((
+                        SELECT AVG(receita_mes) FROM (
+                            SELECT SUM(amount) as receita_mes
+                            FROM Transaction
+                            WHERE userId = u.id AND type = 'INCOME' AND status = 'COMPLETED'
+                              AND date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
+                            GROUP BY DATE_FORMAT(date, '%Y-%m')
+                        ) AS r
+                    ), 0)) - 
+                    (COALESCE((
+                        SELECT AVG(despesa_mes) FROM (
+                            SELECT SUM(amount) as despesa_mes
+                            FROM Transaction
+                            WHERE userId = u.id AND type = 'EXPENSE' AND status = 'COMPLETED'
+                              AND date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
+                            GROUP BY DATE_FORMAT(date, '%Y-%m')
+                        ) AS d
+                    ), 0) +
+                    COALESCE((
+                        SELECT AVG(compras_mes) FROM (
+                            SELECT SUM(amount) as compras_mes
+                            FROM CreditCardPurchase
+                            WHERE userId = u.id AND date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
+                            GROUP BY DATE_FORMAT(date, '%Y-%m')
+                        ) AS c
+                    ), 0))) / 
+                    (COALESCE((
+                        SELECT AVG(receita_mes) FROM (
+                            SELECT SUM(amount) as receita_mes
+                            FROM Transaction
+                            WHERE userId = u.id AND type = 'INCOME' AND status = 'COMPLETED'
+                              AND date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
+                            GROUP BY DATE_FORMAT(date, '%Y-%m')
+                        ) AS r2
+                    ), 0))) * 100 >= 20
+                ELSE FALSE
+            END) AND
             (COALESCE((SELECT SUM(initialDebt) FROM CreditCard WHERE userId = u.id), 0) < 
              COALESCE((
                 SELECT AVG(receita_mes) FROM (
@@ -289,8 +371,8 @@ SELECT
             ), 0) * 0.3)
         ) THEN 'EXCELENTE'
         
+        -- BOM: Reserva >= 6 meses OU (Reserva >= 3 meses + Taxa poupança >= 10%)
         WHEN (
-            -- Reserva >= 3 meses E poupança > 10%
             (CASE 
                 WHEN (COALESCE((
                     SELECT AVG(despesa_mes) FROM (
@@ -309,7 +391,14 @@ SELECT
                         GROUP BY DATE_FORMAT(date, '%Y-%m')
                     ) AS c
                 ), 0)) > 0 THEN
-                    COALESCE((SELECT SUM(currentBalance) FROM BankAccount WHERE userId = u.id), 0) /
+                    (COALESCE((SELECT SUM(currentBalance) FROM BankAccount WHERE userId = u.id), 0) +
+                     COALESCE((
+                         SELECT SUM(CASE WHEN it.type = 'BUY' THEN it.amount ELSE -it.amount END)
+                         FROM InvestmentTransaction it
+                         JOIN Investment i ON it.investmentId = i.id
+                         WHERE i.userId = u.id
+                     ), 0) -
+                     COALESCE((SELECT SUM(initialDebt) FROM CreditCard WHERE userId = u.id), 0)) /
                     (COALESCE((
                         SELECT AVG(despesa_mes) FROM (
                             SELECT SUM(amount) as despesa_mes
@@ -328,11 +417,105 @@ SELECT
                         ) AS c2
                     ), 0))
                 ELSE 999
-            END >= 3)
+            END >= 6) OR
+            (
+                (CASE 
+                    WHEN (COALESCE((
+                        SELECT AVG(despesa_mes) FROM (
+                            SELECT SUM(amount) as despesa_mes
+                            FROM Transaction
+                            WHERE userId = u.id AND type = 'EXPENSE' AND status = 'COMPLETED'
+                              AND date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
+                            GROUP BY DATE_FORMAT(date, '%Y-%m')
+                        ) AS d
+                    ), 0) +
+                    COALESCE((
+                        SELECT AVG(compras_mes) FROM (
+                            SELECT SUM(amount) as compras_mes
+                            FROM CreditCardPurchase
+                            WHERE userId = u.id AND date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
+                            GROUP BY DATE_FORMAT(date, '%Y-%m')
+                        ) AS c
+                    ), 0)) > 0 THEN
+                        (COALESCE((SELECT SUM(currentBalance) FROM BankAccount WHERE userId = u.id), 0) +
+                         COALESCE((
+                             SELECT SUM(CASE WHEN it.type = 'BUY' THEN it.amount ELSE -it.amount END)
+                             FROM InvestmentTransaction it
+                             JOIN Investment i ON it.investmentId = i.id
+                             WHERE i.userId = u.id
+                         ), 0) -
+                         COALESCE((SELECT SUM(initialDebt) FROM CreditCard WHERE userId = u.id), 0)) /
+                        (COALESCE((
+                            SELECT AVG(despesa_mes) FROM (
+                                SELECT SUM(amount) as despesa_mes
+                                FROM Transaction
+                                WHERE userId = u.id AND type = 'EXPENSE' AND status = 'COMPLETED'
+                                  AND date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
+                                GROUP BY DATE_FORMAT(date, '%Y-%m')
+                            ) AS d2
+                        ), 0) +
+                        COALESCE((
+                            SELECT AVG(compras_mes) FROM (
+                                SELECT SUM(amount) as compras_mes
+                                FROM CreditCardPurchase
+                                WHERE userId = u.id AND date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
+                                GROUP BY DATE_FORMAT(date, '%Y-%m')
+                            ) AS c2
+                        ), 0))
+                    ELSE 999
+                END >= 3) AND
+                (CASE 
+                    WHEN COALESCE((
+                        SELECT AVG(receita_mes) FROM (
+                            SELECT SUM(amount) as receita_mes
+                            FROM Transaction
+                            WHERE userId = u.id AND type = 'INCOME' AND status = 'COMPLETED'
+                              AND date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
+                            GROUP BY DATE_FORMAT(date, '%Y-%m')
+                        ) AS ultimos_3_meses
+                    ), 0) > 0 THEN
+                        (((COALESCE((
+                            SELECT AVG(receita_mes) FROM (
+                                SELECT SUM(amount) as receita_mes
+                                FROM Transaction
+                                WHERE userId = u.id AND type = 'INCOME' AND status = 'COMPLETED'
+                                  AND date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
+                                GROUP BY DATE_FORMAT(date, '%Y-%m')
+                            ) AS r
+                        ), 0)) - 
+                        (COALESCE((
+                            SELECT AVG(despesa_mes) FROM (
+                                SELECT SUM(amount) as despesa_mes
+                                FROM Transaction
+                                WHERE userId = u.id AND type = 'EXPENSE' AND status = 'COMPLETED'
+                                  AND date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
+                                GROUP BY DATE_FORMAT(date, '%Y-%m')
+                            ) AS d
+                        ), 0) +
+                        COALESCE((
+                            SELECT AVG(compras_mes) FROM (
+                                SELECT SUM(amount) as compras_mes
+                                FROM CreditCardPurchase
+                                WHERE userId = u.id AND date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
+                                GROUP BY DATE_FORMAT(date, '%Y-%m')
+                            ) AS c
+                        ), 0))) / 
+                        (COALESCE((
+                            SELECT AVG(receita_mes) FROM (
+                                SELECT SUM(amount) as receita_mes
+                                FROM Transaction
+                                WHERE userId = u.id AND type = 'INCOME' AND status = 'COMPLETED'
+                                  AND date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
+                                GROUP BY DATE_FORMAT(date, '%Y-%m')
+                            ) AS r2
+                        ), 0))) * 100 >= 10
+                    ELSE FALSE
+                END)
+            )
         ) THEN 'BOM'
         
+        -- ATENÇÃO: Reserva < 3 meses OU dívida > 50% da receita OU utilização limite > 70%
         WHEN (
-            -- Reserva < 3 meses OU dívida alta
             (CASE 
                 WHEN (COALESCE((
                     SELECT AVG(despesa_mes) FROM (
@@ -351,7 +534,14 @@ SELECT
                         GROUP BY DATE_FORMAT(date, '%Y-%m')
                     ) AS c
                 ), 0)) > 0 THEN
-                    COALESCE((SELECT SUM(currentBalance) FROM BankAccount WHERE userId = u.id), 0) /
+                    (COALESCE((SELECT SUM(currentBalance) FROM BankAccount WHERE userId = u.id), 0) +
+                     COALESCE((
+                         SELECT SUM(CASE WHEN it.type = 'BUY' THEN it.amount ELSE -it.amount END)
+                         FROM InvestmentTransaction it
+                         JOIN Investment i ON it.investmentId = i.id
+                         WHERE i.userId = u.id
+                     ), 0) -
+                     COALESCE((SELECT SUM(initialDebt) FROM CreditCard WHERE userId = u.id), 0)) /
                     (COALESCE((
                         SELECT AVG(despesa_mes) FROM (
                             SELECT SUM(amount) as despesa_mes
@@ -380,9 +570,16 @@ SELECT
                       AND date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
                     GROUP BY DATE_FORMAT(date, '%Y-%m')
                 ) AS r
-            ), 0) * 0.5)
+            ), 0) * 0.5) OR
+            (CASE 
+                WHEN COALESCE((SELECT SUM(cardLimit) FROM CreditCard WHERE userId = u.id), 0) > 0 THEN
+                    (COALESCE((SELECT SUM(initialDebt) FROM CreditCard WHERE userId = u.id), 0) /
+                     COALESCE((SELECT SUM(cardLimit) FROM CreditCard WHERE userId = u.id), 0)) * 100 > 70
+                ELSE FALSE
+            END)
         ) THEN 'ATENÇÃO'
         
+        -- CRÍTICO: Todos os outros casos
         ELSE 'CRÍTICO'
     END as status_saude_financeira,
     
@@ -1694,7 +1891,7 @@ SELECT
                               + COALESCE((SELECT SUM(CASE WHEN it.type = 'BUY' THEN it.amount ELSE 0 END) FROM InvestmentTransaction it JOIN Investment i ON it.investmentId = i.id WHERE i.userId = g.userId AND DATE_FORMAT(it.date, '%Y-%m') = mes_ref.mes_ano), 0) as poupanca_mes
                           FROM (SELECT DISTINCT DATE_FORMAT(t.date, '%Y-%m') as mes_ano FROM Transaction t WHERE t.userId = g.userId AND t.status = 'COMPLETED' AND t.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)) as mes_ref
                       ) as ultimos_meses)) * 100 <= 50 
-                THEN 'Ótimo! Você está no caminho certo. Continue assim! 💪'
+                THEN 'Ótimo! Você está no caminho certo. Continue assim!'
                 
                 WHEN (((g.targetAmount - (CASE 
                         WHEN g.includeInvestments = TRUE THEN
@@ -1773,7 +1970,21 @@ FROM (
     SELECT 
         u.id,
         u.name,
-        COALESCE((SELECT SUM(ba.currentBalance) FROM BankAccount ba WHERE ba.userId = u.id), 0) as saldo_contas,
+        -- Patrimônio líquido disponível = Contas + Investimentos - Dívidas
+        COALESCE((SELECT SUM(ba.currentBalance) FROM BankAccount ba WHERE ba.userId = u.id), 0) +
+        COALESCE((
+            SELECT SUM(
+                CASE 
+                    WHEN it.type = 'BUY' THEN it.amount
+                    WHEN it.type = 'SELL' THEN -it.amount
+                    ELSE 0
+                END
+            )
+            FROM InvestmentTransaction it
+            JOIN Investment i ON it.investmentId = i.id
+            WHERE i.userId = u.id
+        ), 0) -
+        COALESCE((SELECT SUM(initialDebt) FROM CreditCard WHERE userId = u.id), 0) as saldo_contas,
         
         COALESCE((
             SELECT AVG(despesa_mes) 
@@ -1801,7 +2012,20 @@ FROM (
                     GROUP BY DATE_FORMAT(t.date, '%Y-%m')
                 ) AS despesas2
             ), 0) > 0 THEN
-                COALESCE((SELECT SUM(ba2.currentBalance) FROM BankAccount ba2 WHERE ba2.userId = u.id), 0) /
+                (COALESCE((SELECT SUM(ba2.currentBalance) FROM BankAccount ba2 WHERE ba2.userId = u.id), 0) +
+                 COALESCE((
+                     SELECT SUM(
+                         CASE 
+                             WHEN it.type = 'BUY' THEN it.amount
+                             WHEN it.type = 'SELL' THEN -it.amount
+                             ELSE 0
+                         END
+                     )
+                     FROM InvestmentTransaction it
+                     JOIN Investment i ON it.investmentId = i.id
+                     WHERE i.userId = u.id
+                 ), 0) -
+                 COALESCE((SELECT SUM(initialDebt) FROM CreditCard WHERE userId = u.id), 0)) /
                 COALESCE((
                     SELECT AVG(despesa_mes) 
                     FROM (
