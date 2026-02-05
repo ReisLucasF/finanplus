@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { TrendingUp, TrendingDown, Wallet, Calendar, CreditCard, Target, PlusCircle, DollarSign, LineChart, AlertTriangle, PiggyBank, Shield } from 'lucide-react'
+import { TriangleAlert, Package, Home, Smartphone, PartyPopper, TrendingUp, TrendingDown, Wallet, Calendar, CreditCard, Target, PlusCircle, DollarSign, LineChart, AlertTriangle, PiggyBank, Shield } from 'lucide-react'
 import Link from 'next/link'
 import PieChart from './components/PieChart'
 import StatCard from './components/StatCard'
@@ -484,7 +484,7 @@ export default function DashboardPage() {
                         </div>
                         <div className="flex-1">
                             <h3 className="text-lg font-bold text-red-900 dark:text-red-100 mb-3">
-                                ⚠️ Alertas Financeiros ({analytics.alerts.length})
+                                Alertas Financeiros ({analytics.alerts.length})
                             </h3>
                             <div className="space-y-3">
                                 {analytics.alerts.slice(0, 3).map((alert: any, idx: number) => (
@@ -499,7 +499,7 @@ export default function DashboardPage() {
                                             </span>
                                         </div>
                                         <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{alert.mensagem}</p>
-                                        <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">💡 {alert.acao_sugerida}</p>
+                                        <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">{alert.acao_sugerida}</p>
                                     </div>
                                 ))}
                             </div>
@@ -645,11 +645,11 @@ export default function DashboardPage() {
                                 return acc
                             }, {})
 
-                            const tipoLabels: any = {
-                                'ATIVA_PRINCIPAL': { label: 'Renda Ativa', color: 'bg-blue-500', icon: '💼' },
-                                'PASSIVA': { label: 'Renda Passiva', color: 'bg-green-500', icon: '💰' },
-                                'EXTRA_VARIÁVEL': { label: 'Renda Extra', color: 'bg-purple-500', icon: '⚡' },
-                                'OUTRAS': { label: 'Outras', color: 'bg-gray-500', icon: '📊' }
+                            const tipoLabels: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+                                'ATIVA_PRINCIPAL': { label: 'Renda Ativa', color: 'bg-blue-500', icon: <Wallet className="h-5 w-5 text-blue-600" /> },
+                                'PASSIVA': { label: 'Renda Passiva', color: 'bg-green-500', icon: <PiggyBank className="h-5 w-5 text-green-600" /> },
+                                'EXTRA_VARIÁVEL': { label: 'Renda Extra', color: 'bg-purple-500', icon: <TrendingUp className="h-5 w-5 text-purple-600" /> },
+                                'OUTRAS': { label: 'Outras', color: 'bg-gray-500', icon: <DollarSign className="h-5 w-5 text-gray-600" /> }
                             }
 
                             return Object.entries(porTipo).map(([tipo, valor]: [string, any]) => {
@@ -718,11 +718,11 @@ export default function DashboardPage() {
                                 return acc
                             }, {})
 
-                            const classifLabels: any = {
-                                'ESSENCIAL': { label: 'Essenciais', color: 'bg-red-500', icon: '🏠', desc: '50% orçamento' },
-                                'IMPORTANTE': { label: 'Importantes', color: 'bg-orange-500', icon: '📱', desc: '30% orçamento' },
-                                'SUPÉRFLUO': { label: 'Supérfluos', color: 'bg-yellow-500', icon: '🎉', desc: '20% orçamento' },
-                                'OUTROS': { label: 'Outros', color: 'bg-gray-500', icon: '📦', desc: 'Diversos' }
+                            const classifLabels: Record<string, { label: string; color: string; icon: React.ReactNode; desc: string }> = {
+                                'ESSENCIAL': { label: 'Essenciais', color: 'bg-red-500', icon: <Home className="h-5 w-5  text-green-600" />, desc: '50% orçamento' },
+                                'IMPORTANTE': { label: 'Importantes', color: 'bg-orange-500', icon: <Smartphone className="h-5 w-5   text-purple-600" />, desc: '30% orçamento' },
+                                'SUPÉRFLUO': { label: 'Supérfluos', color: 'bg-yellow-500', icon: <PartyPopper className="h-5 w-5  text-red-500" />, desc: '20% orçamento' },
+                                'OUTROS': { label: 'Outros', color: 'bg-gray-500', icon: <Package className="h-5 w-5   text-yellow-600" />, desc: 'Diversos' }
                             }
 
                             return Object.entries(porClassificacao).map(([classif, valor]: [string, any]) => {
