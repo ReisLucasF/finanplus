@@ -23,17 +23,23 @@ export async function GET() {
       where: { userId: user.userId },
       include: {
         purchases: true,
+        payments: true,
       },
       orderBy: { createdAt: "desc" },
     });
 
-    // Calcular dívida atual (initialDebt + compras) e serializar
+    // Calcular dívida atual: (initialDebt + compras) - pagamentos
     const serializedCards = cards.map((card) => {
       const totalPurchases = card.purchases.reduce(
         (sum, p) => sum + p.amount.toNumber(),
-        0
+        0,
       );
-      const currentDebt = card.initialDebt.toNumber() + totalPurchases;
+      const totalPayments = card.payments.reduce(
+        (sum, p) => sum + p.amount.toNumber(),
+        0,
+      );
+      const currentDebt =
+        card.initialDebt.toNumber() + totalPurchases - totalPayments;
 
       return {
         ...card,
@@ -52,7 +58,7 @@ export async function GET() {
     console.error("Erro ao buscar cartões:", error);
     return NextResponse.json(
       { error: "Erro ao buscar cartões" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -66,17 +72,8 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    console.log("📥 Body recebido no POST:", JSON.stringify(body, null, 2));
-    console.log("📊 Tipos:", {
-      name: typeof body.name,
-      cardLimit: typeof body.cardLimit,
-      dueDay: typeof body.dueDay,
-      initialDebt: typeof body.initialDebt,
-      color: typeof body.color,
-    });
 
     const data = cardSchema.parse(body);
-    console.log("✅ Dados após validação:", JSON.stringify(data, null, 2));
 
     const card = await prisma.creditCard.create({
       data: {
@@ -100,7 +97,7 @@ export async function POST(request: Request) {
     console.error("Erro ao criar cartão:", error);
     return NextResponse.json(
       { error: "Erro ao criar cartão" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
