@@ -1,5 +1,5 @@
 // Seed para SQLite - Dados iniciais
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, TransactionType } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
@@ -47,27 +47,27 @@ async function main() {
   console.log("📂 Criando categorias de despesas...");
 
   const expenseCategories = [
-    { name: "Alimentação", icon: "🍽️", type: "EXPENSE" },
-    { name: "Transporte", icon: "🚗", type: "EXPENSE" },
-    { name: "Moradia", icon: "🏠", type: "EXPENSE" },
-    { name: "Saúde", icon: "🏥", type: "EXPENSE" },
-    { name: "Educação", icon: "📚", type: "EXPENSE" },
-    { name: "Lazer", icon: "🎮", type: "EXPENSE" },
-    { name: "Vestuário", icon: "👔", type: "EXPENSE" },
-    { name: "Telefone", icon: "📱", type: "EXPENSE" },
-    { name: "Internet", icon: "🌐", type: "EXPENSE" },
-    { name: "Streaming", icon: "📺", type: "EXPENSE" },
-    { name: "Academia", icon: "💪", type: "EXPENSE" },
-    { name: "Supermercado", icon: "🛒", type: "EXPENSE" },
-    { name: "Restaurante", icon: "🍕", type: "EXPENSE" },
-    { name: "Combustível", icon: "⛽", type: "EXPENSE" },
-    { name: "Manutenção", icon: "🔧", type: "EXPENSE" },
-    { name: "Seguros", icon: "🛡️", type: "EXPENSE" },
-    { name: "Impostos", icon: "📋", type: "EXPENSE" },
-    { name: "Presentes", icon: "🎁", type: "EXPENSE" },
-    { name: "Pets", icon: "🐕", type: "EXPENSE" },
-    { name: "Viagens", icon: "✈️", type: "EXPENSE" },
-    { name: "Outros", icon: "📦", type: "EXPENSE" },
+    { name: "Alimentação", icon: "🍽️", type: TransactionType.EXPENSE },
+    { name: "Transporte", icon: "🚗", type: TransactionType.EXPENSE },
+    { name: "Moradia", icon: "🏠", type: TransactionType.EXPENSE },
+    { name: "Saúde", icon: "🏥", type: TransactionType.EXPENSE },
+    { name: "Educação", icon: "📚", type: TransactionType.EXPENSE },
+    { name: "Lazer", icon: "🎮", type: TransactionType.EXPENSE },
+    { name: "Vestuário", icon: "👔", type: TransactionType.EXPENSE },
+    { name: "Telefone", icon: "📱", type: TransactionType.EXPENSE },
+    { name: "Internet", icon: "🌐", type: TransactionType.EXPENSE },
+    { name: "Streaming", icon: "📺", type: TransactionType.EXPENSE },
+    { name: "Academia", icon: "💪", type: TransactionType.EXPENSE },
+    { name: "Supermercado", icon: "🛒", type: TransactionType.EXPENSE },
+    { name: "Restaurante", icon: "🍕", type: TransactionType.EXPENSE },
+    { name: "Combustível", icon: "⛽", type: TransactionType.EXPENSE },
+    { name: "Manutenção", icon: "🔧", type: TransactionType.EXPENSE },
+    { name: "Seguros", icon: "🛡️", type: TransactionType.EXPENSE },
+    { name: "Impostos", icon: "📋", type: TransactionType.EXPENSE },
+    { name: "Presentes", icon: "🎁", type: TransactionType.EXPENSE },
+    { name: "Pets", icon: "🐕", type: TransactionType.EXPENSE },
+    { name: "Viagens", icon: "✈️", type: TransactionType.EXPENSE },
+    { name: "Outros", icon: "📦", type: TransactionType.EXPENSE },
   ];
 
   for (const cat of expenseCategories) {
@@ -85,17 +85,17 @@ async function main() {
   console.log("💰 Criando categorias de receitas...");
 
   const incomeCategories = [
-    { name: "Salário", icon: "💼", type: "INCOME" },
-    { name: "Freelance", icon: "💻", type: "INCOME" },
-    { name: "Investimentos", icon: "📈", type: "INCOME" },
-    { name: "Dividendos", icon: "💵", type: "INCOME" },
-    { name: "Aluguel", icon: "🏢", type: "INCOME" },
-    { name: "Prêmios", icon: "🏆", type: "INCOME" },
-    { name: "Vendas", icon: "🛍️", type: "INCOME" },
-    { name: "Bônus", icon: "🎯", type: "INCOME" },
-    { name: "13º Salário", icon: "🎄", type: "INCOME" },
-    { name: "Restituição", icon: "🔄", type: "INCOME" },
-    { name: "Outros", icon: "💸", type: "INCOME" },
+    { name: "Salário", icon: "💼", type: TransactionType.INCOME },
+    { name: "Freelance", icon: "💻", type: TransactionType.INCOME },
+    { name: "Investimentos", icon: "📈", type: TransactionType.INCOME },
+    { name: "Dividendos", icon: "💵", type: TransactionType.INCOME },
+    { name: "Aluguel", icon: "🏢", type: TransactionType.INCOME },
+    { name: "Prêmios", icon: "🏆", type: TransactionType.INCOME },
+    { name: "Vendas", icon: "🛍️", type: TransactionType.INCOME },
+    { name: "Bônus", icon: "🎯", type: TransactionType.INCOME },
+    { name: "13º Salário", icon: "🎄", type: TransactionType.INCOME },
+    { name: "Restituição", icon: "🔄", type: TransactionType.INCOME },
+    { name: "Outros", icon: "💸", type: TransactionType.INCOME },
   ];
 
   for (const cat of incomeCategories) {

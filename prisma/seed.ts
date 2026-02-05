@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, TransactionType } from "@prisma/client";
 import "dotenv/config";
 
 const prisma = new PrismaClient({
@@ -9,30 +9,30 @@ async function main() {
   console.log("🌱 Iniciando seed...");
 
   // Categorias de RECEITA padrão do sistema
-  const incomeCategories: { name: string; type: "INCOME"; icon: string }[] = [
-    { name: "Salário", type: "INCOME", icon: "💼" },
-    { name: "Freelance", type: "INCOME", icon: "💻" },
-    { name: "Investimentos", type: "INCOME", icon: "📈" },
-    { name: "Bônus", type: "INCOME", icon: "🎁" },
-    { name: "Aluguel", type: "INCOME", icon: "🏠" },
-    { name: "Vendas", type: "INCOME", icon: "🛍️" },
-    { name: "Outros", type: "INCOME", icon: "💰" },
+  const incomeCategories: { name: string; type: TransactionType; icon: string }[] = [
+    { name: "Salário", type: TransactionType.INCOME, icon: "💼" },
+    { name: "Freelance", type: TransactionType.INCOME, icon: "💻" },
+    { name: "Investimentos", type: TransactionType.INCOME, icon: "📈" },
+    { name: "Bônus", type: TransactionType.INCOME, icon: "🎁" },
+    { name: "Aluguel", type: TransactionType.INCOME, icon: "🏠" },
+    { name: "Vendas", type: TransactionType.INCOME, icon: "🛍️" },
+    { name: "Outros", type: TransactionType.INCOME, icon: "💰" },
   ];
 
   // Categorias de DESPESA padrão do sistema
-  const expenseCategories: { name: string; type: "EXPENSE"; icon: string }[] = [
-    { name: "Alimentação", type: "EXPENSE", icon: "🍔" },
-    { name: "Transporte", type: "EXPENSE", icon: "🚗" },
-    { name: "Moradia", type: "EXPENSE", icon: "🏡" },
-    { name: "Educação", type: "EXPENSE", icon: "📚" },
-    { name: "Saúde", type: "EXPENSE", icon: "🏥" },
-    { name: "Lazer", type: "EXPENSE", icon: "🎮" },
-    { name: "Vestuário", type: "EXPENSE", icon: "👕" },
-    { name: "Contas", type: "EXPENSE", icon: "📄" },
-    { name: "Mercado", type: "EXPENSE", icon: "🛒" },
-    { name: "Pets", type: "EXPENSE", icon: "🐶" },
-    { name: "Assinaturas", type: "EXPENSE", icon: "📱" },
-    { name: "Outros", type: "EXPENSE", icon: "💸" },
+  const expenseCategories: { name: string; type: TransactionType; icon: string }[] = [
+    { name: "Alimentação", type: TransactionType.EXPENSE, icon: "🍔" },
+    { name: "Transporte", type: TransactionType.EXPENSE, icon: "🚗" },
+    { name: "Moradia", type: TransactionType.EXPENSE, icon: "🏡" },
+    { name: "Educação", type: TransactionType.EXPENSE, icon: "📚" },
+    { name: "Saúde", type: TransactionType.EXPENSE, icon: "🏥" },
+    { name: "Lazer", type: TransactionType.EXPENSE, icon: "🎮" },
+    { name: "Vestuário", type: TransactionType.EXPENSE, icon: "👕" },
+    { name: "Contas", type: TransactionType.EXPENSE, icon: "📄" },
+    { name: "Mercado", type: TransactionType.EXPENSE, icon: "🛒" },
+    { name: "Pets", type: TransactionType.EXPENSE, icon: "🐶" },
+    { name: "Assinaturas", type: TransactionType.EXPENSE, icon: "📱" },
+    { name: "Outros", type: TransactionType.EXPENSE, icon: "💸" },
   ];
 
   // Criar categorias de receita
