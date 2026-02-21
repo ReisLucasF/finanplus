@@ -179,13 +179,33 @@ export default function DashboardPage() {
                     ? (investmentTotals.profit / investmentTotals.invested) * 100
                     : 0
 
-                // Adicionar calculatedAmount nas metas que incluem investimentos
-                const goalsWithCalculated = goals.map((goal: any) => ({
-                    ...goal,
-                    calculatedAmount: goal.includeInvestments
-                        ? goal.currentAmount + investmentTotals.current
-                        : goal.currentAmount
-                }))
+                // Adicionar calculatedAmount nas metas que incluem investimentos e saldo das contas vinculadas
+                const totalAccountsBalance = accounts.reduce((sum: number, acc: any) => {
+                    const balance = Number(acc.currentBalance ?? acc.balance ?? acc.amount) || 0
+                    return sum + balance
+                }, 0)
+
+                const goalsWithCalculated = goals.map((goal: any) => {
+                    const accountId = goal.account?.id || goal.accountId
+                    const accountFromList = accountId
+                        ? accounts.find((acc: any) => acc.id === accountId)
+                        : undefined
+                    const fallbackBalance = Number(goal.currentAmount) || 0
+                    const accountBalance = accountFromList
+                        ? (Number(accountFromList.currentBalance ?? accountFromList.balance ?? accountFromList.amount) || 0)
+                        : (accountId ? fallbackBalance : totalAccountsBalance)
+
+                    const calculatedAmount = goal.includeInvestments
+                        ? accountBalance + investmentTotals.current
+                        : accountBalance
+
+                    return {
+                        ...goal,
+                        currentAmount: accountBalance,
+                        calculatedAmount,
+                        accountBalance,
+                    }
+                })
 
                 // Filtrar transações do período selecionado
                 const transactions = allTransactions.filter((t: any) => {

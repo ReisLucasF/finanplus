@@ -16,6 +16,7 @@ interface Goal {
 
 interface GoalWithCalculated extends Goal {
     calculatedAmount: number
+    accountBalance?: number
 }
 
 export default function GoalsPage() {
@@ -60,6 +61,12 @@ export default function GoalsPage() {
                 fetch('/api/recurring-transactions'),
             ])
 
+            const accountsData = accountsRes.ok ? await accountsRes.json() : []
+            const totalAccountsBalance = accountsData.reduce((sum: number, acc: any) => {
+                const balance = Number(acc.currentBalance ?? acc.balance ?? acc.amount) || 0
+                return sum + balance
+            }, 0)
+
             if (goalsRes.ok) {
                 const goalsData: Goal[] = await goalsRes.json()
 
@@ -91,18 +98,32 @@ export default function GoalsPage() {
                 }
 
                 // Adicionar campo calculatedAmount em cada meta
-                const goalsWithCalculated: GoalWithCalculated[] = goalsData.map(goal => ({
-                    ...goal,
-                    currentAmount: Number(goal.currentAmount) || 0,
-                    targetAmount: Number(goal.targetAmount) || 0,
-                    calculatedAmount: goal.includeInvestments
-                        ? (Number(goal.currentAmount) || 0) + investmentsTotal
-                        : (Number(goal.currentAmount) || 0)
-                }))
+                const goalsWithCalculated: GoalWithCalculated[] = goalsData.map(goal => {
+                    const accountId = goal.account?.id || (goal as any).accountId
+                    const accountFromList = accountId
+                        ? accountsData.find((acc: any) => acc.id === accountId)
+                        : undefined
+                    const fallbackBalance = Number(goal.currentAmount) || 0
+                    const accountBalance = accountFromList
+                        ? (Number(accountFromList.currentBalance ?? accountFromList.balance ?? accountFromList.amount) || 0)
+                        : (accountId ? fallbackBalance : totalAccountsBalance)
+                    const targetAmount = Number(goal.targetAmount) || 0
+                    const calculatedAmount = goal.includeInvestments
+                        ? accountBalance + investmentsTotal
+                        : accountBalance
+
+                    return {
+                        ...goal,
+                        currentAmount: accountBalance,
+                        targetAmount,
+                        calculatedAmount,
+                        accountBalance,
+                    }
+                })
 
                 setGoals(goalsWithCalculated)
             }
-            if (accountsRes.ok) setAccounts(await accountsRes.json())
+            if (accountsRes.ok) setAccounts(accountsData)
 
             // Calcular receitas e despesas recorrentes mensais
             if (recurringRes.ok) {
