@@ -30,7 +30,7 @@ export default function RetirementCalculator() {
             return
         }
 
-        // Calcular acumulação até a aposentadoria
+        
         const monthsUntilRetirement = (retirementAge - currentAge) * 12
         const monthlyRate = Math.pow(1 + (annualReturn / 100), 1 / 12) - 1
 
@@ -44,10 +44,10 @@ export default function RetirementCalculator() {
 
         const interestEarned = balance - totalContributed
 
-        // Calcular quanto durará na aposentadoria
+        
         const monthlyIncomeFromSavings = balance / (yearsInRetirement * 12)
 
-        // Simular retiradas mensais com rendimento
+        
         let retirementBalance = balance
         let monthsLasted = 0
         const maxMonths = yearsInRetirement * 12
@@ -84,10 +84,10 @@ export default function RetirementCalculator() {
             </div>
 
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-                {/* Form */}
+                
                 <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                     <div className="space-y-6">
-                        {/* Dados Pessoais */}
+                        
                         <div>
                             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Dados Pessoais</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -116,7 +116,7 @@ export default function RetirementCalculator() {
                             </div>
                         </div>
 
-                        {/* Investimentos */}
+                        
                         <div>
                             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Investimentos</h3>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -157,7 +157,7 @@ export default function RetirementCalculator() {
                             </div>
                         </div>
 
-                        {/* Aposentadoria */}
+                        
                         <div>
                             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Na Aposentadoria</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -195,11 +195,11 @@ export default function RetirementCalculator() {
                     </button>
                 </div>
 
-                {/* Results */}
+                
                 <div className="p-6">
                     {showResults ? (
                         <div className="space-y-6">
-                            {/* Summary Cards */}
+                            
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                 <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
                                     <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">Total na Aposentadoria</p>
@@ -229,7 +229,7 @@ export default function RetirementCalculator() {
                                 </div>
                             </div>
 
-                            {/* Analysis */}
+                            
                             <div className={`${isSufficient ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'} border rounded-lg p-6`}>
                                 <h3 className={`text-lg font-semibold mb-3 ${isSufficient ? 'text-green-900 dark:text-green-300' : 'text-red-900 dark:text-red-300'}`}>
                                     {isSufficient ? 'Parabéns! Você está no caminho certo' : 'Atenção: Ajustes necessários'}
@@ -268,7 +268,7 @@ export default function RetirementCalculator() {
                                 </div>
                             </div>
 
-                            {/* Additional Info */}
+                            
                             <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
                                 <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Informações Adicionais</h4>
                                 <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">

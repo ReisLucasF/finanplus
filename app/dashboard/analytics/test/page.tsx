@@ -10,23 +10,23 @@ export default function TestViewsPage() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                console.log('🔍 Fazendo requisição para API...')
+                console.log(' Fazendo requisição para API...')
                 const res = await fetch('/api/analytics/financial-overview')
 
-                console.log('📡 Status da resposta:', res.status)
+                console.log(' Status da resposta:', res.status)
 
                 if (!res.ok) {
                     const errorData = await res.json()
-                    console.error('❌ Erro na resposta:', errorData)
+                    console.error(' Erro na resposta:', errorData)
                     setError(JSON.stringify(errorData, null, 2))
                     return
                 }
 
                 const result = await res.json()
-                console.log('✅ Dados recebidos:', result)
+                console.log(' Dados recebidos:', result)
                 setData(result)
             } catch (err: any) {
-                console.error('❌ Erro ao buscar dados:', err)
+                console.error(' Erro ao buscar dados:', err)
                 setError(err.message)
             } finally {
                 setLoading(false)
@@ -65,7 +65,7 @@ export default function TestViewsPage() {
                 Teste das Views Financeiras
             </h1>
 
-            {/* Dashboard Principal */}
+            
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
                 <h2 className="text-xl font-semibold mb-4">Dashboard Principal</h2>
                 {data?.dashboard ? (
@@ -77,7 +77,7 @@ export default function TestViewsPage() {
                 )}
             </div>
 
-            {/* Gastos por Categoria */}
+            
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
                 <h2 className="text-xl font-semibold mb-4">
                     Gastos por Categoria ({data?.expensesByCategory?.length || 0} categorias)
@@ -91,7 +91,7 @@ export default function TestViewsPage() {
                 )}
             </div>
 
-            {/* Análise de Receitas */}
+            
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
                 <h2 className="text-xl font-semibold mb-4">
                     Análise de Receitas ({data?.incomeAnalysis?.length || 0} fontes)
@@ -105,7 +105,7 @@ export default function TestViewsPage() {
                 )}
             </div>
 
-            {/* Investimentos */}
+            
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
                 <h2 className="text-xl font-semibold mb-4">
                     Portfolio de Investimentos ({data?.investments?.length || 0} investimentos)
@@ -119,7 +119,7 @@ export default function TestViewsPage() {
                 )}
             </div>
 
-            {/* Cartões de Crédito */}
+            
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
                 <h2 className="text-xl font-semibold mb-4">
                     Análise de Cartões ({data?.creditCards?.length || 0} cartões)
@@ -133,7 +133,7 @@ export default function TestViewsPage() {
                 )}
             </div>
 
-            {/* Evolução Patrimonial */}
+            
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
                 <h2 className="text-xl font-semibold mb-4">
                     Evolução Patrimonial ({data?.patrimonyEvolution?.length || 0} meses)
@@ -147,7 +147,7 @@ export default function TestViewsPage() {
                 )}
             </div>
 
-            {/* Metas */}
+            
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
                 <h2 className="text-xl font-semibold mb-4">
                     Análise de Metas ({data?.goals?.length || 0} metas)
@@ -161,7 +161,7 @@ export default function TestViewsPage() {
                 )}
             </div>
 
-            {/* Alertas */}
+            
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
                 <h2 className="text-xl font-semibold mb-4">
                     Alertas Financeiros ({data?.alerts?.length || 0} alertas)
@@ -175,7 +175,7 @@ export default function TestViewsPage() {
                 )}
             </div>
 
-            {/* Resumo */}
+            
             <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 rounded-lg shadow text-white">
                 <h2 className="text-xl font-semibold mb-4">Resumo</h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

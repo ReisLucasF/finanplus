@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// Auth schemas
+
 export const registerSchema = z.object({
   email: z.string().email("Email inválido"),
   password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
@@ -12,7 +12,7 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Senha é obrigatória"),
 });
 
-// Onboarding schemas
+
 export const onboardingStep1Schema = z.object({
   displayName: z.string().min(2, "Nome deve ter no mínimo 2 caracteres"),
   theme: z.enum(["LIGHT", "DARK"]),
@@ -44,7 +44,7 @@ export const recurringTransactionSchema = z.object({
   isActive: z.boolean().default(true),
 });
 
-// Transaction schemas
+
 export const transactionSchema = z.object({
   description: z.string().min(2, "Descrição é obrigatória"),
   amount: z.number().positive("Valor deve ser positivo"),
@@ -55,7 +55,7 @@ export const transactionSchema = z.object({
   status: z.enum(["PENDING", "COMPLETED", "CANCELLED"]).default("COMPLETED"),
 });
 
-// Credit Card schemas
+
 export const creditCardSchema = z.object({
   name: z.string().min(2, "Nome do cartão é obrigatório"),
   cardLimit: z.number().positive("Limite deve ser positivo"),
@@ -73,7 +73,7 @@ export const creditCardPaymentSchema = z.object({
   status: z.enum(["PENDING", "PAID"]).default("PENDING"),
 });
 
-// Transfer schema
+
 export const transferSchema = z
   .object({
     fromAccountId: z.string().uuid(),
@@ -87,7 +87,7 @@ export const transferSchema = z
     path: ["toAccountId"],
   });
 
-// Goal schema
+
 export const goalSchema = z.object({
   name: z.string().min(2, "Nome da meta é obrigatório"),
   targetAmount: z.number().positive("Valor alvo deve ser positivo"),
@@ -96,20 +96,20 @@ export const goalSchema = z.object({
   accountId: z.string().uuid().optional(),
 });
 
-// Category schema
+
 export const categorySchema = z.object({
   name: z.string().min(2, "Nome da categoria é obrigatório"),
   type: z.enum(["INCOME", "EXPENSE"]),
   icon: z.string().optional(),
 });
 
-// Review schema
+
 export const reviewSchema = z.object({
   rating: z.number().int().min(1).max(5),
   comment: z.string().optional(),
 });
 
-// Types
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type OnboardingStep1Input = z.infer<typeof onboardingStep1Schema>;

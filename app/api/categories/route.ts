@@ -9,7 +9,7 @@ const categorySchema = z.object({
   icon: z.string().optional(),
 });
 
-// GET - Listar categorias
+
 export async function GET() {
   try {
     const user = await getCurrentUser();
@@ -17,12 +17,12 @@ export async function GET() {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    // Buscar categorias do sistema e do usuário
+    
     const categories = await prisma.category.findMany({
       where: {
         OR: [
-          { userId: null }, // Categorias do sistema
-          { userId: user.userId }, // Categorias do usuário
+          { userId: null }, 
+          { userId: user.userId }, 
         ],
       },
       orderBy: { name: "asc" },
@@ -38,7 +38,7 @@ export async function GET() {
   }
 }
 
-// POST - Criar categoria
+
 export async function POST(request: Request) {
   try {
     const user = await getCurrentUser();
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const data = categorySchema.parse(body);
 
-    // Verificar se já existe uma categoria com esse nome para o usuário
+    
     const existing = await prisma.category.findFirst({
       where: {
         name: data.name,

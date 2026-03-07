@@ -1,14 +1,14 @@
-// Seed para SQLite - Dados iniciais
+
 import { PrismaClient, TransactionType } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Iniciando seed do banco SQLite...");
+  console.log(" Iniciando seed do banco SQLite...");
 
-  // Limpar dados existentes (opcional - comentar se quiser manter dados)
-  console.log("🗑️  Limpando dados antigos...");
+  
+  console.log("️ Limpando dados antigos...");
   await prisma.investmentTransaction.deleteMany();
   await prisma.investment.deleteMany();
   await prisma.creditCardPurchase.deleteMany();
@@ -23,8 +23,8 @@ async function main() {
   await prisma.category.deleteMany();
   await prisma.user.deleteMany();
 
-  // 1. Criar usuário padrão
-  console.log("👤 Criando usuário padrão...");
+  
+  console.log(" Criando usuário padrão...");
   const hashedPassword = await bcrypt.hash("admin123", 10);
 
   const user = await prisma.user.create({
@@ -41,10 +41,10 @@ async function main() {
     },
   });
 
-  console.log(`✅ Usuário criado: ${user.email}`);
+  console.log(` Usuário criado: ${user.email}`);
 
-  // 2. Criar categorias padrão de DESPESAS
-  console.log("📂 Criando categorias de despesas...");
+  
+  console.log(" Criando categorias de despesas...");
 
   const expenseCategories = [
     { name: "Alimentação", icon: "🍽️", type: TransactionType.EXPENSE },
@@ -74,15 +74,15 @@ async function main() {
     await prisma.category.create({
       data: {
         ...cat,
-        userId: null, // Categoria do sistema
+        userId: null, 
       },
     });
   }
 
-  console.log(`✅ ${expenseCategories.length} categorias de despesas criadas`);
+  console.log(` ${expenseCategories.length} categorias de despesas criadas`);
 
-  // 3. Criar categorias padrão de RECEITAS
-  console.log("💰 Criando categorias de receitas...");
+  
+  console.log(" Criando categorias de receitas...");
 
   const incomeCategories = [
     { name: "Salário", icon: "💼", type: TransactionType.INCOME },
@@ -102,25 +102,25 @@ async function main() {
     await prisma.category.create({
       data: {
         ...cat,
-        userId: null, // Categoria do sistema
+        userId: null, 
       },
     });
   }
 
-  console.log(`✅ ${incomeCategories.length} categorias de receitas criadas`);
+  console.log(` ${incomeCategories.length} categorias de receitas criadas`);
 
-  console.log("\n🎉 Seed concluído com sucesso!");
-  console.log("\n📊 Resumo:");
-  console.log(`   👤 Usuário: ${user.email}`);
-  console.log(`   🔑 Senha: admin123`);
+  console.log("\n Seed concluído com sucesso!");
+  console.log("\n Resumo:");
+  console.log(` Usuário: ${user.email}`);
+  console.log(` Senha: admin123`);
   console.log(
-    `   📂 Categorias: ${expenseCategories.length + incomeCategories.length}`,
-  );
+ ` Categorias: ${expenseCategories.length + incomeCategories.length}`,
+ );
 }
 
 main()
   .catch((e) => {
-    console.error("❌ Erro durante seed:", e);
+    console.error(" Erro durante seed:", e);
     process.exit(1);
   })
   .finally(async () => {

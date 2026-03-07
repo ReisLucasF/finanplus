@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 
-// Helper para calcular dias úteis
+
 function calcularDiasUteis(dataInicio: Date, dataFim: Date): number {
   let dias = 0;
   const atual = new Date(dataInicio);
@@ -18,7 +18,7 @@ function calcularDiasUteis(dataInicio: Date, dataFim: Date): number {
   return dias;
 }
 
-// GET - Calcular valores agregados do investimento
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -31,7 +31,7 @@ export async function GET(
 
     const { id } = await params;
 
-    // Buscar investimento e transações
+    
     const investment = await prisma.investment.findFirst({
       where: {
         id,
@@ -51,11 +51,11 @@ export async function GET(
       );
     }
 
-    // Calcular valores agregados a partir das transações
+    
     let totalQuantity = 0;
-    let totalBought = 0; // Total comprado (sempre positivo)
-    let totalSold = 0; // Total vendido
-    let weightedSum = 0; // Para calcular preço médio ponderado
+    let totalBought = 0; 
+    let totalSold = 0; 
+    let weightedSum = 0; 
 
     for (const transaction of investment.transactions) {
       const qty = parseFloat(transaction.quantity.toString());
@@ -69,24 +69,24 @@ export async function GET(
       } else if (transaction.type === "SELL") {
         totalQuantity -= qty;
         totalSold += amount;
-        // Ajustar weightedSum proporcionalmente
+        
         const proportionSold = qty / (totalQuantity + qty);
         weightedSum -= weightedSum * proportionSold;
       }
     }
 
-    // Total investido é o que está atualmente investido (compras - vendas)
+    
     const totalInvested = totalBought - totalSold;
 
-    // Preço médio ponderado
+    
     const averagePrice = totalQuantity > 0 ? weightedSum / totalQuantity : 0;
 
-    // Calcular valor atual baseado no tipo de investimento
+    
     let currentValue = 0;
     let profitLoss = 0;
     let profitLossPercentage = 0;
 
-    // Para CDB, calcular rendimento independente da quantidade (CDB não usa quantidade)
+    
     if (
       investment.type === "CDB" &&
       investment.cdiPercentage &&
@@ -98,23 +98,23 @@ export async function GET(
       const dataAtual = new Date();
 
       const diasUteis = calcularDiasUteis(dataInicial, dataAtual);
-      const taxaAnual = 13.75 * (investment.cdiPercentage.toNumber() / 100); // CDI base de 13.75%
+      const taxaAnual = 13.75 * (investment.cdiPercentage.toNumber() / 100); 
       const taxaDiaria = Math.pow(1 + taxaAnual / 100, 1 / 252) - 1;
 
-      // Aplicar rendimento sobre o capital atualmente investido (após vendas)
+      
       currentValue = totalInvested * Math.pow(1 + taxaDiaria, diasUteis);
       profitLoss = currentValue - totalInvested;
       profitLossPercentage =
         totalInvested > 0 ? (profitLoss / totalInvested) * 100 : 0;
     } else if (totalQuantity <= 0) {
-      // Se não há mais quantidade (vendeu tudo de ações/FIIs), valor atual é zero mas já realizou o lucro/prejuízo
+      
       currentValue = 0;
-      // Lucro realizado = total vendido - total comprado
+      
       profitLoss = totalSold - totalBought;
       profitLossPercentage =
         totalBought > 0 ? (profitLoss / totalBought) * 100 : 0;
     } else if (investment.type === "STOCKS" && investment.ticker) {
-      // Para ações, buscar cotação atual via BRAPI
+      
       try {
         console.log(`Buscando cotação para ${investment.ticker}...`);
         const response = await fetch(
@@ -126,14 +126,14 @@ export async function GET(
         if (data.results && data.results.length > 0) {
           const currentPrice = data.results[0].regularMarketPrice;
           console.log(
-            `Preço atual (BRAPI): ${currentPrice}, Quantidade: ${totalQuantity}`,
-          );
+ `Preço atual (BRAPI): ${currentPrice}, Quantidade: ${totalQuantity}`,
+ );
           currentValue = currentPrice * totalQuantity;
           profitLoss = currentValue - totalInvested;
           profitLossPercentage =
             totalInvested > 0 ? (profitLoss / totalInvested) * 100 : 0;
         } else {
-          // Fallback: tentar buscar via scraping
+          
           console.log("BRAPI falhou, tentando scraping...");
           try {
             const scrapResponse = await fetch(
@@ -148,8 +148,8 @@ export async function GET(
                 scrapData.cotacao.preco.replace(",", "."),
               );
               console.log(
-                `Preço atual (Scraping): ${currentPrice}, Quantidade: ${totalQuantity}`,
-              );
+ `Preço atual (Scraping): ${currentPrice}, Quantidade: ${totalQuantity}`,
+ );
               currentValue = currentPrice * totalQuantity;
               profitLoss = currentValue - totalInvested;
               profitLossPercentage =
@@ -165,11 +165,11 @@ export async function GET(
         }
       } catch (error) {
         console.error("Erro ao buscar cotação:", error);
-        // Se falhar, usar preço médio como valor atual
+        
         currentValue = averagePrice * totalQuantity;
       }
     } else {
-      // Para outros tipos, usar o preço médio
+      
       currentValue = averagePrice * totalQuantity;
       profitLoss = currentValue - totalInvested;
       profitLossPercentage =

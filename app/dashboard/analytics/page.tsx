@@ -190,7 +190,7 @@ export default function AnalyticsPage() {
         )
     }
 
-    // Preparar dados para gráficos
+    
     const expensesChartData = data.expensesByCategory.slice(0, 8).map(cat => ({
         name: cat.categoria,
         value: cat.total_ultimos_3_meses
@@ -206,7 +206,7 @@ export default function AnalyticsPage() {
         value: inv.valor_investido_liquido
     }))
 
-    // Função para determinar a cor do status de saúde
+    
     const getHealthStatusColor = (status: string) => {
         switch (status) {
             case 'EXCELENTE':
@@ -222,7 +222,7 @@ export default function AnalyticsPage() {
         }
     }
 
-    // Função para determinar cor de prioridade de alerta
+    
     const getAlertPriorityColor = (priority: string) => {
         switch (priority) {
             case 'CRÍTICO':
@@ -239,7 +239,7 @@ export default function AnalyticsPage() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 dark:from-gray-900 dark:to-gray-800 md:p-8">
             <div className="mx-auto max-w-7xl">
-                {/* Header */}
+                
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white md:text-4xl">
                         Análise Financeira Completa
@@ -249,7 +249,7 @@ export default function AnalyticsPage() {
                     </p>
                 </div>
 
-                {/* Status de Saúde Financeira - Destaque */}
+                
                 <div className={cn(
                     "mb-8 rounded-2xl border-2 p-6 shadow-lg",
                     getHealthStatusColor(dashboard.status_saude_financeira)
@@ -295,7 +295,7 @@ export default function AnalyticsPage() {
                     </div>
                 </div>
 
-                {/* Alertas Críticos */}
+                
                 {data.alerts.length > 0 && (
                     <div className="mb-8">
                         <h2 className="mb-4 flex items-center gap-2 text-xl font-bold text-gray-900 dark:text-white">
@@ -340,7 +340,7 @@ export default function AnalyticsPage() {
                     </div>
                 )}
 
-                {/* KPIs Principais */}
+                
                 <div className="mb-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                     <StatCard
                         title="Saldo em Contas"
@@ -384,7 +384,7 @@ export default function AnalyticsPage() {
                     />
                 </div>
 
-                {/* Receitas vs Despesas */}
+                
                 <div className="mb-8 grid gap-6 lg:grid-cols-2">
                     <SectionCard
                         title="Receitas Mensais"
@@ -410,7 +410,7 @@ export default function AnalyticsPage() {
                                 </span>
                             </div>
 
-                            {/* Fontes de Receita */}
+                            
                             <div className="mt-4">
                                 <h4 className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
                                     Principais Fontes
@@ -469,7 +469,7 @@ export default function AnalyticsPage() {
                                 </span>
                             </div>
 
-                            {/* Top Categorias */}
+                            
                             <div className="mt-4">
                                 <h4 className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
                                     Maiores Gastos
@@ -522,7 +522,7 @@ export default function AnalyticsPage() {
                     </SectionCard>
                 </div>
 
-                {/* Gráficos de Pizza */}
+                
                 <div className="mb-8 grid gap-6 lg:grid-cols-2">
                     {expensesChartData.length > 0 && (
                         <div className="rounded-2xl bg-white p-6 shadow-sm dark:bg-gray-800">
@@ -536,7 +536,7 @@ export default function AnalyticsPage() {
                     )}
                 </div>
 
-                {/* Cartões de Crédito */}
+                
                 {data.creditCards.length > 0 && (
                     <div className="mb-8">
                         <SectionCard
@@ -598,7 +598,7 @@ export default function AnalyticsPage() {
                                                 </span>
                                             </div>
 
-                                            {/* Score de Saúde */}
+                                            
                                             <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-gray-600 dark:text-gray-400">
@@ -627,7 +627,7 @@ export default function AnalyticsPage() {
                                                 </div>
                                             </div>
 
-                                            {/* Alerta de Pagamento */}
+                                            
                                             {card.alerta_pagamento !== 'OK' && (
                                                 <div className="mt-2 rounded-lg bg-yellow-50 p-2 text-xs font-medium text-yellow-800">
                                                     ⚠️ {card.alerta_pagamento.replace(/_/g, ' ')}
@@ -647,7 +647,7 @@ export default function AnalyticsPage() {
                     </div>
                 )}
 
-                {/* Investimentos */}
+                
                 {data.investments.length > 0 && (
                     <div className="mb-8">
                         <SectionCard
@@ -704,7 +704,7 @@ export default function AnalyticsPage() {
                     </div>
                 )}
 
-                {/* Metas */}
+                
                 {data.goals.length > 0 && (
                     <div className="mb-8">
                         <SectionCard
@@ -740,7 +740,7 @@ export default function AnalyticsPage() {
                                             </span>
                                         </div>
 
-                                        {/* Barra de Progresso */}
+                                        
                                         <div className="mb-3">
                                             <div className="mb-1 flex justify-between text-sm">
                                                 <span className="text-gray-600 dark:text-gray-400">
@@ -806,7 +806,7 @@ export default function AnalyticsPage() {
                     </div>
                 )}
 
-                {/* Evolução Patrimonial */}
+                
                 {data.patrimonyEvolution.length > 0 && (
                     <div className="mb-8">
                         <SectionCard

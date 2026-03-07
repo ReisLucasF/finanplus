@@ -4,7 +4,7 @@ import * as cheerio from "cheerio";
 import iconv from "iconv-lite";
 import { buscarAtivoCompleto } from "@/lib/brapi";
 
-// Configuração do Axios para pegar o HTML como buffer
+
 const api = axios.create({
   responseType: "arraybuffer",
   headers: {
@@ -13,11 +13,11 @@ const api = axios.create({
   },
 });
 
-// Função auxiliar para limpar strings
+
 const clean = (text: string | null | undefined): string | null =>
   text ? text.replace(/\n/g, "").trim() : null;
 
-// Função para buscar cotação do Yahoo Finance
+
 const getYahooQuote = async (ticker: string) => {
   try {
     const yahooTicker = `${ticker}.SA`;
@@ -39,7 +39,7 @@ const getYahooQuote = async (ticker: string) => {
   }
 };
 
-// Função para extrair todos os pares label/data
+
 const extractDetails = ($: cheerio.CheerioAPI) => {
   const details: Record<string, string> = {};
 
@@ -59,7 +59,7 @@ const extractDetails = ($: cheerio.CheerioAPI) => {
           .toLowerCase()
           .replace(/\?/g, "")
           .replace(/\./g, "")
-          .replace(/\//g, "_")
+          .replace(/\
           .replace(/\s+/g, "_")
           .replace(/\(|\)/g, "");
         details[key] = value;
@@ -96,7 +96,7 @@ export async function GET(
 
     const isFII = details.fii !== undefined;
 
-    // Extrai oscilações
+    
     const oscillations: Record<string, string> = {};
     $("td.label").each((i, el) => {
       const label = clean($(el).text());
@@ -253,7 +253,7 @@ export async function GET(
   } catch (error: any) {
     console.error("Erro ao buscar dados:", error);
 
-    // Se for erro 403 (Cloudflare bloqueando), usar Brapi como fallback
+    
     if (error?.response?.status === 403 || error?.code === "ERR_BAD_REQUEST") {
       console.log(`Fundamentus bloqueado (403), usando Brapi para ${ticker}`);
 
@@ -267,13 +267,13 @@ export async function GET(
           );
         }
 
-        // Montar resposta no formato esperado usando dados da Brapi
+        
         const isFII = ticker.endsWith("11");
 
         const response: any = {
           ticker,
           type: brapiData.tipo || (isFII ? "FII" : "Ação"),
-          source: "brapi", // Indicar que veio da Brapi
+          source: "brapi", 
           oscillations: {},
         };
 

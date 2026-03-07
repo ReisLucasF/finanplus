@@ -1,5 +1,5 @@
-// Analytics Engine - Cálculos financeiros em TypeScript
-// Substitui as views SQL quando usando SQLite ou como fallback
+
+
 
 import { prisma } from "@/lib/prisma";
 
@@ -8,12 +8,12 @@ interface DateRange {
   endDate: Date;
 }
 
-// Função auxiliar para formatar datas
+
 function formatDate(date: Date): string {
   return date.toISOString().split("T")[0];
 }
 
-// Função para calcular dias úteis (aproximado - considera apenas dias da semana)
+
 function calcularDiasUteis(dataInicial: Date, dataFinal: Date): number {
   let dias = 0;
   const current = new Date(dataInicial);
@@ -21,7 +21,7 @@ function calcularDiasUteis(dataInicial: Date, dataFinal: Date): number {
   while (current <= dataFinal) {
     const dayOfWeek = current.getDay();
     if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-      // Não é domingo nem sábado
+      
       dias++;
     }
     current.setDate(current.getDate() + 1);
@@ -30,7 +30,7 @@ function calcularDiasUteis(dataInicial: Date, dataFinal: Date): number {
   return dias;
 }
 
-// 1. Dashboard Principal
+
 export async function calculateDashboardPrincipal(
   userId: string,
   dateRange?: DateRange,
@@ -44,19 +44,19 @@ export async function calculateDashboardPrincipal(
     };
   }
 
-  // Receitas
+  
   const receitas = await prisma.transaction.aggregate({
     where: { ...filters, type: "INCOME", status: "COMPLETED" },
     _sum: { amount: true },
   });
 
-  // Despesas
+  
   const despesas = await prisma.transaction.aggregate({
     where: { ...filters, type: "EXPENSE", status: "COMPLETED" },
     _sum: { amount: true },
   });
 
-  // Compras no cartão
+  
   const comprasCartao = await prisma.creditCardPurchase.aggregate({
     where: dateRange
       ? {
@@ -72,7 +72,7 @@ export async function calculateDashboardPrincipal(
     Number(despesas._sum.amount || 0) + Number(comprasCartao._sum.amount || 0);
   const saldoLiquido = totalReceitas - totalDespesas;
 
-  // Patrimônio total
+  
   const contas = await prisma.bankAccount.findMany({
     where: { userId },
     select: { currentBalance: true },
@@ -97,16 +97,16 @@ export async function calculateDashboardPrincipal(
     contas.reduce((sum, c) => sum + Number(c.currentBalance), 0) +
     totalInvestimentos;
 
-  // Taxa de poupança
+  
   const taxaPoupanca =
     totalReceitas > 0 ? (saldoLiquido / totalReceitas) * 100 : 0;
 
-  // Reserva de emergência (despesas mensais médias)
-  const despesaMediaMensal = totalDespesas; // Se filtrado por mês
+  
+  const despesaMediaMensal = totalDespesas; 
   const mesesReserva =
     despesaMediaMensal > 0 ? patrimonioTotal / despesaMediaMensal : 0;
 
-  // Status de saúde financeira
+  
   let statusSaude = "BOM";
   if (mesesReserva < 3 || taxaPoupanca < 10) statusSaude = "CRÍTICO";
   else if (mesesReserva < 6 || taxaPoupanca < 20) statusSaude = "ATENÇÃO";
@@ -125,7 +125,7 @@ export async function calculateDashboardPrincipal(
   };
 }
 
-// 2. Gastos por Categoria
+
 export async function calculateGastosPorCategoria(
   userId: string,
   dateRange?: DateRange,
@@ -151,7 +151,7 @@ export async function calculateGastosPorCategoria(
     include: { category: true },
   });
 
-  // Agrupar por categoria
+  
   const categorias = new Map<string, any>();
 
   for (const tx of transactions) {
@@ -186,7 +186,7 @@ export async function calculateGastosPorCategoria(
     cat.quantidade_transacoes++;
   }
 
-  // Calcular média e percentual
+  
   const totalGeral = Array.from(categorias.values()).reduce(
     (sum, c) => sum + c.total_gasto,
     0,
@@ -201,7 +201,7 @@ export async function calculateGastosPorCategoria(
   return resultado.sort((a, b) => b.total_gasto - a.total_gasto);
 }
 
-// Classificação de categorias
+
 function classifyCategory(name: string): string {
   const essencial = [
     "Alimentação",
@@ -221,7 +221,7 @@ function classifyCategory(name: string): string {
   return "SUPÉRFLUO";
 }
 
-// 3. Análise de Receitas
+
 export async function calculateAnaliseReceitas(
   userId: string,
   dateRange?: DateRange,
@@ -284,7 +284,7 @@ function classifyIncome(name: string): string {
   return "EXTRA_VARIÁVEL";
 }
 
-// 4. Portfolio de Investimentos
+
 export async function calculatePortfolioInvestimentos(userId: string) {
   const investments = await prisma.investment.findMany({
     where: { userId },
@@ -345,7 +345,7 @@ function getRecommendation(risk: string): string {
   return "Mínimo 20% do portfolio";
 }
 
-// 5. Análise de Cartões de Crédito
+
 export async function calculateAnaliseCartoes(
   userId: string,
   dateRange?: DateRange,
@@ -395,9 +395,9 @@ export async function calculateAnaliseCartoes(
   });
 }
 
-// 6. Evolução Patrimonial
+
 export async function calculateEvolucaoPatrimonial(userId: string) {
-  // Buscar todas as transações
+  
   const transactions = await prisma.transaction.findMany({
     where: { userId, status: "COMPLETED" },
     orderBy: { date: "asc" },
@@ -413,11 +413,11 @@ export async function calculateEvolucaoPatrimonial(userId: string) {
     orderBy: { date: "asc" },
   });
 
-  // Agrupar por mês
+  
   const meses = new Map<string, any>();
 
   for (const tx of transactions) {
-    const mes = tx.date.toISOString().substring(0, 7); // YYYY-MM
+    const mes = tx.date.toISOString().substring(0, 7); 
     if (!meses.has(mes)) {
       meses.set(mes, {
         mes,
@@ -448,7 +448,7 @@ export async function calculateEvolucaoPatrimonial(userId: string) {
     meses.get(mes)!.despesas += Number(cp.amount);
   }
 
-  // Calcular saldo e patrimônio acumulado
+  
   let patrimonioAcumulado = 0;
   const resultado = Array.from(meses.values()).map((m) => {
     m.saldo = m.receitas - m.despesas;
@@ -461,7 +461,7 @@ export async function calculateEvolucaoPatrimonial(userId: string) {
   return resultado.sort((a, b) => a.mes.localeCompare(b.mes));
 }
 
-// 7. Análise de Metas
+
 export async function calculateAnaliseMetas(userId: string) {
   const goals = await prisma.goal.findMany({
     where: { userId },
@@ -500,11 +500,11 @@ export async function calculateAnaliseMetas(userId: string) {
   });
 }
 
-// 8. Alertas Financeiros
+
 export async function calculateAlertasFinanceiros(userId: string) {
   const alertas = [];
 
-  // Dashboard para calcular reserva
+  
   const dashboard = await calculateDashboardPrincipal(userId);
 
   if (dashboard.reserva_emergencia_meses < 3) {
@@ -519,7 +519,7 @@ export async function calculateAlertasFinanceiros(userId: string) {
     });
   }
 
-  // Verificar cartões
+  
   const cartoes = await calculateAnaliseCartoes(userId);
   for (const card of cartoes) {
     if (card.percentual_utilizado > 80) {
@@ -534,7 +534,7 @@ export async function calculateAlertasFinanceiros(userId: string) {
     }
   }
 
-  // Verificar metas
+  
   const metas = await calculateAnaliseMetas(userId);
   for (const meta of metas) {
     if (meta.viabilidade === "CRÍTICA") {
@@ -552,7 +552,7 @@ export async function calculateAlertasFinanceiros(userId: string) {
   return alertas;
 }
 
-// Função principal que retorna tudo
+
 export async function calculateAllAnalytics(
   userId: string,
   dateRange?: DateRange,

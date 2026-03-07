@@ -113,7 +113,7 @@ export default function CategoriesPage() {
                 </button>
             </div>
 
-            {/* Categorias do Usuário */}
+            
             <div className="mb-8">
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Minhas Categorias</h2>
                 {userCategories.length === 0 ? (
@@ -155,7 +155,7 @@ export default function CategoriesPage() {
                 )}
             </div>
 
-            {/* Categorias do Sistema */}
+            
             <div>
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Categorias do Sistema</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -175,7 +175,7 @@ export default function CategoriesPage() {
                 </div>
             </div>
 
-            {/* Modal */}
+            
             {showModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">

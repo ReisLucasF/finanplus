@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 
-// POST - Atualizar valor automaticamente (ação ou CDB)
-// NOTA: Esta funcionalidade está desabilitada pois o modelo Investment
-// não possui os campos currentAmount, quantity e investmentDate necessários
+
+
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

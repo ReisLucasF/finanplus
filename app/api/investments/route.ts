@@ -25,7 +25,7 @@ const investmentSchema = z.object({
   color: z.string().default("#3B82F6"),
 });
 
-// GET - Listar investimentos do usuário
+
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser();
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Criar novo investimento (apenas cadastro do ativo)
+
 export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser();

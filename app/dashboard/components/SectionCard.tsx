@@ -26,7 +26,7 @@ export default function SectionCard({
 }: SectionCardProps) {
     const content = (
         <>
-            {/* Header */}
+            
             <div className="mb-6 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <div className={cn(
@@ -52,7 +52,7 @@ export default function SectionCard({
                 {actions}
             </div>
 
-            {/* Content */}
+            
             {children && (
                 <div className="space-y-4">
                     {children}

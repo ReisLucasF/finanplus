@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 
-// Função para calcular dias úteis entre duas datas
+
 function calcularDiasUteis(dataInicio: Date, dataFim: Date): number {
   let dias = 0;
   const atual = new Date(dataInicio);
 
   while (atual <= dataFim) {
     const diaSemana = atual.getDay();
-    // 0 = Domingo, 6 = Sábado
+    
     if (diaSemana !== 0 && diaSemana !== 6) {
       dias++;
     }
@@ -18,7 +18,7 @@ function calcularDiasUteis(dataInicio: Date, dataFim: Date): number {
   return dias;
 }
 
-// GET - Calcular rendimento de CDB
+
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser();
@@ -40,22 +40,22 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Taxa CDI atual (aproximada) - em produção, buscar de uma API real
-    // Usando 13.75% aa como valor aproximado atual (janeiro/2026)
+    
+    
     const taxaCDIAnual = 13.75;
 
-    // Taxa do investimento (percentual do CDI)
+    
     const taxaInvestimentoAnual = (taxaCDIAnual * cdiPercentage) / 100;
 
-    // Calcular dias úteis desde o investimento
+    
     const dataInicio = new Date(dataInvestimento);
     const hoje = new Date();
     const diasUteis = calcularDiasUteis(dataInicio, hoje);
 
-    // Calcular rendimento diário
+    
     const taxaDiaria = Math.pow(1 + taxaInvestimentoAnual / 100, 1 / 252) - 1;
 
-    // Calcular valor atual com juros compostos
+    
     const valorAtual = valorInicial * Math.pow(1 + taxaDiaria, diasUteis);
     const rendimento = valorAtual - valorInicial;
     const rendimentoPercentual =

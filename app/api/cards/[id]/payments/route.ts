@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 
-// GET - Listar pagamentos do cartão
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -18,7 +18,7 @@ export async function GET(
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
 
-    // Verificar se o cartão pertence ao usuário
+    
     const card = await prisma.creditCard.findFirst({
       where: { id: cardId, userId: user.userId },
     });
@@ -30,7 +30,7 @@ export async function GET(
       );
     }
 
-    // Construir filtro de data
+    
     const dateFilter: any = {};
     if (startDate) {
       dateFilter.gte = new Date(startDate);
@@ -50,7 +50,7 @@ export async function GET(
       orderBy: { dueDate: "desc" },
     });
 
-    // Serializar Decimals
+    
     const serializedPayments = payments.map((p) => ({
       ...p,
       amount: p.amount.toNumber(),

@@ -3,14 +3,14 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const iconv = require('iconv-lite');
 
-// Habilita CORS para qualquer origem
+
 fastify.register(require('@fastify/cors'), {
-    origin: '*', // Permite qualquer origem
+    origin: '*', 
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 });
 
-// Configuração do Axios para pegar o HTML como buffer (binário)
-// Isso é essencial para converter ISO-8859-1 para UTF-8 depois
+
+
 const api = axios.create({
     responseType: 'arraybuffer',
     headers: {
@@ -18,10 +18,10 @@ const api = axios.create({
     }
 });
 
-// Função auxiliar para limpar strings (tira quebras de linha e espaços extras)
+
 const clean = (text) => text ? text.replace(/\n/g, '').trim() : null;
 
-// Função para buscar cotação do Yahoo Finance
+
 const getYahooQuote = async (ticker) => {
     try {
         const yahooTicker = ticker.includes('11') ? `${ticker}.SA` : `${ticker}.SA`;
@@ -43,16 +43,16 @@ const getYahooQuote = async (ticker) => {
     }
 };
 
-// Função para extrair todos os pares label/data
+
 const extractDetails = ($) => {
     const details = {};
 
-    // Extrai os pares label/data das tabelas
+    
     $('td.label').each((index, element) => {
         const labelCell = $(element);
         const dataCell = labelCell.next('td');
 
-        // Verifica se a próxima célula contém a classe 'data'
+        
         const dataClass = dataCell.attr('class') || '';
         if (dataClass.includes('data')) {
             const label = clean(labelCell.find('span.txt').text() || labelCell.text());
@@ -62,7 +62,7 @@ const extractDetails = ($) => {
                 const key = label.toLowerCase()
                     .replace(/\?/g, '')
                     .replace(/\./g, '')
-                    .replace(/\//g, '_')
+                    .replace(/\
                     .replace(/\s+/g, '_')
                     .replace(/\(|\)/g, '');
                 details[key] = value;
@@ -73,32 +73,32 @@ const extractDetails = ($) => {
     return details;
 };
 
-// Rota 1: Resumo COMPLETO do Ativo (Serve para Ação e FII)
+
 fastify.get('/api/quote/:ticker', async (request, reply) => {
     const { ticker } = request.params;
     const url = `https://fundamentus.com.br/detalhes.php?papel=${ticker.toUpperCase()}`;
 
     try {
-        // Busca dados do Fundamentus
+        
         const { data } = await api.get(url);
         const html = iconv.decode(data, 'iso-8859-1');
         const $ = cheerio.load(html);
 
-        // Extrai todos os dados disponíveis
+        
         const details = extractDetails($);
 
-        // Se o objeto estiver vazio, o ticker provavelmente não existe
+        
         if (Object.keys(details).length === 0) {
             return reply.code(404).send({ error: 'Ativo não encontrado' });
         }
 
-        // Busca cotação em tempo real do Yahoo Finance
+        
         const yahooQuote = await getYahooQuote(ticker.toUpperCase());
 
-        // Detecta se é FII ou Ação
+        
         const isFII = details.fii !== undefined;
 
-        // Extrai oscilações
+        
         const oscillations = {};
         $('td.label').each((i, el) => {
             const label = clean($(el).text());
@@ -107,7 +107,7 @@ fastify.get('/api/quote/:ticker', async (request, reply) => {
             }
         });
 
-        // Estrutura base
+        
         const response = {
             ticker: ticker.toUpperCase(),
             type: isFII ? 'FII' : 'Ação',
@@ -115,7 +115,7 @@ fastify.get('/api/quote/:ticker', async (request, reply) => {
         };
 
         if (isFII) {
-            // Estrutura para FII
+            
             response.info = {
                 fii: details.fii,
                 nome: details.nome,
@@ -172,7 +172,7 @@ fastify.get('/api/quote/:ticker', async (request, reply) => {
                 imoveis_pl_do_fii: details.imoveis_pl_do_fii
             };
         } else {
-            // Estrutura para Ação
+            
             response.info = {
                 tipo: details.tipo,
                 empresa: details.empresa,
@@ -245,11 +245,11 @@ fastify.get('/api/quote/:ticker', async (request, reply) => {
     }
 });
 
-// Rota 2: Histórico de Dividendos (Suporta FIIs e Ações)
+
 fastify.get('/api/dividends/:ticker', async (request, reply) => {
     const { ticker } = request.params;
 
-    // Tenta primeiro como FII, depois como ação
+    
     const urls = [
         { url: `https://fundamentus.com.br/fii_proventos.php?papel=${ticker.toUpperCase()}&tipo=2`, type: 'fii' },
         { url: `https://fundamentus.com.br/proventos.php?papel=${ticker.toUpperCase()}&tipo=2`, type: 'acao' }
@@ -263,13 +263,13 @@ fastify.get('/api/dividends/:ticker', async (request, reply) => {
 
             const dividends = [];
 
-            // Seleciona a tabela com id 'resultado' e itera sobre as linhas do corpo
+            
             $('#resultado tbody tr').each((i, element) => {
                 const tds = $(element).find('td');
 
                 if (tds.length >= 4) {
-                    // FII: Data Com, Tipo, Data Pagamento, Valor
-                    // Ação: Data Com, Valor, Tipo, Data Pagamento
+                    
+                    
                     if (type === 'fii') {
                         dividends.push({
                             data_com: clean($(tds[0]).text()),
@@ -288,9 +288,9 @@ fastify.get('/api/dividends/:ticker', async (request, reply) => {
                 }
             });
 
-            // Se encontrou dividendos, retorna
+            
             if (dividends.length > 0) {
-                // Calcula estatísticas
+                
                 const valores = dividends
                     .map(d => parseFloat(d.valor.replace(',', '.')))
                     .filter(v => !isNaN(v));
@@ -314,19 +314,19 @@ fastify.get('/api/dividends/:ticker', async (request, reply) => {
             }
 
         } catch (error) {
-            // Continua tentando a próxima URL
+            
             continue;
         }
     }
 
-    // Se chegou aqui, não encontrou em nenhuma URL
+    
     return reply.code(404).send({
         error: 'Nenhum provento encontrado para este ticker',
         ticker: ticker.toUpperCase()
     });
 });
 
-// Rota 3: Comparação entre múltiplos ativos
+
 fastify.get('/api/compare', async (request, reply) => {
     const { tickers } = request.query;
 
@@ -371,19 +371,19 @@ fastify.get('/api/compare', async (request, reply) => {
     };
 });
 
-// Inicializa o servidor
+
 const start = async () => {
     try {
         await fastify.listen({ port: 8001 });
-        console.log('🚀 API de Ações rodando em http://localhost:8001');
-        console.log('\n📊 Rotas disponíveis:');
-        console.log('  GET /api/quote/:ticker        - Dados completos de um ativo');
-        console.log('  GET /api/dividends/:ticker    - Histórico de dividendos');
-        console.log('  GET /api/compare?tickers=...  - Comparar múltiplos ativos');
-        console.log('\n🔍 Exemplos:');
-        console.log('  http://localhost:8001/api/quote/PETR4');
-        console.log('  http://localhost:8001/api/dividends/MXRF11');
-        console.log('  http://localhost:8001/api/compare?tickers=PETR4,VALE3,MXRF11');
+        console.log(' API de Ações rodando em http://localhost:8001');
+        console.log('\n Rotas disponíveis:');
+        console.log(' GET /api/quote/:ticker - Dados completos de um ativo');
+        console.log(' GET /api/dividends/:ticker - Histórico de dividendos');
+        console.log(' GET /api/compare?tickers=... - Comparar múltiplos ativos');
+        console.log('\n Exemplos:');
+        console.log(' http://localhost:8001/api/quote/PETR4');
+        console.log(' http://localhost:8001/api/dividends/MXRF11');
+        console.log(' http://localhost:8001/api/compare?tickers=PETR4,VALE3,MXRF11');
     } catch (err) {
         fastify.log.error(err);
         process.exit(1);

@@ -23,7 +23,7 @@ const updateSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
-// GET - Buscar recorrência específica
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -64,7 +64,7 @@ export async function GET(
   }
 }
 
-// PUT - Atualizar recorrência
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -114,7 +114,7 @@ export async function PUT(
   }
 }
 
-// DELETE - Excluir recorrência
+
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

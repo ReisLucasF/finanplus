@@ -9,7 +9,7 @@ export async function GET() {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    // Verificar dados básicos do usuário
+    
     const totalTransactions = await prisma.$queryRaw`
       SELECT 
         COUNT(*) as total,
@@ -21,7 +21,7 @@ export async function GET() {
       WHERE userId = ${user.userId}
     `;
 
-    // Verificar transações recentes
+    
     const recentTransactions = await prisma.$queryRaw`
       SELECT id, type, status, amount, date, description
       FROM Transaction 
@@ -30,21 +30,21 @@ export async function GET() {
       LIMIT 10
     `;
 
-    // Verificar saldos
+    
     const accountBalances = await prisma.$queryRaw`
       SELECT SUM(currentBalance) as total_balance
       FROM BankAccount 
       WHERE userId = ${user.userId}
     `;
 
-    // Verificar categorias
+    
     const categories = await prisma.$queryRaw`
       SELECT COUNT(*) as total_categories
       FROM Category 
       WHERE userId = ${user.userId} OR userId IS NULL
     `;
 
-    // Converter BigInt para Number
+    
     const convertBigIntToNumber = (value: any): number => {
       if (typeof value === "bigint") {
         return Number(value);
@@ -52,7 +52,7 @@ export async function GET() {
       return Number(value) || 0;
     };
 
-    // Processar dados para evitar BigInt
+    
     const processObject = (obj: any): any => {
       if (Array.isArray(obj)) {
         return obj.map(processObject);

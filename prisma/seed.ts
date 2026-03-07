@@ -6,9 +6,9 @@ const prisma = new PrismaClient({
 });
 
 async function main() {
-  console.log("🌱 Iniciando seed...");
+  console.log(" Iniciando seed...");
 
-  // Categorias de RECEITA padrão do sistema
+  
   const incomeCategories: { name: string; type: TransactionType; icon: string }[] = [
     { name: "Salário", type: TransactionType.INCOME, icon: "💼" },
     { name: "Freelance", type: TransactionType.INCOME, icon: "💻" },
@@ -19,7 +19,7 @@ async function main() {
     { name: "Outros", type: TransactionType.INCOME, icon: "💰" },
   ];
 
-  // Categorias de DESPESA padrão do sistema
+  
   const expenseCategories: { name: string; type: TransactionType; icon: string }[] = [
     { name: "Alimentação", type: TransactionType.EXPENSE, icon: "🍔" },
     { name: "Transporte", type: TransactionType.EXPENSE, icon: "🚗" },
@@ -35,7 +35,7 @@ async function main() {
     { name: "Outros", type: TransactionType.EXPENSE, icon: "💸" },
   ];
 
-  // Criar categorias de receita
+  
   for (const category of incomeCategories) {
     await prisma.category.upsert({
       where: {
@@ -47,12 +47,12 @@ async function main() {
       update: {},
       create: {
         ...category,
-        userId: null, // Categorias do sistema não têm userId
+        userId: null, 
       },
     });
   }
 
-  // Criar categorias de despesa
+  
   for (const category of expenseCategories) {
     await prisma.category.upsert({
       where: {
@@ -64,19 +64,19 @@ async function main() {
       update: {},
       create: {
         ...category,
-        userId: null, // Categorias do sistema não têm userId
+        userId: null, 
       },
     });
   }
 
-  console.log("✅ Seed concluído!");
-  console.log(`📊 ${incomeCategories.length} categorias de receita criadas`);
-  console.log(`📊 ${expenseCategories.length} categorias de despesa criadas`);
+  console.log(" Seed concluído!");
+  console.log(` ${incomeCategories.length} categorias de receita criadas`);
+  console.log(` ${expenseCategories.length} categorias de despesa criadas`);
 }
 
 main()
   .catch((e) => {
-    console.error("❌ Erro no seed:", e);
+    console.error(" Erro no seed:", e);
     process.exit(1);
   })
   .finally(async () => {

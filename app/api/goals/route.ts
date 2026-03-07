@@ -12,7 +12,7 @@ const goalSchema = z.object({
   includeInvestments: z.boolean().default(false),
 });
 
-// GET - Listar metas
+
 export async function GET() {
   try {
     const user = await getCurrentUser();
@@ -38,7 +38,7 @@ export async function GET() {
   }
 }
 
-// POST - Criar meta
+
 export async function POST(request: Request) {
   try {
     const user = await getCurrentUser();
@@ -52,13 +52,13 @@ export async function POST(request: Request) {
     try {
       const data = goalSchema.parse(body);
     } catch (validationError) {
-      console.error("❌ Erro na validação de goals:", validationError);
+      console.error(" Erro na validação de goals:", validationError);
       throw validationError;
     }
 
     const data = goalSchema.parse(body);
 
-    // Se accountId foi fornecido, verificar se existe e pertence ao usuário
+    
     if (data.accountId) {
       const account = await prisma.bankAccount.findFirst({
         where: {

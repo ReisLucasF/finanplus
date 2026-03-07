@@ -9,7 +9,7 @@ const categorySchema = z.object({
   icon: z.string().optional(),
 });
 
-// PUT - Atualizar categoria
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -25,7 +25,7 @@ export async function PUT(
     const body = await request.json();
     const data = categorySchema.parse(body);
 
-    // Verificar se é categoria do sistema
+    
     const category = await prisma.category.findUnique({
       where: { id },
     });
@@ -66,7 +66,7 @@ export async function PUT(
   }
 }
 
-// DELETE - Excluir categoria
+
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -79,7 +79,7 @@ export async function DELETE(
 
     const { id } = await params;
 
-    // Verificar se é categoria do sistema
+    
     const category = await prisma.category.findUnique({
       where: { id },
     });
@@ -102,7 +102,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Não autorizado" }, { status: 403 });
     }
 
-    // Verificar se há transações vinculadas
+    
     const transactionsCount = await prisma.transaction.count({
       where: { categoryId: id },
     });

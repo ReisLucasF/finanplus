@@ -11,7 +11,7 @@ const transferSchema = z.object({
   date: z.string().transform((val) => new Date(val)),
 });
 
-// GET - Listar transferências
+
 export async function GET() {
   try {
     const user = await getCurrentUser();
@@ -28,7 +28,7 @@ export async function GET() {
       orderBy: { date: "desc" },
     });
 
-    // Serializar Decimals
+    
     const serializedTransfers = transfers.map((transfer) => ({
       ...transfer,
       amount: transfer.amount.toNumber(),
@@ -54,7 +54,7 @@ export async function GET() {
   }
 }
 
-// POST - Criar transferência
+
 export async function POST(request: Request) {
   try {
     const user = await getCurrentUser();
@@ -72,7 +72,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Verificar se ambas as contas existem e pertencem ao usuário
+    
     const [fromAccount, toAccount] = await Promise.all([
       prisma.bankAccount.findFirst({
         where: { id: data.fromAccountId, userId: user.userId },
@@ -89,7 +89,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Verificar saldo
+    
     if (fromAccount.currentBalance.toNumber() < data.amount) {
       return NextResponse.json(
         { error: "Saldo insuficiente" },
@@ -97,7 +97,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Criar transferência e atualizar saldos
+    
     const transfer = await prisma.$transaction(async (tx) => {
       const newTransfer = await tx.transfer.create({
         data: {
@@ -110,7 +110,7 @@ export async function POST(request: Request) {
         },
       });
 
-      // Atualizar saldos usando increment/decrement para garantir atomicidade
+      
       await tx.bankAccount.update({
         where: { id: data.fromAccountId },
         data: {
@@ -128,7 +128,7 @@ export async function POST(request: Request) {
       return newTransfer;
     });
 
-    // Serializar Decimals
+    
     const serializedTransfer = {
       ...transfer,
       amount: transfer.amount.toNumber(),

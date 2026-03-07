@@ -74,10 +74,10 @@ export default function SettingsPage() {
                 throw new Error('Erro ao salvar configurações')
             }
 
-            // Salvar tema no localStorage imediatamente
+            
             localStorage.setItem('theme', settings.theme)
 
-            // Aplicar tema imediatamente
+            
             if (settings.theme === 'DARK') {
                 document.documentElement.classList.add('dark')
             } else {
@@ -86,7 +86,7 @@ export default function SettingsPage() {
 
             setMessage({ type: 'success', text: 'Configurações salvas com sucesso!' })
 
-            // Recarregar a página após um delay
+            
             setTimeout(() => {
                 window.location.reload()
             }, 1500)
@@ -104,9 +104,9 @@ export default function SettingsPage() {
 
     const handleCurrencyInput = (value: string): number | null => {
         if (value === '') return null
-        // Remove tudo exceto números e vírgula
+        
         const cleaned = value.replace(/[^\d,]/g, '')
-        // Substitui vírgula por ponto
+        
         const normalized = cleaned.replace(',', '.')
         const parsed = parseFloat(normalized)
         return isNaN(parsed) ? null : parsed
@@ -138,7 +138,7 @@ export default function SettingsPage() {
             )}
 
             <div className="space-y-6">
-                {/* Perfil */}
+                
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
                     <div className="flex items-center gap-3 mb-4">
                         <User className="h-5 w-5 text-gray-600 dark:text-gray-400" />
@@ -191,7 +191,7 @@ export default function SettingsPage() {
                     </div>
                 </div>
 
-                {/* Aparência */}
+                
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
                     <div className="flex items-center gap-3 mb-4">
                         <Moon className="h-5 w-5 text-gray-600 dark:text-gray-400" />
@@ -215,7 +215,7 @@ export default function SettingsPage() {
                     </div>
                 </div>
 
-                {/* Regional */}
+                
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
                     <div className="flex items-center gap-3 mb-4">
                         <Globe className="h-5 w-5 text-gray-600 dark:text-gray-400" />
@@ -260,7 +260,7 @@ export default function SettingsPage() {
                     </div>
                 </div>
 
-                {/* Orçamento Mensal */}
+                
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
                     <div className="flex items-center gap-3 mb-4">
                         <DollarSign className="h-5 w-5 text-gray-600 dark:text-gray-400" />
@@ -296,7 +296,7 @@ export default function SettingsPage() {
                     </div>
                 </div>
 
-                {/* Notificações */}
+                
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
                     <div className="flex items-center gap-3 mb-4">
                         <Bell className="h-5 w-5 text-gray-600 dark:text-gray-400" />
@@ -314,7 +314,7 @@ export default function SettingsPage() {
                     </div>
                 </div>
 
-                {/* Botão Salvar */}
+                
                 <button
                     onClick={handleSave}
                     disabled={saving}

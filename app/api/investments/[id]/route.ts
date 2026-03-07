@@ -16,7 +16,7 @@ const updateSchema = z.object({
   color: z.string().optional(),
 });
 
-// GET - Buscar investimento específico
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -58,7 +58,7 @@ export async function GET(
   }
 }
 
-// PUT - Atualizar investimento
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -73,7 +73,7 @@ export async function PUT(
     const body = await request.json();
     const validatedData = updateSchema.parse(body);
 
-    // Verificar se investimento existe e pertence ao usuário
+    
     const existing = await prisma.investment.findFirst({
       where: {
         id,
@@ -106,7 +106,7 @@ export async function PUT(
   }
 }
 
-// DELETE - Deletar investimento
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -119,7 +119,7 @@ export async function DELETE(
 
     const { id } = await params;
 
-    // Verificar se investimento existe e pertence ao usuário
+    
     const existing = await prisma.investment.findFirst({
       where: {
         id,

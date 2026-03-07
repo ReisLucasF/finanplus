@@ -34,7 +34,7 @@ export default function CompoundInterestCalculator() {
         let totalInvested = initialAmount
 
         for (let year = 1; year <= years; year++) {
-            // Calcular mês a mês
+            
             for (let month = 1; month <= 12; month++) {
                 balance = balance * (1 + monthlyRate) + monthlyDeposit
                 totalInvested += monthlyDeposit
@@ -64,7 +64,7 @@ export default function CompoundInterestCalculator() {
             </div>
 
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-                {/* Form */}
+                
                 <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div className="flex flex-col">
@@ -129,11 +129,11 @@ export default function CompoundInterestCalculator() {
                     </button>
                 </div>
 
-                {/* Results */}
+                
                 <div className="p-6">
                     {showResults ? (
                         <div>
-                            {/* Summary Cards */}
+                            
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                                 <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
                                     <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">Total Investido</p>
@@ -155,7 +155,7 @@ export default function CompoundInterestCalculator() {
                                 </div>
                             </div>
 
-                            {/* Table */}
+                            
                             <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
                                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                     <thead className="bg-gray-50 dark:bg-gray-700">

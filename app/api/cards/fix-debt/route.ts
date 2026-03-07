@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 
-// POST - Corrigir dívida do cartão (remover compras se initialDebt estiver negativo)
+
 export async function POST(request: Request) {
   try {
     const user = await getCurrentUser();
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Buscar cartão
+    
     const card = await prisma.creditCard.findFirst({
       where: { id: cardId, userId: user.userId },
     });
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Buscar compras antigas (que não foram contabilizadas no initialDebt)
+    
     const purchases = await prisma.creditCardPurchase.findMany({
       where: { creditCardId: cardId },
     });
@@ -42,8 +42,8 @@ export async function POST(request: Request) {
     );
     const currentInitialDebt = card.initialDebt.toNumber();
 
-    // A dívida correta deveria ser: initialDebt atual + compras antigas
-    // Vamos somar as compras ao initialDebt para corrigir
+    
+    
     const correctDebt = currentInitialDebt + totalPurchases;
 
     await prisma.creditCard.update({

@@ -33,7 +33,7 @@ const extractDetails = ($: cheerio.CheerioAPI) => {
           .toLowerCase()
           .replace(/\?/g, "")
           .replace(/\./g, "")
-          .replace(/\//g, "_")
+          .replace(/\
           .replace(/\s+/g, "_")
           .replace(/\(|\)/g, "");
         details[key] = value;

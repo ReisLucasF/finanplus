@@ -4,7 +4,7 @@ import { ArrowRight, TrendingUp, Target, PiggyBank, BarChart3 } from 'lucide-rea
 export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800">
-      {/* Header */}
+      
       <header className="container mx-auto px-4 py-6">
         <nav className="flex justify-between items-center">
           <div className="flex items-center space-x-2">
@@ -28,7 +28,7 @@ export default function Home() {
         </nav>
       </header>
 
-      {/* Hero Section */}
+      
       <section className="container mx-auto px-4 py-20 text-center">
         <h1 className="text-5xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6">
           Controle Total das Suas
@@ -49,7 +49,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Features */}
+      
       <section className="container mx-auto px-4 py-20">
         <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-12">
           Tudo que você precisa para suas finanças
@@ -78,7 +78,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CTA Section */}
+      
       <section className="container mx-auto px-4 py-20">
         <div className="bg-blue-600 rounded-2xl p-12 text-center text-white">
           <h2 className="text-3xl font-bold mb-4">
@@ -96,7 +96,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
+      
       <footer className="container mx-auto px-4 py-8 border-t border-gray-200 dark:border-gray-700">
         <div className="text-center text-gray-600 dark:text-gray-400">
           <p>&copy; 2026 FinanPlus. Todos os direitos reservados.</p>

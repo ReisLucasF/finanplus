@@ -19,7 +19,7 @@ const recurringSchema = z.object({
   dueDay: z.number().min(1).max(31),
 });
 
-// GET - Listar transações recorrentes
+
 export async function GET() {
   try {
     const user = await getCurrentUser();
@@ -46,7 +46,7 @@ export async function GET() {
   }
 }
 
-// POST - Criar transação recorrente
+
 export async function POST(request: Request) {
   try {
     const user = await getCurrentUser();
@@ -59,13 +59,13 @@ export async function POST(request: Request) {
     try {
       const data = recurringSchema.parse(body);
     } catch (validationError) {
-      console.error("❌ Erro na validação:", validationError);
+      console.error(" Erro na validação:", validationError);
       throw validationError;
     }
 
     const data = recurringSchema.parse(body);
 
-    // Verificar se a conta pertence ao usuário
+    
     const account = await prisma.bankAccount.findFirst({
       where: { id: data.accountId, userId: user.userId },
     });
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Criar recorrência
+    
     const recurring = await prisma.recurringTransaction.create({
       data: {
         ...data,

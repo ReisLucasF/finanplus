@@ -104,7 +104,7 @@ export default function CalculatorsPage() {
                 })}
             </div>
 
-            {/* Info Section */}
+            
             <div className="mt-8 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-800">
                 <div className="flex items-start gap-3">
                     <Calculator className="h-6 w-6 text-blue-600 dark:text-blue-400 mt-0.5" />

@@ -12,7 +12,7 @@ const goalSchema = z.object({
   includeInvestments: z.boolean().default(false),
 });
 
-// GET - Buscar meta específica
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -49,7 +49,7 @@ export async function GET(
   }
 }
 
-// PUT - Atualizar meta
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -93,7 +93,7 @@ export async function PUT(
   }
 }
 
-// DELETE - Excluir meta
+
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

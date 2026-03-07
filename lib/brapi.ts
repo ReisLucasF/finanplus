@@ -1,7 +1,4 @@
-/**
- * Integração com Brapi - API Brasileira para dados do mercado financeiro
- * Documentação: https://brapi.dev/docs
- */
+
 
 import axios from "axios";
 
@@ -37,9 +34,7 @@ export interface AtivoEncontrado {
   setor?: string;
 }
 
-/**
- * Busca cotação de um ativo usando Brapi
- */
+
 export async function buscarCotacao(
   ticker: string
 ): Promise<CotacaoAtivo | null> {
@@ -78,9 +73,7 @@ export async function buscarCotacao(
   }
 }
 
-/**
- * Busca dados fundamentalistas de um ativo usando Brapi
- */
+
 export async function buscarDadosFundamentais(
   ticker: string
 ): Promise<DadosFundamentais | null> {
@@ -104,18 +97,18 @@ export async function buscarDadosFundamentais(
       return null;
     }
 
-    // Extrair dados fundamentalistas
+    
     const fundamentalData = resultado.summaryProfile || {};
     const financialData = resultado.financialData || {};
     const defaultKeyStatistics = resultado.defaultKeyStatistics || {};
     const summaryDetail = resultado.summaryDetail || {};
 
-    // Calcular dividend yield se houver dados de dividendos
+    
     let dividendYield = summaryDetail.dividendYield
       ? summaryDetail.dividendYield * 100
       : undefined;
 
-    // Se não tiver dividendYield mas tiver histórico de dividendos, calcular
+    
     if (!dividendYield && resultado.dividendsData?.dividends?.length > 0) {
       const ultimoAno = resultado.dividendsData.dividends.filter((d: any) => {
         const dataDiv = new Date(d.date);
@@ -153,19 +146,17 @@ export async function buscarDadosFundamentais(
     };
   } catch (error: any) {
     console.error(
-      `Erro ao buscar dados fundamentalistas para ${ticker}:`,
-      error.message
-    );
+ `Erro ao buscar dados fundamentalistas para ${ticker}:`,
+ error.message
+ );
     return null;
   }
 }
 
-/**
- * Busca ativos por termo (ticker ou nome)
- */
+
 export async function buscarAtivos(termo: string): Promise<AtivoEncontrado[]> {
   try {
-    // A API /available retorna apenas tickers, então vamos buscar diretamente pelo ticker na API /quote/list
+    
     const response = await axios.get(`${BRAPI_BASE_URL}/quote/list`, {
       params: {
         search: termo,
@@ -176,12 +167,12 @@ export async function buscarAtivos(termo: string): Promise<AtivoEncontrado[]> {
 
     const stocks = response.data?.stocks || [];
 
-    // Mapear os resultados
+    
     const resultados = stocks.map((stock: any) => {
       const ticker = stock.stock || "";
       let tipo = "ACAO";
 
-      // Identificar tipo pelo ticker
+      
       if (ticker.endsWith("11")) {
         tipo = "FII";
       } else if (ticker.startsWith("BDR")) {
@@ -200,7 +191,7 @@ export async function buscarAtivos(termo: string): Promise<AtivoEncontrado[]> {
   } catch (error: any) {
     console.error("Erro ao buscar ativos:", error.message);
 
-    // Fallback: buscar na lista completa e filtrar localmente
+    
     try {
       const response = await axios.get(`${BRAPI_BASE_URL}/available`, {
         timeout: 10000,
@@ -208,7 +199,7 @@ export async function buscarAtivos(termo: string): Promise<AtivoEncontrado[]> {
 
       const stocks = response.data?.stocks || [];
 
-      // Filtrar por ticker
+      
       const termoUpper = termo.toUpperCase();
       const resultados = stocks
         .filter((ticker: string) => ticker.toUpperCase().includes(termoUpper))
@@ -216,7 +207,7 @@ export async function buscarAtivos(termo: string): Promise<AtivoEncontrado[]> {
         .map((ticker: string) => {
           let tipo = "ACAO";
 
-          // Identificar tipo pelo ticker
+          
           if (ticker.endsWith("11")) {
             tipo = "FII";
           } else if (ticker.startsWith("BDR")) {
@@ -225,7 +216,7 @@ export async function buscarAtivos(termo: string): Promise<AtivoEncontrado[]> {
 
           return {
             ticker: ticker,
-            nome: ticker, // Nome não disponível nesta API
+            nome: ticker, 
             tipo,
           };
         });
@@ -238,9 +229,7 @@ export async function buscarAtivos(termo: string): Promise<AtivoEncontrado[]> {
   }
 }
 
-/**
- * Busca lista completa de tickers disponíveis na B3
- */
+
 export async function listarTickersDisponiveis(): Promise<string[]> {
   try {
     const response = await axios.get(`${BRAPI_BASE_URL}/available`, {
@@ -255,9 +244,7 @@ export async function listarTickersDisponiveis(): Promise<string[]> {
   }
 }
 
-/**
- * Busca cotações de múltiplos ativos de uma vez
- */
+
 export async function buscarCotacoesMultiplas(
   tickers: string[]
 ): Promise<Map<string, CotacaoAtivo>> {
@@ -300,9 +287,7 @@ export async function buscarCotacoesMultiplas(
   return resultado;
 }
 
-/**
- * Busca histórico de preços de um ativo
- */
+
 export async function buscarHistoricoPrecos(
   ticker: string,
   range:
@@ -349,7 +334,7 @@ export async function buscarHistoricoPrecos(
     }
 
     return resultado.historicalDataPrice.map((item: any) => ({
-      data: new Date(item.date * 1000), // timestamp em segundos
+      data: new Date(item.date * 1000), 
       preco: item.close,
       abertura: item.open,
       maxima: item.high,
@@ -362,9 +347,7 @@ export async function buscarHistoricoPrecos(
   }
 }
 
-/**
- * Busca informações completas de um ativo (cotação + fundamentalistas)
- */
+
 export async function buscarAtivoCompleto(ticker: string): Promise<{
   cotacao: CotacaoAtivo | null;
   fundamentalistas: DadosFundamentais | null;
@@ -394,7 +377,7 @@ export async function buscarAtivoCompleto(ticker: string): Promise<{
       };
     }
 
-    // Montar cotação
+    
     const cotacao: CotacaoAtivo = {
       ticker: tickerFormatado,
       preco: resultado.regularMarketPrice || 0,
@@ -406,7 +389,7 @@ export async function buscarAtivoCompleto(ticker: string): Promise<{
       timestamp: new Date(),
     };
 
-    // Montar dados fundamentalistas
+    
     const financialData = resultado.financialData || {};
     const defaultKeyStatistics = resultado.defaultKeyStatistics || {};
     const summaryDetail = resultado.summaryDetail || {};
@@ -451,7 +434,7 @@ export async function buscarAtivoCompleto(ticker: string): Promise<{
       valorMercado: resultado.marketCap,
     };
 
-    // Determinar tipo
+    
     let tipo = "ACAO";
     if (tickerFormatado.endsWith("11")) {
       tipo = "FII";

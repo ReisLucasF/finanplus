@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 
-// GET - Buscar cotação de ação via BRAPI
+
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser();
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Buscar cotação na BRAPI
+    
     const response = await fetch(
       `https://brapi.dev/api/quote/${ticker}?token=demo`
     );

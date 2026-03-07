@@ -55,9 +55,9 @@ export async function GET() {
       }
     } catch (e: any) {
       console.log(
-        "Banco não suporta views, usando cálculos TypeScript:",
-        e.message,
-      );
+ "Banco não suporta views, usando cálculos TypeScript:",
+ e.message,
+ );
       useViews = false;
     }
 
@@ -141,15 +141,15 @@ export async function GET() {
     }
 
     console.log("Retornando resposta:", {
-      hasData: !!response.dashboard,
-      expensesCount: response.expensesByCategory?.length || 0,
-      incomeCount: response.incomeAnalysis?.length || 0,
-      investmentsCount: response.investments?.length || 0,
-      cardsCount: response.creditCards?.length || 0,
-      patrimonyCount: response.patrimonyEvolution?.length || 0,
-      goalsCount: response.goals?.length || 0,
-      alertsCount: response.alerts?.length || 0,
-    });
+ hasData: !!response.dashboard,
+ expensesCount: response.expensesByCategory?.length || 0,
+ incomeCount: response.incomeAnalysis?.length || 0,
+ investmentsCount: response.investments?.length || 0,
+ cardsCount: response.creditCards?.length || 0,
+ patrimonyCount: response.patrimonyEvolution?.length || 0,
+ goalsCount: response.goals?.length || 0,
+ alertsCount: response.alerts?.length || 0,
+ });
 
     return NextResponse.json(response);
   } catch (error: any) {

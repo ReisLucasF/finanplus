@@ -31,7 +31,7 @@ export default function Sidebar({ navigation, onLogout, onClose, user, collapsed
 
     return (
         <div className="flex h-full flex-col">
-            {/* Logo Section */}
+            
             <div className={cn(
                 "flex h-16 items-center justify-between border-b border-gray-200 dark:border-gray-700/50",
                 collapsed ? "px-2" : "px-6"
@@ -50,7 +50,7 @@ export default function Sidebar({ navigation, onLogout, onClose, user, collapsed
                     )}
                 </div>
 
-                {/* Toggle Button */}
+                
                 {onToggleCollapse && !onClose && (
                     <button
                         onClick={onToggleCollapse}
@@ -66,7 +66,7 @@ export default function Sidebar({ navigation, onLogout, onClose, user, collapsed
                 )}
             </div>
 
-            {/* Navigation */}
+            
             <nav className={cn(
                 "flex-1 space-y-1 overflow-y-auto overflow-x-hidden py-4",
                 collapsed ? "px-2" : "px-3"
@@ -91,12 +91,12 @@ export default function Sidebar({ navigation, onLogout, onClose, user, collapsed
                                 animationDelay: `${index * 30}ms`
                             }}
                         >
-                            {/* Active Indicator */}
+                            
                             {!collapsed && isActive && (
                                 <div className="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-white" />
                             )}
 
-                            {/* Icon */}
+                            
                             <div className={cn(
                                 "flex items-center justify-center rounded-lg transition-colors flex-shrink-0",
                                 "h-9 w-9",
@@ -107,10 +107,10 @@ export default function Sidebar({ navigation, onLogout, onClose, user, collapsed
                                 <Icon className="h-5 w-5" />
                             </div>
 
-                            {/* Label */}
+                            
                             {!collapsed && <span className="flex-1 truncate">{item.name}</span>}
 
-                            {/* Badge */}
+                            
                             {!collapsed && item.badge && (
                                 <span className={cn(
                                     "rounded-full px-2 py-0.5 text-xs font-semibold flex-shrink-0",
@@ -122,14 +122,14 @@ export default function Sidebar({ navigation, onLogout, onClose, user, collapsed
                                 </span>
                             )}
 
-                            {/* Tooltip for collapsed */}
+                            
                             {collapsed && (
                                 <span className="absolute left-full ml-6 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
                                     {item.name}
                                 </span>
                             )}
 
-                            {/* Hover Effect */}
+                            
                             {!isActive && (
                                 <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/0 to-blue-600/0 opacity-0 transition-opacity group-hover:from-blue-500/5 group-hover:to-blue-600/5 group-hover:opacity-100" />
                             )}
@@ -138,7 +138,7 @@ export default function Sidebar({ navigation, onLogout, onClose, user, collapsed
                 })}
             </nav>
 
-            {/* User Section */}
+            
             <div className="border-t border-gray-200 dark:border-gray-700/50 p-4">
                 {!collapsed ? (
                     <>

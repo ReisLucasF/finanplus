@@ -102,7 +102,7 @@ export default function FinancingCalculator() {
             </div>
 
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-                {/* Form */}
+                
                 <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div className="flex flex-col">
@@ -159,7 +159,7 @@ export default function FinancingCalculator() {
                         </div>
                     </div>
 
-                    {/* System Selection */}
+                    
                     <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Sistema de Amortização
@@ -204,11 +204,11 @@ export default function FinancingCalculator() {
                     </button>
                 </div>
 
-                {/* Results */}
+                
                 <div className="p-6">
                     {showResults ? (
                         <div>
-                            {/* Summary Cards */}
+                            
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                                 <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
                                     <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">Valor Financiado</p>
@@ -250,14 +250,14 @@ export default function FinancingCalculator() {
                                         <div className="text-right">
                                             <p className="text-sm text-gray-600 dark:text-gray-400">Economia vs PRICE</p>
                                             <p className="text-lg font-semibold text-green-600 dark:text-green-400">
-                                                {formatCurrency(totalPaid - totalPaid)} {/* Precisa comparar com PRICE */}
+                                                {formatCurrency(totalPaid - totalPaid)} 
                                             </p>
                                         </div>
                                     </div>
                                 </div>
                             )}
 
-                            {/* Table - Only first 12 months */}
+                            
                             <div className="mb-4">
                                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
                                     Primeiras 12 Parcelas

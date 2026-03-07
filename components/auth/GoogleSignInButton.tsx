@@ -21,7 +21,7 @@ export default function GoogleSignInButton({ onSuccess, onError }: GoogleSignInB
     const [error, setError] = useState('')
 
     useEffect(() => {
-        // Carregar o script do Google
+        
         const script = document.createElement('script')
         script.src = 'https://accounts.google.com/gsi/client'
         script.async = true
@@ -57,7 +57,7 @@ export default function GoogleSignInButton({ onSuccess, onError }: GoogleSignInB
 
             if (onSuccess) onSuccess(data)
 
-            // Redirecionar
+            
             if (data.user.onboardingCompleted) {
                 router.push('/dashboard')
             } else {

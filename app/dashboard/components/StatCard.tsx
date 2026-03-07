@@ -18,7 +18,7 @@ interface StatCardProps {
 export default function StatCard({ title, value, icon: Icon, trend, gradient, iconColor }: StatCardProps) {
     return (
         <div className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm transition-all hover:shadow-xl dark:bg-gray-800">
-            {/* Background Gradient */}
+            
             <div className={cn(
                 "absolute right-0 top-0 h-32 w-32 rounded-full opacity-10 blur-3xl transition-opacity group-hover:opacity-20",
                 gradient || "bg-blue-500"

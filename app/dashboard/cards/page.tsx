@@ -66,14 +66,14 @@ export default function CardsPage() {
         date: new Date().toISOString().split('T')[0],
     })
 
-    // Converter valor BRL para número
+    
     const parseBRLValue = (value: string | number): number => {
         if (typeof value === 'number') return value
-        // Remove espaços e caracteres inválidos
+        
         let cleaned = value.trim()
-        // Remove pontos (separador de milhar brasileiro)
+        
         cleaned = cleaned.replace(/\./g, '')
-        // Substitui vírgula por ponto (decimal brasileiro -> US)
+        
         cleaned = cleaned.replace(',', '.')
         const parsed = parseFloat(cleaned)
         return isNaN(parsed) ? 0 : parsed
@@ -85,7 +85,7 @@ export default function CardsPage() {
             if (res.ok) {
                 const data = await res.json()
 
-                // Usar currentDebt que vem da API (já calculado com compras)
+                
                 const cardsWithDebt = data.map((card: Card) => {
                     const currentDebt = card.currentDebt || Number(card.initialDebt) || 0
                     const usagePercentage = (currentDebt / Number(card.cardLimit)) * 100
@@ -337,7 +337,7 @@ export default function CardsPage() {
                 </button>
             </div>
 
-            {/* Resumo Geral */}
+            
             {cards.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                     <div className="bg-blue-900 to-blue-600 rounded-lg shadow-lg p-6 text-white">
@@ -393,7 +393,7 @@ export default function CardsPage() {
                             key={card.id}
                             className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
                         >
-                            {/* Header do Cartão com Cor */}
+                            
                             <div
                                 className="h-32 p-6 relative"
                                 style={{ backgroundColor: card.color }}
@@ -421,9 +421,9 @@ export default function CardsPage() {
                                 </div>
                             </div>
 
-                            {/* Corpo do Cartão */}
+                            
                             <div className="p-6">
-                                {/* Valores */}
+                                
                                 <div className="space-y-3 mb-4">
                                     <div className="flex justify-between items-center">
                                         <span className="text-sm text-gray-600 dark:text-gray-400">Dívida Atual</span>
@@ -448,7 +448,7 @@ export default function CardsPage() {
                                     </div>
                                 </div>
 
-                                {/* Progress Bar */}
+                                
                                 <div className="mb-4">
                                     <div className="flex justify-between items-center mb-2">
                                         <span className="text-xs text-gray-600 dark:text-gray-400 font-medium">
@@ -469,7 +469,7 @@ export default function CardsPage() {
                                     </div>
                                 </div>
 
-                                {/* Botões de Ação */}
+                                
                                 <div className="grid grid-cols-3 gap-2">
                                     <button
                                         onClick={() => router.push(`/dashboard/cards/${card.id}`)}
@@ -502,7 +502,7 @@ export default function CardsPage() {
                 </div>
             )}
 
-            {/* Modal de Criar/Editar Cartão */}
+            
             {showModal && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
@@ -623,7 +623,7 @@ export default function CardsPage() {
                 </div>
             )}
 
-            {/* Modal de Pagamento */}
+            
             {showPaymentModal && payingCard && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
@@ -713,7 +713,7 @@ export default function CardsPage() {
                 </div>
             )}
 
-            {/* Modal de Nova Compra */}
+            
             {showPurchaseModal && purchasingCard && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">

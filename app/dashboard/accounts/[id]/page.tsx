@@ -47,7 +47,7 @@ export default function AccountDetailPage() {
     const [filters, setFilters] = useState({
         startDate: '',
         endDate: '',
-        operationType: '', // 'transaction', 'transfer', 'income', 'expense', 'transfer-in', 'transfer-out'
+        operationType: '', 
     })
 
     useEffect(() => {
@@ -85,7 +85,7 @@ export default function AccountDetailPage() {
         }
     }
 
-    // Combinar e filtrar operações
+    
     const filteredOperations = useMemo(() => {
         const allOps: Operation[] = [
             ...transactions.map(t => ({ ...t, opType: 'transaction' as const })),
@@ -93,15 +93,15 @@ export default function AccountDetailPage() {
         ]
 
         return allOps.filter(op => {
-            // Filtro de data inicial
+            
             if (filters.startDate && new Date(op.date) < new Date(filters.startDate)) {
                 return false
             }
-            // Filtro de data final
+            
             if (filters.endDate && new Date(op.date) > new Date(filters.endDate)) {
                 return false
             }
-            // Filtro de tipo de operação
+            
             if (filters.operationType) {
                 if (filters.operationType === 'transaction' && op.opType !== 'transaction') {
                     return false
@@ -136,7 +136,7 @@ export default function AccountDetailPage() {
 
     const hasActiveFilters = filters.startDate || filters.endDate || filters.operationType
 
-    // Calcular totais
+    
     const totals = useMemo(() => {
         let income = 0
         let expense = 0
@@ -178,7 +178,7 @@ export default function AccountDetailPage() {
 
     return (
         <div>
-            {/* Header */}
+            
             <div className="flex items-center gap-4 mb-8">
                 <button
                     onClick={() => router.back()}
@@ -200,7 +200,7 @@ export default function AccountDetailPage() {
                 </div>
             </div>
 
-            {/* Stats */}
+            
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
                     <p className="text-sm text-green-600 dark:text-green-400 mb-1">Receitas</p>
@@ -228,7 +228,7 @@ export default function AccountDetailPage() {
                 </div>
             </div>
 
-            {/* Filtros */}
+            
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                     {filteredOperations.length} operação(ões)
@@ -251,7 +251,7 @@ export default function AccountDetailPage() {
                 </button>
             </div>
 
-            {/* Painel de Filtros */}
+            
             {showFilters && (
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
                     <div className="flex justify-between items-center mb-4">
@@ -309,7 +309,7 @@ export default function AccountDetailPage() {
                 </div>
             )}
 
-            {/* Lista de Operações */}
+            
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
                 {filteredOperations.length === 0 ? (
                     <div className="text-center py-12">

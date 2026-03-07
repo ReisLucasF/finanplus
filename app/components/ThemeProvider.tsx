@@ -8,7 +8,7 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
             try {
                 const res = await fetch('/api/settings')
 
-                // Se não estiver autenticado, usar localStorage ou padrão
+                
                 if (res.status === 401) {
                     const savedTheme = localStorage.getItem('theme')
                     if (savedTheme === 'DARK') {
@@ -23,10 +23,10 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
                     const data = await res.json()
                     const theme = data.theme
 
-                    // Salvar no localStorage
+                    
                     localStorage.setItem('theme', theme)
 
-                    // Aplicar tema
+                    
                     if (theme === 'DARK') {
                         document.documentElement.classList.add('dark')
                     } else {
@@ -34,7 +34,7 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
                     }
                 }
             } catch (error) {
-                // Em caso de erro, usar localStorage
+                
                 const savedTheme = localStorage.getItem('theme')
                 if (savedTheme === 'DARK') {
                     document.documentElement.classList.add('dark')

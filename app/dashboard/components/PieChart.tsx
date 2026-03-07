@@ -17,19 +17,19 @@ export default function PieChart({ title, data }: PieChartProps) {
         const loadHighcharts = async () => {
             const Highcharts = (await import('highcharts')).default
 
-            // Destruir gráfico anterior se existir
+            
             if (chartInstanceRef.current) {
                 chartInstanceRef.current.destroy()
             }
 
-            // Preparar dados - se tiver cor customizada usa, senão deixa o Highcharts escolher
+            
             const chartData = data.map((item) => {
                 const dataPoint: any = {
                     name: item.name,
                     y: item.value
                 }
 
-                // Só adiciona cor se vier definida
+                
                 if (item.color) {
                     dataPoint.color = item.color
                 }
@@ -37,8 +37,8 @@ export default function PieChart({ title, data }: PieChartProps) {
                 return dataPoint
             })
 
-            console.log('📊 PieChart - Dados recebidos:', data)
-            console.log('📊 PieChart - Dados processados:', chartData)
+            console.log(' PieChart - Dados recebidos:', data)
+            console.log(' PieChart - Dados processados:', chartData)
 
             chartInstanceRef.current = Highcharts.chart(chartRef.current!, {
                 chart: {
@@ -116,7 +116,7 @@ export default function PieChart({ title, data }: PieChartProps) {
 
         loadHighcharts()
 
-        // Cleanup: destruir gráfico ao desmontar
+        
         return () => {
             if (chartInstanceRef.current) {
                 chartInstanceRef.current.destroy()

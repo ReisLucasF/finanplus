@@ -10,7 +10,7 @@ const purchaseSchema = z.object({
   date: z.string().transform((val) => new Date(val)),
 });
 
-// POST - Registrar compra no cartão
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -25,7 +25,7 @@ export async function POST(
     const body = await request.json();
     const data = purchaseSchema.parse(body);
 
-    // Verificar se o cartão pertence ao usuário
+    
     const card = await prisma.creditCard.findFirst({
       where: { id: cardId, userId: user.userId },
     });
@@ -37,7 +37,7 @@ export async function POST(
       );
     }
 
-    // Verificar se a categoria pertence ao usuário ou é do sistema
+    
     const category = await prisma.category.findFirst({
       where: {
         id: data.categoryId,
@@ -53,7 +53,7 @@ export async function POST(
       );
     }
 
-    // Calcular dívida atual (initialDebt + compras)
+    
     const purchases = await prisma.creditCardPurchase.findMany({
       where: { creditCardId: cardId },
     });
@@ -64,7 +64,7 @@ export async function POST(
     );
     const currentDebt = card.initialDebt.toNumber() + totalPurchases;
 
-    // Verificar se a compra ultrapassa o limite
+    
     if (currentDebt + data.amount > card.cardLimit.toNumber()) {
       return NextResponse.json(
         { error: "Limite do cartão insuficiente" },
@@ -72,7 +72,7 @@ export async function POST(
       );
     }
 
-    // Criar compra (NÃO incrementa initialDebt)
+    
     const purchase = await prisma.creditCardPurchase.create({
       data: {
         userId: user.userId,
@@ -87,7 +87,7 @@ export async function POST(
       },
     });
 
-    // Serializar Decimal
+    
     const serializedPurchase = {
       ...purchase,
       amount: purchase.amount.toNumber(),
@@ -109,7 +109,7 @@ export async function POST(
   }
 }
 
-// GET - Listar compras do cartão
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -125,7 +125,7 @@ export async function GET(
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
 
-    // Verificar se o cartão pertence ao usuário
+    
     const card = await prisma.creditCard.findFirst({
       where: { id: cardId, userId: user.userId },
     });
@@ -137,7 +137,7 @@ export async function GET(
       );
     }
 
-    // Construir filtro de data
+    
     const dateFilter: any = {};
     if (startDate) {
       dateFilter.gte = new Date(startDate);
@@ -157,7 +157,7 @@ export async function GET(
       orderBy: { date: "desc" },
     });
 
-    // Serializar Decimals
+    
     const serializedPurchases = purchases.map((p) => ({
       ...p,
       amount: p.amount.toNumber(),

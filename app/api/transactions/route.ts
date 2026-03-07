@@ -13,7 +13,7 @@ const transactionSchema = z.object({
   status: z.enum(["PENDING", "COMPLETED", "CANCELLED"]).default("COMPLETED"),
 });
 
-// GET - Listar transações
+
 export async function GET(request: Request) {
   try {
     const user = await getCurrentUser();
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
       take: limit,
     });
 
-    // Serializar os Decimals para números
+    
     const serializedTransactions = transactions.map((tx) => ({
       ...tx,
       amount: tx.amount.toNumber(),
@@ -63,7 +63,7 @@ export async function GET(request: Request) {
   }
 }
 
-// POST - Criar transação
+
 export async function POST(request: Request) {
   try {
     const user = await getCurrentUser();
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const data = transactionSchema.parse(body);
 
-    // Verificar se conta existe e pertence ao usuário
+    
     const account = await prisma.bankAccount.findFirst({
       where: {
         id: data.accountId,
@@ -89,7 +89,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Se for despesa, verificar saldo
+    
     if (
       data.type === "EXPENSE" &&
       account.currentBalance.toNumber() < data.amount
@@ -100,7 +100,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Criar transação e atualizar saldo da conta
+    
     const transaction = await prisma.$transaction(async (tx) => {
       const newTransaction = await tx.transaction.create({
         data: {
@@ -113,7 +113,7 @@ export async function POST(request: Request) {
         },
       });
 
-      // Atualizar saldo da conta apenas se a transação for COMPLETED
+      
       if (data.status === "COMPLETED") {
         const newBalance =
           data.type === "INCOME"

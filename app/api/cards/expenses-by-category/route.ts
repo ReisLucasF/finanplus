@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 
-// GET - Buscar gastos por categoria nos cartões de crédito
+
 export async function GET(request: Request) {
   try {
     const user = await getCurrentUser();
@@ -14,7 +14,7 @@ export async function GET(request: Request) {
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
 
-    // Construir filtro de data
+    
     const dateFilter: any = {};
     if (startDate) {
       dateFilter.gte = new Date(startDate);
@@ -23,7 +23,7 @@ export async function GET(request: Request) {
       dateFilter.lte = new Date(endDate);
     }
 
-    // Buscar todas as compras do usuário
+    
     const purchases = await prisma.creditCardPurchase.findMany({
       where: {
         userId: user.userId,
@@ -34,7 +34,7 @@ export async function GET(request: Request) {
       },
     });
 
-    // Agrupar por categoria
+    
     const categoryMap = new Map<
       string,
       { name: string; value: number; color?: string }
@@ -54,7 +54,7 @@ export async function GET(request: Request) {
       }
     });
 
-    // Converter para array e ordenar por valor
+    
     const data = Array.from(categoryMap.values()).sort(
       (a, b) => b.value - a.value
     );

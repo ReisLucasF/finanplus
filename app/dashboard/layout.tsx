@@ -44,7 +44,7 @@ export default function DashboardLayout({
     const [user, setUser] = useState<{ name?: string; email?: string } | null>(null)
 
     useEffect(() => {
-        // Carregar estado collapsed do localStorage
+        
         const savedCollapsed = localStorage.getItem('sidebarCollapsed')
         if (savedCollapsed !== null) {
             setSidebarCollapsed(savedCollapsed === 'true')
@@ -77,16 +77,16 @@ export default function DashboardLayout({
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-50 to-blue-50/30 dark:from-gray-900 dark:via-gray-900 dark:to-blue-950/30 overflow-x-hidden">
-            {/* Sidebar Mobile Overlay */}
+            
             {sidebarOpen && (
                 <div className="fixed inset-0 z-50 lg:hidden">
-                    {/* Backdrop */}
+                    
                     <div
                         className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity"
                         onClick={() => setSidebarOpen(false)}
                     />
 
-                    {/* Sidebar */}
+                    
                     <div className="fixed inset-y-0 left-0 w-72 animate-in slide-in-from-left duration-300">
                         <div className="h-full bg-white shadow-2xl dark:bg-gray-800">
                             <Sidebar
@@ -100,7 +100,7 @@ export default function DashboardLayout({
                 </div>
             )}
 
-            {/* Sidebar Desktop */}
+            
             <div className={cn(
                 "hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:flex-col transition-all duration-300",
                 sidebarCollapsed ? "lg:w-20" : "lg:w-72"
@@ -116,15 +116,15 @@ export default function DashboardLayout({
                 </div>
             </div>
 
-            {/* Main Content */}
+            
             <div className={cn(
                 "transition-all duration-300",
                 sidebarCollapsed ? "lg:pl-20" : "lg:pl-72"
             )}>
-                {/* Mobile Header */}
+                
                 <MobileHeader onMenuClick={() => setSidebarOpen(true)} />
 
-                {/* Page Content */}
+                
                 <main className="min-h-screen p-4 lg:p-8">
                     <div className="mx-auto max-w-7xl">
                         {children}

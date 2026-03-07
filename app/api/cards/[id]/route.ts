@@ -10,7 +10,7 @@ const cardSchema = z.object({
   color: z.string().regex(/^#[0-9A-F]{6}$/i),
 });
 
-// GET - Buscar cartão específico
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -47,7 +47,7 @@ export async function GET(
   }
 }
 
-// PUT - Atualizar cartão
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -65,7 +65,7 @@ export async function PUT(
     try {
       const data = cardSchema.parse(body);
     } catch (validationError) {
-      console.error("❌ Erro na validação:", validationError);
+      console.error(" Erro na validação:", validationError);
       throw validationError;
     }
 
@@ -98,9 +98,9 @@ export async function PUT(
     console.error("Erro NÃO-Zod ao atualizar cartão:", error);
     console.error("Tipo do erro:", typeof error);
     console.error(
-      "Nome do erro:",
-      error instanceof Error ? error.constructor.name : "Desconhecido"
-    );
+ "Nome do erro:",
+ error instanceof Error ? error.constructor.name : "Desconhecido"
+ );
     return NextResponse.json(
       { error: "Erro ao atualizar cartão" },
       { status: 500 }
@@ -108,7 +108,7 @@ export async function PUT(
   }
 }
 
-// DELETE - Excluir cartão
+
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

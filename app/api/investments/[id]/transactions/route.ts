@@ -15,7 +15,7 @@ const transactionSchema = z.object({
   notes: z.string().nullable().optional(),
 });
 
-// POST - Registrar nova transação (compra ou venda)
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -30,7 +30,7 @@ export async function POST(
     const body = await request.json();
     const validatedData = transactionSchema.parse(body);
 
-    // Verificar se investimento existe e pertence ao usuário
+    
     const investment = await prisma.investment.findFirst({
       where: {
         id,
@@ -45,10 +45,10 @@ export async function POST(
       );
     }
 
-    // Calcular amount (quantidade × preço)
+    
     const amount = validatedData.quantity * validatedData.price;
 
-    // Criar transação
+    
     const transaction = await prisma.investmentTransaction.create({
       data: {
         userId: user.userId,
@@ -86,7 +86,7 @@ export async function POST(
   }
 }
 
-// GET - Listar transações do investimento
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -99,7 +99,7 @@ export async function GET(
 
     const { id } = await params;
 
-    // Verificar se investimento pertence ao usuário
+    
     const investment = await prisma.investment.findFirst({
       where: {
         id,

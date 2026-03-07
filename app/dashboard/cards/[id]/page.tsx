@@ -48,7 +48,7 @@ export default function CardDetailsPage() {
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState<'purchases' | 'payments'>('purchases')
 
-    // Filtros de data
+    
     const [startDate, setStartDate] = useState('')
     const [endDate, setEndDate] = useState('')
 
@@ -60,13 +60,13 @@ export default function CardDetailsPage() {
         try {
             setLoading(true)
 
-            // Buscar dados do cartão
+            
             const cardRes = await fetch(`/api/cards/${cardId}`)
             if (!cardRes.ok) throw new Error('Erro ao carregar cartão')
             const cardData = await cardRes.json()
             setCard(cardData)
 
-            // Buscar compras
+            
             const purchasesUrl = new URL(`/api/cards/${cardId}/purchases`, window.location.origin)
             if (startDate) purchasesUrl.searchParams.set('startDate', startDate)
             if (endDate) purchasesUrl.searchParams.set('endDate', endDate)
@@ -77,7 +77,7 @@ export default function CardDetailsPage() {
                 setPurchases(purchasesData)
             }
 
-            // Buscar pagamentos
+            
             const paymentsUrl = new URL(`/api/cards/${cardId}/payments`, window.location.origin)
             if (startDate) paymentsUrl.searchParams.set('startDate', startDate)
             if (endDate) paymentsUrl.searchParams.set('endDate', endDate)
@@ -126,7 +126,7 @@ export default function CardDetailsPage() {
 
     return (
         <div className="p-6 space-y-6">
-            {/* Header */}
+            
             <div className="flex items-center gap-4">
                 <button
                     onClick={() => router.push('/dashboard/cards')}
@@ -140,7 +140,7 @@ export default function CardDetailsPage() {
                 </div>
             </div>
 
-            {/* Card Info */}
+            
             <div
                 className="p-6 rounded-xl text-white shadow-lg"
                 style={{ backgroundColor: card.color }}
@@ -170,7 +170,7 @@ export default function CardDetailsPage() {
                 </div>
             </div>
 
-            {/* Resumo */}
+            
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 mb-1">
@@ -203,7 +203,7 @@ export default function CardDetailsPage() {
                 </div>
             </div>
 
-            {/* Filtros */}
+            
             <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center gap-2 mb-3">
                     <Filter className="w-5 h-5 text-gray-600 dark:text-gray-400" />
@@ -239,7 +239,7 @@ export default function CardDetailsPage() {
                 </div>
             </div>
 
-            {/* Tabs */}
+            
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                 <div className="border-b border-gray-200 dark:border-gray-700">
                     <div className="flex">

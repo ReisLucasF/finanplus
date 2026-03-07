@@ -24,18 +24,18 @@ export default function FinancialIndependenceCalculator() {
     }
 
     const calculate = () => {
-        // Calcular valor necessário para independência financeira (regra dos 4%)
+        
         const yearlyExpenses = monthlyExpenses * 12
         const targetAmount = yearlyExpenses / (withdrawalRate / 100)
 
-        // Calcular quanto consegue poupar por mês
+        
         const monthlySavings = monthlyIncome * (savingsRate / 100)
 
-        // Simular acumulação até atingir o valor alvo
+        
         const monthlyRate = Math.pow(1 + (annualReturn / 100), 1 / 12) - 1
         let balance = currentSavings
         let months = 0
-        const maxMonths = 600 // 50 anos (limite de segurança)
+        const maxMonths = 600 
 
         while (balance < targetAmount && months < maxMonths) {
             balance = balance * (1 + monthlyRate) + monthlySavings
@@ -67,10 +67,10 @@ export default function FinancialIndependenceCalculator() {
             </div>
 
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-                {/* Form */}
+                
                 <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                     <div className="space-y-6">
-                        {/* Situação Atual */}
+                        
                         <div>
                             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Situação Atual</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -99,7 +99,7 @@ export default function FinancialIndependenceCalculator() {
                             </div>
                         </div>
 
-                        {/* Receitas e Despesas */}
+                        
                         <div>
                             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Receitas e Despesas</h3>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -142,7 +142,7 @@ export default function FinancialIndependenceCalculator() {
                             </div>
                         </div>
 
-                        {/* Investimentos */}
+                        
                         <div>
                             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Premissas de Investimento</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -185,11 +185,11 @@ export default function FinancialIndependenceCalculator() {
                     </button>
                 </div>
 
-                {/* Results */}
+                
                 <div className="p-6">
                     {showResults ? (
                         <div className="space-y-6">
-                            {/* Main Result */}
+                            
                             <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg p-6 text-center border border-blue-200 dark:border-blue-800">
                                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Você alcançará a independência financeira em:</p>
                                 <p className="text-5xl font-bold text-blue-600 dark:text-blue-400 mb-2">
@@ -200,7 +200,7 @@ export default function FinancialIndependenceCalculator() {
                                 </p>
                             </div>
 
-                            {/* Summary Cards */}
+                            
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
                                     <p className="text-sm text-green-600 dark:text-green-400 font-medium">Valor Necessário (FI)</p>
@@ -222,7 +222,7 @@ export default function FinancialIndependenceCalculator() {
                                 </div>
                             </div>
 
-                            {/* Analysis */}
+                            
                             <div className={`${isRealistic ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'} border rounded-lg p-6`}>
                                 <h3 className={`text-lg font-semibold mb-3 ${isRealistic ? 'text-green-900 dark:text-green-300' : 'text-yellow-900 dark:text-yellow-300'}`}>
                                     {isRealistic ? 'Excelente planejamento!' : 'Atenção: Revise suas metas'}
@@ -256,7 +256,7 @@ export default function FinancialIndependenceCalculator() {
                                 </div>
                             </div>
 
-                            {/* FI Number Explanation */}
+                            
                             <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
                                 <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Como funciona?</h4>
                                 <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">

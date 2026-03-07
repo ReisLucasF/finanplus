@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 
-// POST - Processar recorrências (criar transações pendentes)
+
 export async function POST() {
   try {
     const user = await getCurrentUser();
@@ -15,7 +15,7 @@ export async function POST() {
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
-    // Buscar recorrências ativas do usuário
+    
     const recurrings = await prisma.recurringTransaction.findMany({
       where: {
         userId: user.userId,
@@ -28,21 +28,21 @@ export async function POST() {
     const createdTransactions = [];
 
     for (const recurring of recurrings) {
-      // Verificar se deve processar este mês
+      
       const lastProcessed = recurring.lastProcessedDate;
       let shouldProcess = false;
 
       if (!lastProcessed) {
-        // Nunca foi processada
+        
         shouldProcess = true;
       } else {
         const lastProcessedMonth = lastProcessed.getMonth();
         const lastProcessedYear = lastProcessed.getFullYear();
 
-        // Processar baseado na frequência
+        
         switch (recurring.frequency) {
           case "MONTHLY":
-            // Se já passou o dia de vencimento e não foi processado este mês
+            
             if (
               currentDay >= recurring.dueDay &&
               (currentMonth !== lastProcessedMonth ||
@@ -53,7 +53,7 @@ export async function POST() {
             break;
 
           case "WEEKLY":
-            // Uma vez por semana
+            
             const daysSinceLastProcessed = Math.floor(
               (now.getTime() - lastProcessed.getTime()) / (1000 * 60 * 60 * 24),
             );
@@ -63,7 +63,7 @@ export async function POST() {
             break;
 
           case "BIWEEKLY":
-            // A cada 15 dias
+            
             const daysSinceLast = Math.floor(
               (now.getTime() - lastProcessed.getTime()) / (1000 * 60 * 60 * 24),
             );
@@ -73,7 +73,7 @@ export async function POST() {
             break;
 
           case "ANNUAL":
-            // Uma vez por ano
+            
             if (
               currentMonth === lastProcessedMonth &&
               currentDay >= recurring.dueDay &&
@@ -86,14 +86,14 @@ export async function POST() {
       }
 
       if (shouldProcess) {
-        // Criar a transação
+        
         const transactionDate = new Date(
           currentYear,
           currentMonth,
           Math.min(recurring.dueDay, 31),
         );
 
-        // Criar transação e atualizar saldo da conta em uma transação atômica
+        
         const transaction = await prisma.$transaction(async (tx) => {
           const newTransaction = await tx.transaction.create({
             data: {
@@ -114,7 +114,7 @@ export async function POST() {
             },
           });
 
-          // Atualizar saldo da conta
+          
           const amount = recurring.amount.toNumber();
           if (recurring.type === "INCOME") {
             await tx.bankAccount.update({
@@ -131,7 +131,7 @@ export async function POST() {
           return newTransaction;
         });
 
-        // Atualizar lastProcessedDate
+        
         await prisma.recurringTransaction.update({
           where: { id: recurring.id },
           data: { lastProcessedDate: now },

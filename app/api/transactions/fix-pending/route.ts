@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 
-// POST - Corrigir transações PENDING (converter para COMPLETED e atualizar saldos)
+
 export async function POST() {
   try {
     const user = await getCurrentUser();
@@ -10,7 +10,7 @@ export async function POST() {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    // Buscar todas as transações PENDING do usuário
+    
     const pendingTransactions = await prisma.transaction.findMany({
       where: {
         userId: user.userId,
@@ -30,17 +30,17 @@ export async function POST() {
 
     const results = [];
 
-    // Processar cada transação em uma transação atômica
+    
     for (const transaction of pendingTransactions) {
       try {
         await prisma.$transaction(async (tx) => {
-          // Atualizar status para COMPLETED
+          
           await tx.transaction.update({
             where: { id: transaction.id },
             data: { status: "COMPLETED" },
           });
 
-          // Atualizar saldo da conta
+          
           const amount = transaction.amount.toNumber();
           if (transaction.type === "INCOME") {
             await tx.bankAccount.update({

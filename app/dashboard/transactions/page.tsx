@@ -4,9 +4,9 @@ import { useEffect, useState, useMemo } from 'react'
 import { Receipt, Plus, TrendingUp, TrendingDown, Edit2, Trash2, Filter, X, ArrowLeftRight } from 'lucide-react'
 import LoadingSpinner from '../components/LoadingSpinner'
 
-// Funções utilitárias para trabalhar com datas sem problemas de timezone
+
 const dateUtils = {
-    // Converte data ISO ou Date para string YYYY-MM-DD
+    
     toDateString: (dateInput: string | Date): string => {
         if (typeof dateInput === 'string') {
             return dateInput.split('T')[0]
@@ -17,13 +17,13 @@ const dateUtils = {
         return `${year}-${month}-${day}`
     },
 
-    // Formata para exibição brasileira (dd/mm/yyyy) sem usar new Date
+    
     formatBR: (dateStr: string): string => {
         const [year, month, day] = dateStr.split('T')[0].split('-')
         return `${day}/${month}/${year}`
     },
 
-    // Obtém a data atual em formato YYYY-MM-DD
+    
     today: (): string => {
         const now = new Date()
         return dateUtils.toDateString(now)
@@ -120,7 +120,7 @@ export default function TransactionsPage() {
         loadData()
     }, [])
 
-    // Filtrar transações
+    
     const filteredTransactions = useMemo(() => {
         return transactions.filter(transaction => {
             const transactionDate = dateUtils.toDateString(transaction.date)
@@ -141,7 +141,7 @@ export default function TransactionsPage() {
         })
     }, [transactions, filters])
 
-    // Filtrar transferências
+    
     const filteredTransfers = useMemo(() => {
         return transfers.filter(transfer => {
             const transferDate = dateUtils.toDateString(transfer.date)
@@ -152,26 +152,26 @@ export default function TransactionsPage() {
             if (filters.endDate && transferDate > filters.endDate) {
                 return false
             }
-            // Filtrar por conta (origem ou destino)
+            
             if (filters.accountId && transfer.fromAccount.id !== filters.accountId && transfer.toAccount.id !== filters.accountId) {
                 return false
             }
-            // Transferências não têm categoria, então ignorar esse filtro
+            
             return true
         })
     }, [transfers, filters])
 
-    // Agrupar transações e transferências por dia e calcular saldos
+    
     const transactionsWithBalances = useMemo(() => {
         if (filteredTransactions.length === 0 && filteredTransfers.length === 0) return []
 
-        // Combinar transações e transferências
+        
         const allItems: TransactionOrTransfer[] = [
             ...filteredTransactions,
             ...filteredTransfers.map(t => ({ ...t, type: 'TRANSFER' as const }))
         ]
 
-        // Agrupar por data
+        
         const itemsByDate = allItems.reduce((acc, item) => {
             const dateKey = dateUtils.toDateString(item.date)
             if (!acc[dateKey]) acc[dateKey] = []
@@ -179,26 +179,26 @@ export default function TransactionsPage() {
             return acc
         }, {} as Record<string, TransactionOrTransfer[]>)
 
-        // Ordenar datas (mais recente primeiro) - comparação de strings
+        
         const sortedDates = Object.keys(itemsByDate).sort((a, b) => b.localeCompare(a))
 
-        // Calcular saldo acumulado
+        
         const accountBalances = new Map<string, number>()
         accounts.forEach(account => {
             accountBalances.set(account.id, account.initialBalance)
         })
 
-        // Processar todas as transações e transferências em ordem cronológica
+        
         const allDates = [...sortedDates].reverse()
         const dailyBalancesMap = new Map<string, Map<string, number>>()
 
-        // Criar lista de todas as operações (transactions + transfers) ordenadas por data
+        
         const allOperations: Array<{ date: string, type: 'transaction' | 'transfer', data: Transaction | Transfer }> = [
             ...transactions.map(t => ({ date: dateUtils.toDateString(t.date), type: 'transaction' as const, data: t })),
             ...transfers.map(t => ({ date: dateUtils.toDateString(t.date), type: 'transfer' as const, data: t }))
         ].sort((a, b) => a.date.localeCompare(b.date))
 
-        // Processar operações em ordem cronológica
+        
         allOperations.forEach(op => {
             if (op.type === 'transaction') {
                 const transaction = op.data as Transaction
@@ -209,26 +209,26 @@ export default function TransactionsPage() {
                 accountBalances.set(transaction.account.id, newBalance)
             } else {
                 const transfer = op.data as Transfer
-                // Diminuir da conta origem
+                
                 const fromBalance = accountBalances.get(transfer.fromAccount.id) || 0
                 accountBalances.set(transfer.fromAccount.id, fromBalance - transfer.amount)
-                // Aumentar na conta destino
+                
                 const toBalance = accountBalances.get(transfer.toAccount.id) || 0
                 accountBalances.set(transfer.toAccount.id, toBalance + transfer.amount)
             }
         })
 
-        // Agora recalcular apenas para as datas filtradas
+        
         const filteredBalances = new Map<string, number>()
         accounts.forEach(account => {
             filteredBalances.set(account.id, account.initialBalance)
         })
 
         allDates.forEach(date => {
-            // Processar todas as operações até essa data
+            
             const relevantOps = allOperations.filter(op => op.date <= date)
 
-            // Resetar e recalcular
+            
             accounts.forEach(account => {
                 filteredBalances.set(account.id, account.initialBalance)
             })
@@ -250,11 +250,11 @@ export default function TransactionsPage() {
                 }
             })
 
-            // Salvar saldo do dia
+            
             dailyBalancesMap.set(date, new Map(filteredBalances))
         })
 
-        // Construir lista de transações e transferências com saldos diários
+        
         const result: Array<TransactionOrTransfer | { type: 'BALANCE_ROW', date: string, balances: Map<string, number> }> = []
 
         sortedDates.forEach(date => {
@@ -264,7 +264,7 @@ export default function TransactionsPage() {
 
             result.push(...dayItems)
 
-            // Adicionar linha de saldo
+            
             result.push({
                 type: 'BALANCE_ROW',
                 date,
@@ -411,7 +411,7 @@ export default function TransactionsPage() {
                 </div>
             </div>
 
-            {/* Painel de Filtros */}
+            
             {showFilters && (
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
                     <div className="flex justify-between items-center mb-4">
@@ -522,7 +522,7 @@ export default function TransactionsPage() {
                             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                                 {transactionsWithBalances.map((item, index) => {
                                     if ('type' in item && item.type === 'BALANCE_ROW') {
-                                        // Linha de saldo do dia
+                                        
                                         const balanceRow = item as { type: 'BALANCE_ROW', date: string, balances: Map<string, number> }
                                         const balanceAccounts = Array.from(balanceRow.balances.entries())
                                             .map(([accountId, balance]) => {
@@ -551,7 +551,7 @@ export default function TransactionsPage() {
 
                                     const typedItem = item as TransactionOrTransfer
 
-                                    // Verificar se é transferência
+                                    
                                     if ('type' in typedItem && typedItem.type === 'TRANSFER') {
                                         const transfer = typedItem as Transfer & { type: 'TRANSFER' }
                                         return (
@@ -585,7 +585,7 @@ export default function TransactionsPage() {
                                         )
                                     }
 
-                                    // É uma transação normal
+                                    
                                     const transaction = typedItem as Transaction
                                     return (
                                         <tr key={transaction.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
@@ -639,7 +639,7 @@ export default function TransactionsPage() {
                 )}
             </div>
 
-            {/* Modal */}
+            
             {showModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">

@@ -44,7 +44,7 @@ export default function DashboardPage() {
         }
     })
 
-    // Estados para dados de análise financeira das views
+    
     const [analytics, setAnalytics] = useState<any>({
         dashboard: null,
         alerts: [],
@@ -126,7 +126,7 @@ export default function DashboardPage() {
                     return
                 }
 
-                // Buscar dados do dashboard
+                
                 const [accountsRes, cardsRes, goalsRes, transactionsRes, recurringsRes, categoriesRes, investmentsRes, cardExpensesRes, analyticsRes] = await Promise.all([
                     fetch('/api/accounts'),
                     fetch('/api/cards'),
@@ -149,10 +149,10 @@ export default function DashboardPage() {
                 const cardExpensesByCategory = cardExpensesRes.ok ? await cardExpensesRes.json() : []
                 const analyticsData = analyticsRes.ok ? await analyticsRes.json() : { dashboard: null, alerts: [], creditCards: [], patrimonyEvolution: [] }
 
-                // Atualizar estado de analytics
+                
                 setAnalytics(analyticsData)
 
-                // Buscar summaries dos investimentos
+                
                 const investmentSummaries = await Promise.all(
                     investments.map((inv: any) =>
                         fetch(`/api/investments/${inv.id}/summary`)
@@ -161,7 +161,7 @@ export default function DashboardPage() {
                     )
                 )
 
-                // Calcular totais de investimentos
+                
                 const investmentTotals = investmentSummaries.reduce((acc, summaryData) => {
                     if (summaryData && summaryData.summary) {
                         const s = summaryData.summary
@@ -179,7 +179,7 @@ export default function DashboardPage() {
                     ? (investmentTotals.profit / investmentTotals.invested) * 100
                     : 0
 
-                // Adicionar calculatedAmount nas metas que incluem investimentos e saldo das contas vinculadas
+                
                 const totalAccountsBalance = accounts.reduce((sum: number, acc: any) => {
                     const balance = Number(acc.currentBalance ?? acc.balance ?? acc.amount) || 0
                     return sum + balance
@@ -207,13 +207,13 @@ export default function DashboardPage() {
                     }
                 })
 
-                // Filtrar transações do período selecionado
+                
                 const transactions = allTransactions.filter((t: any) => {
                     const date = new Date(t.date)
                     return date >= dateRange.start && date <= dateRange.end
                 })
 
-                // Calcular período anterior com mesma duração para comparação
+                
                 const rangeDuration = dateRange.end.getTime() - dateRange.start.getTime()
                 const prevStart = new Date(dateRange.start.getTime() - rangeDuration)
                 const prevEnd = new Date(dateRange.start.getTime() - 1)
@@ -223,7 +223,7 @@ export default function DashboardPage() {
                     return date >= prevStart && date <= prevEnd
                 })
 
-                // Calcular estatísticas com valores seguros
+                
                 const available = accounts.reduce((sum: number, acc: any) => {
                     const balance = parseFloat(acc.currentBalance) || 0
                     return sum + balance
@@ -237,7 +237,7 @@ export default function DashboardPage() {
                     .filter((t: any) => t.type === 'EXPENSE')
                     .reduce((sum: number, t: any) => sum + (parseFloat(t.amount) || 0), 0)
 
-                // Período anterior
+                
                 const prevIncome = previousTransactions
                     .filter((t: any) => t.type === 'INCOME')
                     .reduce((sum: number, t: any) => sum + (parseFloat(t.amount) || 0), 0)
@@ -246,12 +246,12 @@ export default function DashboardPage() {
                     .filter((t: any) => t.type === 'EXPENSE')
                     .reduce((sum: number, t: any) => sum + (parseFloat(t.amount) || 0), 0)
 
-                // Calcular receitas previstas: apenas recorrências futuras (ainda não recebidas)
+                
                 const now = new Date()
                 const futureRecurringIncome = recurrings
                     .filter((r: any) => r.isActive && r.type === 'INCOME')
                     .reduce((sum: number, r: any) => {
-                        // Calcula quantas ocorrências FUTURAS terão no período
+                        
                         const amount = parseFloat(r.amount) || 0
                         const futureStart = now > dateRange.start ? now : dateRange.start
                         const occurrences = calculateOccurrencesInPeriod(r, futureStart, dateRange.end)
@@ -268,14 +268,14 @@ export default function DashboardPage() {
                     }, 0)
 
                 const predicted = available + income - expenses + futureRecurringIncome - futureRecurringExpenses
-                const predictedIncome = futureRecurringIncome // Apenas receitas futuras não recebidas
+                const predictedIncome = futureRecurringIncome 
 
-                // Agrupar por categoria para gráficos
+                
                 const expensesByCategory: { [key: string]: { value: number; color?: string } } = {}
                 const incomeByCategory: { [key: string]: { value: number; color?: string } } = {}
 
-                console.log('📊 Dashboard - Transações filtradas:', transactions.length)
-                console.log('📊 Dashboard - Exemplos de transações:', transactions.slice(0, 3))
+                console.log(' Dashboard - Transações filtradas:', transactions.length)
+                console.log(' Dashboard - Exemplos de transações:', transactions.slice(0, 3))
 
                 transactions.forEach((t: any) => {
                     const categoryName = t.category?.name || 'Sem categoria'
@@ -284,7 +284,7 @@ export default function DashboardPage() {
                         : undefined
                     const amount = typeof t.amount === 'number' ? t.amount : parseFloat(t.amount) || 0
 
-                    console.log(`📊 Transação: ${t.description} - Tipo: ${t.type} - Categoria: ${categoryName} - Valor: ${amount}`)
+                    console.log(` Transação: ${t.description} - Tipo: ${t.type} - Categoria: ${categoryName} - Valor: ${amount}`)
 
                     if (t.type === 'EXPENSE') {
                         if (!expensesByCategory[categoryName]) {
@@ -317,8 +317,8 @@ export default function DashboardPage() {
                     ...(data.color && { color: data.color })
                 }))
 
-                console.log('📊 Dashboard - Despesas por categoria (FINAL):', expensesChart)
-                console.log('📊 Dashboard - Receitas por categoria (FINAL):', incomeChart)
+                console.log(' Dashboard - Despesas por categoria (FINAL):', expensesChart)
+                console.log(' Dashboard - Receitas por categoria (FINAL):', incomeChart)
 
                 setStats({
                     income: income || 0,
@@ -349,14 +349,14 @@ export default function DashboardPage() {
         loadData()
     }, [router, dateRange])
 
-    // Função para calcular quantas ocorrências uma recorrência terá no período
+    
     const calculateOccurrencesInPeriod = (recurring: any, start: Date, end: Date) => {
         if (!recurring.isActive) return 0
 
         const recStart = new Date(recurring.startDate)
         const recEnd = recurring.endDate ? new Date(recurring.endDate) : end
 
-        // Se a recorrência começa depois do período ou termina antes, não conta
+        
         if (recStart > end || recEnd < start) return 0
 
         const periodStart = recStart > start ? recStart : start
@@ -384,14 +384,14 @@ export default function DashboardPage() {
         return <LoadingSpinner />
     }
 
-    // Calcular variações percentuais
+    
     const incomeChange = calculatePercentageChange(stats.income, stats.previousMonth.income)
     const expensesChange = calculatePercentageChange(stats.expenses, stats.previousMonth.expenses)
     const balanceChange = calculatePercentageChange(stats.income - stats.expenses, stats.previousMonth.balance)
 
     return (
         <div className="space-y-8">
-            {/* Header */}
+            
             <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
                 <div>
                     <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">
@@ -402,7 +402,7 @@ export default function DashboardPage() {
                     </p>
                 </div>
 
-                {/* Quick Actions */}
+                
                 <div className="flex gap-2">
                     <Link
                         href="/dashboard/transactions"
@@ -414,7 +414,7 @@ export default function DashboardPage() {
                 </div>
             </div>
 
-            {/* Filtros de Período */}
+            
             <div className="flex flex-col gap-4">
                 <div className="flex flex-wrap gap-2">
                     <button
@@ -464,7 +464,7 @@ export default function DashboardPage() {
                     </button>
                 </div>
 
-                {/* Seletor de Datas Personalizado */}
+                
                 {filterType === 'custom' && (
                     <div className="flex flex-wrap gap-4 items-center bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm">
                         <div className="flex flex-col">
@@ -488,14 +488,14 @@ export default function DashboardPage() {
                     </div>
                 )}
 
-                {/* Label do Período Selecionado */}
+                
                 <div className="flex items-center gap-2 rounded-xl bg-white dark:bg-gray-800 px-4 py-3 shadow-sm">
                     <Calendar className="h-5 w-5 text-blue-600" />
                     <span className="font-medium text-gray-900 dark:text-white">{getFilterLabel()}</span>
                 </div>
             </div>
 
-            {/* Alertas Financeiros */}
+            
             {analytics.alerts && analytics.alerts.length > 0 && (
                 <div className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 border-l-4 border-red-500 p-6 rounded-2xl shadow-sm">
                     <div className="flex items-start gap-4">
@@ -533,7 +533,7 @@ export default function DashboardPage() {
                 </div>
             )}
 
-            {/* Indicadores de Saúde Financeira */}
+            
             {analytics.dashboard && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 p-6 rounded-2xl shadow-sm border border-blue-200 dark:border-blue-800">
@@ -581,7 +581,7 @@ export default function DashboardPage() {
                 </div>
             )}
 
-            {/* Cards de Estatísticas */}
+            
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <StatCard
                     title="Receitas"
@@ -649,7 +649,7 @@ export default function DashboardPage() {
                 />
             </div>
 
-            {/* Análise de Receitas por Tipo */}
+            
             {analytics.incomeAnalysis && analytics.incomeAnalysis.length > 0 && (
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm">
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
@@ -657,7 +657,7 @@ export default function DashboardPage() {
                         Análise de Receitas (Últimos 3 Meses)
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                        {/* Resumo por Tipo */}
+                        
                         {(() => {
                             const porTipo = analytics.incomeAnalysis.reduce((acc: any, item: any) => {
                                 const tipo = item.tipo_renda || 'OUTRAS'
@@ -722,7 +722,7 @@ export default function DashboardPage() {
                 </div>
             )}
 
-            {/* Análise de Despesas por Classificação */}
+            
             {analytics.expensesByCategory && analytics.expensesByCategory.length > 0 && (
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm">
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
@@ -730,7 +730,7 @@ export default function DashboardPage() {
                         Análise de Despesas por Categoria (Últimos 3 Meses)
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                        {/* Resumo por Classificação */}
+                        
                         {(() => {
                             const porClassificacao = analytics.expensesByCategory.reduce((acc: any, item: any) => {
                                 const classif = item.classificacao_categoria || 'OUTROS'
@@ -802,7 +802,7 @@ export default function DashboardPage() {
                 </div>
             )}
 
-            {/* Portfolio de Investimentos Detalhado */}
+            
             {analytics.investments && analytics.investments.length > 0 && (
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm">
                     <div className="flex items-center justify-between mb-4">
@@ -890,7 +890,7 @@ export default function DashboardPage() {
                 </div>
             )}
 
-            {/* Evolução Patrimonial Mensal */}
+            
             {analytics.patrimonyEvolution && analytics.patrimonyEvolution.length > 0 && (
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm">
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
@@ -953,7 +953,7 @@ export default function DashboardPage() {
                 </div>
             )}
 
-            {/* Gráficos de Pizza */}
+            
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm">
                     {stats.expensesByCategory.length > 0 ? (
@@ -989,9 +989,9 @@ export default function DashboardPage() {
                 </div>
             </div>
 
-            {/* Grid de Seções */}
+            
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Contas Bancárias */}
+                
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Contas Bancárias</h2>
@@ -1028,7 +1028,7 @@ export default function DashboardPage() {
                     )}
                 </div>
 
-                {/* Cartões de Crédito com Analytics */}
+                
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Cartões de Crédito</h2>
@@ -1075,7 +1075,7 @@ export default function DashboardPage() {
                     )}
                 </div>
 
-                {/* Metas */}
+                
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow lg:col-span-2">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Metas Financeiras</h2>

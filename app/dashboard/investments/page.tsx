@@ -66,7 +66,7 @@ export default function InvestmentsPage() {
                 const data = await res.json()
                 setInvestments(data)
 
-                // Buscar summary para cada investimento
+                
                 const summaries = new Map()
                 for (const inv of data) {
                     const summaryRes = await fetch(`/api/investments/${inv.id}/summary`)
@@ -261,7 +261,7 @@ export default function InvestmentsPage() {
                 </button>
             </div>
 
-            {/* Cards de Resumo */}
+            
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
                     <div className="flex items-center justify-between mb-2">
@@ -305,7 +305,7 @@ export default function InvestmentsPage() {
                 </div>
             </div>
 
-            {/* Lista de Investimentos */}
+            
             {investments.length === 0 ? (
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center">
                     <LineChart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -430,7 +430,7 @@ export default function InvestmentsPage() {
                 </div>
             )}
 
-            {/* Modal de Cadastro/Edição */}
+            
             {showModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                     <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -564,7 +564,7 @@ export default function InvestmentsPage() {
                 </div>
             )}
 
-            {/* Modal de Transação */}
+            
             {showTransactionModal && selectedInvestment && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                     <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full">

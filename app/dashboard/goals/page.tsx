@@ -70,7 +70,7 @@ export default function GoalsPage() {
             if (goalsRes.ok) {
                 const goalsData: Goal[] = await goalsRes.json()
 
-                // Buscar investimentos se alguma meta incluir investimentos
+                
                 const hasGoalsWithInvestments = goalsData.some(g => g.includeInvestments)
                 let investmentsTotal = 0
 
@@ -79,7 +79,7 @@ export default function GoalsPage() {
                     if (investmentsRes.ok) {
                         const investments = await investmentsRes.json()
 
-                        // Buscar summary de cada investimento
+                        
                         const summaries = await Promise.all(
                             investments.map((inv: any) =>
                                 fetch(`/api/investments/${inv.id}/summary`)
@@ -97,7 +97,7 @@ export default function GoalsPage() {
                     }
                 }
 
-                // Adicionar campo calculatedAmount em cada meta
+                
                 const goalsWithCalculated: GoalWithCalculated[] = goalsData.map(goal => {
                     const accountId = goal.account?.id || (goal as any).accountId
                     const accountFromList = accountId
@@ -125,7 +125,7 @@ export default function GoalsPage() {
             }
             if (accountsRes.ok) setAccounts(accountsData)
 
-            // Calcular receitas e despesas recorrentes mensais
+            
             if (recurringRes.ok) {
                 const recurrings = await recurringRes.json()
 
@@ -135,7 +135,7 @@ export default function GoalsPage() {
                     .filter((r: any) => r.type === 'INCOME')
                     .reduce((sum: number, r: any) => {
                         const amount = Number(r.amount) || 0
-                        // Calcular quantidade mensal baseado na frequência
+                        
                         const monthlyOccurrences = r.frequency === 'MONTHLY' ? 1 :
                             r.frequency === 'WEEKLY' ? 4.33 :
                                 r.frequency === 'YEARLY' ? 1 / 12 : 1
@@ -156,7 +156,7 @@ export default function GoalsPage() {
                     recurringIncome: monthlyIncome,
                     recurringExpenses: monthlyExpenses,
                     available: monthlyIncome - monthlyExpenses,
-                    monthlyBudget: 0, // TODO: buscar das configurações do usuário
+                    monthlyBudget: 0, 
                 })
             }
         } catch (error) {
@@ -252,7 +252,7 @@ export default function GoalsPage() {
                 </button>
             </div>
 
-            {/* Card de Análise de Capacidade de Poupança */}
+            
             {monthlySavings.recurringIncome > 0 && (
                 <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg shadow p-6 mb-8 border border-blue-200 dark:border-blue-800">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
@@ -424,7 +424,7 @@ export default function GoalsPage() {
                 </div>
             )}
 
-            {/* Modal */}
+            
             {showModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">

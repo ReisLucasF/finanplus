@@ -9,7 +9,7 @@ const paymentSchema = z.object({
   amount: z.number().positive(),
 });
 
-// POST - Registrar pagamento de cartão
+
 export async function POST(request: Request) {
   try {
     const user = await getCurrentUser();
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { cardId, accountId, amount } = paymentSchema.parse(body);
 
-    // Verificar se o cartão pertence ao usuário
+    
     const card = await prisma.creditCard.findFirst({
       where: { id: cardId, userId: user.userId },
     });
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Verificar se a conta pertence ao usuário
+    
     const account = await prisma.bankAccount.findFirst({
       where: { id: accountId, userId: user.userId },
     });
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Verificar saldo da conta
+    
     if (account.currentBalance.toNumber() < amount) {
       return NextResponse.json(
         { error: "Saldo insuficiente" },
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Buscar ou criar categoria "Pagamento de Cartão"
+    
     let category = await prisma.category.findFirst({
       where: {
         name: "Pagamento de Cartão",
@@ -71,9 +71,9 @@ export async function POST(request: Request) {
       });
     }
 
-    // Criar transação de pagamento e debitar da conta
+    
     const result = await prisma.$transaction(async (tx) => {
-      // Criar transação de despesa (pagamento de cartão)
+      
       const transaction = await tx.transaction.create({
         data: {
           description: `Pagamento ${card.name}`,
@@ -86,13 +86,13 @@ export async function POST(request: Request) {
         },
       });
 
-      // Debitar da conta bancária
+      
       await tx.bankAccount.update({
         where: { id: accountId },
         data: { currentBalance: { decrement: amount } },
       });
 
-      // Criar registro do pagamento no cartão (NÃO decrementa initialDebt)
+      
       const payment = await tx.creditCardPayment.create({
         data: {
           userId: user.userId,

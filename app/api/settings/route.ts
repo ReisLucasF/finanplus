@@ -14,7 +14,7 @@ const settingsSchema = z.object({
   notifyMonthlyLimit: z.boolean().optional(),
 });
 
-// GET - Buscar configurações do usuário
+
 export async function GET() {
   try {
     const user = await getCurrentUser();
@@ -57,7 +57,7 @@ export async function GET() {
   }
 }
 
-// PUT - Atualizar configurações do usuário
+
 export async function PUT(request: Request) {
   try {
     const user = await getCurrentUser();

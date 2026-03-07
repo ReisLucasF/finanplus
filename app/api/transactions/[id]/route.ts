@@ -67,7 +67,7 @@ export async function PUT(
     const body = await request.json();
     const data = transactionSchema.parse(body);
 
-    // Verificar se a transação pertence ao usuário
+    
     const existingTransaction = await prisma.transaction.findUnique({
       where: {
         id,
@@ -85,7 +85,7 @@ export async function PUT(
       );
     }
 
-    // Verificar se a nova conta existe (se mudou)
+    
     if (data.accountId !== existingTransaction.accountId) {
       const newAccount = await prisma.bankAccount.findFirst({
         where: {
@@ -102,14 +102,14 @@ export async function PUT(
       }
     }
 
-    // Atualizar transação e saldos em uma transação atômica
+    
     const transaction = await prisma.$transaction(async (tx) => {
       const oldAmount = existingTransaction.amount.toNumber();
       const oldType = existingTransaction.type;
       const oldStatus = existingTransaction.status;
       const oldAccountId = existingTransaction.accountId;
 
-      // Reverter o efeito da transação antiga apenas se era COMPLETED
+      
       if (oldStatus === "COMPLETED") {
         if (oldType === "INCOME") {
           await tx.bankAccount.update({
@@ -124,7 +124,7 @@ export async function PUT(
         }
       }
 
-      // Aplicar o efeito da nova transação apenas se for COMPLETED
+      
       if (data.status === "COMPLETED") {
         if (data.type === "INCOME") {
           await tx.bankAccount.update({
@@ -139,7 +139,7 @@ export async function PUT(
         }
       }
 
-      // Atualizar a transação
+      
       const updatedTransaction = await tx.transaction.update({
         where: { id },
         data: {
@@ -185,7 +185,7 @@ export async function DELETE(
 
     const { id } = await params;
 
-    // Verificar se a transação pertence ao usuário
+    
     const existingTransaction = await prisma.transaction.findUnique({
       where: {
         id,
@@ -200,22 +200,22 @@ export async function DELETE(
       );
     }
 
-    // Deletar transação e reverter o efeito no saldo
+    
     await prisma.$transaction(async (tx) => {
-      // Reverter o efeito da transação no saldo apenas se era COMPLETED
+      
       if (existingTransaction.status === "COMPLETED") {
         const amount = existingTransaction.amount.toNumber();
         const type = existingTransaction.type;
         const accountId = existingTransaction.accountId;
 
         if (type === "INCOME") {
-          // Se era receita, diminuir o saldo
+          
           await tx.bankAccount.update({
             where: { id: accountId },
             data: { currentBalance: { decrement: amount } },
           });
         } else {
-          // Se era despesa, aumentar o saldo
+          
           await tx.bankAccount.update({
             where: { id: accountId },
             data: { currentBalance: { increment: amount } },
@@ -223,7 +223,7 @@ export async function DELETE(
         }
       }
 
-      // Deletar a transação
+      
       await tx.transaction.delete({
         where: { id },
       });

@@ -41,7 +41,7 @@ export default function FirstMillionCalculator() {
             return
         }
 
-        // Converter taxa anual para mensal
+        
         const taxaMensal = Math.pow(1 + (taxaAnual / 100), 1 / 12) - 1
 
         let saldo = valorInicial
@@ -53,17 +53,17 @@ export default function FirstMillionCalculator() {
 
         const resultados: MilestoneData[] = []
 
-        // Simulação mês a mês
+        
         while (milestoneIndex < milestones.length) {
-            // Aplica juros e aporte
+            
             saldo = saldo * (1 + taxaMensal) + aporte
             mesesTotal++
 
-            // Verifica se bateu o próximo milestone
+            
             if (saldo >= milestones[milestoneIndex]) {
                 const intervaloValor = `De ${formatMoney(milestones[milestoneIndex] - 100000)} até ${formatMoney(milestones[milestoneIndex])}`
 
-                // Cálculo de meses gastos APENAS neste intervalo
+                
                 const mesesParaEsteMilestone = mesesTotal - mesesAcumuladosUltimoMilestone
 
                 resultados.push({
@@ -72,13 +72,13 @@ export default function FirstMillionCalculator() {
                     tempoDecorrido: formatTime(mesesParaEsteMilestone).toUpperCase()
                 })
 
-                // Prepara para o próximo loop
+                
                 mesesAcumuladosUltimoMilestone = mesesTotal
                 milestoneIndex++
             }
 
-            // Break de segurança
-            if (mesesTotal > 1200) break // 100 anos
+            
+            if (mesesTotal > 1200) break 
         }
 
         setResultado(resultados)
@@ -94,7 +94,7 @@ export default function FirstMillionCalculator() {
             </div>
 
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-                {/* Form */}
+                
                 <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                         <div className="flex flex-col">
@@ -146,7 +146,7 @@ export default function FirstMillionCalculator() {
                     </button>
                 </div>
 
-                {/* Results */}
+                
                 <div className="p-6">
                     {mostrarResultado ? (
                         <div>
