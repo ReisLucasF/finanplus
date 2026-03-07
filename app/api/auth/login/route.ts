@@ -8,10 +8,8 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // Validar dados
     const validatedData = loginSchema.parse(body);
 
-    // Buscar usuário
     const user = await prisma.user.findUnique({
       where: { email: validatedData.email },
     });
@@ -23,12 +21,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verificar se usuário está ativo
     if (!user.isActive) {
       return NextResponse.json({ error: "Usuário inativo" }, { status: 403 });
     }
 
-    // Verificar senha
     const isValidPassword = await bcrypt.compare(
       validatedData.password,
       user.password
@@ -41,14 +37,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Gerar token JWT
     const token = await signToken({
       userId: user.id,
       email: user.email,
       role: user.role,
     });
 
-    // Setar cookie
     await setAuthCookie(token);
 
     return NextResponse.json({

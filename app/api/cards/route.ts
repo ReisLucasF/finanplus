@@ -11,7 +11,6 @@ const cardSchema = z.object({
   color: z.string().regex(/^#[0-9A-F]{6}$/i),
 });
 
-// GET - Listar cartões
 export async function GET() {
   try {
     const user = await getCurrentUser();
@@ -28,7 +27,6 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    // Calcular dívida atual: (initialDebt + compras) - pagamentos
     const serializedCards = cards.map((card) => {
       const totalPurchases = card.purchases.reduce(
         (sum, p) => sum + p.amount.toNumber(),
@@ -63,7 +61,6 @@ export async function GET() {
   }
 }
 
-// POST - Criar cartão
 export async function POST(request: Request) {
   try {
     const user = await getCurrentUser();
@@ -82,7 +79,6 @@ export async function POST(request: Request) {
       },
     });
 
-    // Serializar os Decimals para números
     const serializedCard = {
       ...card,
       cardLimit: card.cardLimit.toNumber(),

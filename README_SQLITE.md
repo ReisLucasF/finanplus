@@ -1,8 +1,8 @@
-# 🚀 FinanPlus - Início Rápido com SQLite
+# FinanPlus - Início Rápido com SQLite
 
 Guia completo para configurar e iniciar a aplicação usando SQLite.
 
-## 📋 Pré-requisitos
+## Pré-requisitos
 
 - Node.js 18+ instalado
 - npm ou yarn
@@ -39,7 +39,7 @@ GOOGLE_CLIENT_SECRET=seu_client_secret
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
 ```
 
-> 💡 **Dica**: Para gerar uma chave JWT segura, use: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+> **Dica**: Para gerar uma chave JWT segura, use: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
 
 ### 4. Gere o cliente Prisma
 
@@ -65,9 +65,9 @@ npx tsx prisma/seed.sqlite.ts
 
 Isso cria:
 
-- ✅ **Usuário padrão**: `admin@finanplus.com` / senha: `admin123`
-- ✅ **Categorias de receita**: Salário, Freelance, Investimentos, etc.
-- ✅ **Categorias de despesa**: Alimentação, Moradia, Transporte, etc.
+- **Usuário padrão**: `admin@finanplus.com` / senha: `admin123`
+- **Categorias de receita**: Salário, Freelance, Investimentos, etc.
+- **Categorias de despesa**: Alimentação, Moradia, Transporte, etc.
 
 ### 7. Inicie o servidor de desenvolvimento
 
@@ -77,16 +77,16 @@ npm run dev
 
 Acesse: **http://localhost:3000**
 
-## 🔑 Login
+##  Login
 
 Após o seed, faça login com as credenciais padrão:
 
 - **Email**: `admin@finanplus.com`
 - **Senha**: `admin123`
 
-> ⚠️ **IMPORTANTE**: Altere a senha após o primeiro login em produção!
+> **IMPORTANTE**: Altere a senha após o primeiro login em produção!
 
-## 📊 Banco de Dados
+## Banco de Dados
 
 O banco SQLite é criado em: `prisma/dev.db`
 
@@ -103,7 +103,7 @@ npx prisma db push --force-reset
 # Adicione no schema.prisma: log = ["query"]
 ```
 
-## 🔄 Reset Completo do Banco
+## Reset Completo do Banco
 
 Se precisar recomeçar do zero:
 
@@ -121,7 +121,7 @@ npx tsx prisma/seed.sqlite.ts
 npm run dev
 ```
 
-## 📁 Estrutura do Banco
+## Estrutura do Banco
 
 ```
 prisma/
@@ -130,7 +130,7 @@ prisma/
 └── seed.sqlite.ts      # Script de população inicial
 ```
 
-## 🎯 Próximos Passos
+## Próximos Passos
 
 Após o login, você pode:
 
@@ -140,7 +140,7 @@ Após o login, você pode:
 4. **Criar investimentos** - Dashboard → Investimentos
 5. **Definir metas** - Dashboard → Metas
 
-## 🐛 Problemas Comuns
+## Problemas Comuns
 
 ### Erro: "Cannot find module '@prisma/client'"
 
@@ -170,13 +170,13 @@ npx tsx prisma/seed.sqlite.ts
 PORT=3001 npm run dev
 ```
 
-## 📚 Documentação Adicional
+## Documentação Adicional
 
 - **Migração MySQL → SQLite**: Ver [MIGRACAO_SQLITE.md](MIGRACAO_SQLITE.md)
 - **Schema completo**: Ver [prisma/schema.prisma](prisma/schema.prisma)
 - **Analytics Engine**: Ver [lib/analytics.ts](lib/analytics.ts)
 
-## 💾 Backup do Banco
+## Backup do Banco
 
 Para fazer backup do seu banco SQLite:
 
@@ -188,21 +188,21 @@ cp prisma/dev.db prisma/backup-$(date +%Y%m%d).db
 npx prisma studio
 ```
 
-## 🔒 Segurança
+## Segurança
 
 Para produção:
 
-1. ✅ Altere a senha padrão do admin
-2. ✅ Use uma JWT_SECRET forte e aleatória
-3. ✅ Configure HTTPS
-4. ✅ Ative rate limiting
-5. ✅ Faça backups regulares
+1. Altere a senha padrão do admin
+2. Use uma JWT_SECRET forte e aleatória
+3. Configure HTTPS
+4. Ative rate limiting
+5. Faça backups regulares
 
-## ❓ Suporte
+## Suporte
 
 Encontrou algum problema? Abra uma issue no GitHub:
 https://github.com/ReisLucasF/finanplus/issues
 
 ---
 
-**Desenvolvido com ❤️ usando Next.js, Prisma e SQLite**
+**Desenvolvido usando Next.js, Prisma e SQLite**

@@ -3,7 +3,6 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { calculateAllAnalytics } from "@/lib/analytics";
 
-// Função para converter Decimal do Prisma para número
 const convertDecimalFields = (obj: any): any => {
   if (!obj) return obj;
   if (Array.isArray(obj)) {
@@ -13,7 +12,6 @@ const convertDecimalFields = (obj: any): any => {
     const converted: any = {};
     for (const key in obj) {
       const value = obj[key];
-      // Converter Decimal para número
       if (value && typeof value === "object" && "toNumber" in value) {
         converted[key] = value.toNumber();
       } else if (typeof value === "bigint") {
@@ -34,13 +32,12 @@ export async function GET() {
     const currentUser = await getCurrentUser();
 
     if (!currentUser) {
-      console.log("❌ Usuário não autenticado");
+      console.log("Usuário não autenticado");
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    console.log("✅ Buscando dados para usuário:", currentUser.userId);
+    console.log("Buscando dados para usuário:", currentUser.userId);
 
-    // Tentar usar views SQL primeiro (MySQL)
     let useViews = true;
     try {
       const viewCheck = (await prisma.$queryRawUnsafe(`
@@ -51,14 +48,14 @@ export async function GET() {
             `)) as any[];
 
       if (!viewCheck || viewCheck.length === 0) {
-        console.log("⚠️ Views SQL não encontradas, usando cálculos TypeScript");
+        console.log("Views SQL não encontradas, usando cálculos TypeScript");
         useViews = false;
       } else {
-        console.log("📊 Views SQL encontradas, usando views");
+        console.log("Views SQL encontradas, usando views");
       }
     } catch (e: any) {
       console.log(
-        "⚠️ Banco não suporta views, usando cálculos TypeScript:",
+        "Banco não suporta views, usando cálculos TypeScript:",
         e.message,
       );
       useViews = false;
@@ -67,13 +64,12 @@ export async function GET() {
     let response;
 
     if (useViews) {
-      // Modo MySQL: usar views SQL
-      console.log("🔍 Buscando dados das views SQL...");
+      console.log("Buscando dados das views SQL...");
 
       const dashboardData = await prisma.$queryRawUnsafe(`
               SELECT * FROM vw_Dashboard_Principal WHERE userId = '${currentUser.userId}'
           `);
-      console.log("📊 Dashboard data:", dashboardData);
+      console.log("Dashboard data:", dashboardData);
 
       const expensesByCategory = await prisma.$queryRawUnsafe(`
               SELECT * FROM vw_Gastos_Por_Categoria 
@@ -140,12 +136,11 @@ export async function GET() {
         alerts: convertDecimalFields(alerts) || [],
       };
     } else {
-      // Modo SQLite/Fallback: usar cálculos TypeScript
-      console.log("🔍 Calculando dados em TypeScript...");
+      console.log(" Calculando dados em TypeScript...");
       response = await calculateAllAnalytics(currentUser.userId);
     }
 
-    console.log("✅ Retornando resposta:", {
+    console.log("Retornando resposta:", {
       hasData: !!response.dashboard,
       expensesCount: response.expensesByCategory?.length || 0,
       incomeCount: response.incomeAnalysis?.length || 0,
@@ -158,7 +153,7 @@ export async function GET() {
 
     return NextResponse.json(response);
   } catch (error: any) {
-    console.error("❌ Erro ao buscar análise financeira:", error);
+    console.error("Erro ao buscar análise financeira:", error);
     console.error("Stack:", error.stack);
     return NextResponse.json(
       {

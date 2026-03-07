@@ -55,7 +55,6 @@ export default function RegisterPage() {
         script.defer = true
         script.onload = () => {
             setGoogleLoaded(true)
-            // Renderizar botão automaticamente quando carregar
             if (window.google) {
                 window.google.accounts.id.initialize({
                     client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,

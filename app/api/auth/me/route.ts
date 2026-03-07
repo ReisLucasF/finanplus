@@ -10,7 +10,6 @@ export async function GET() {
       return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     }
 
-    // Buscar dados completos do usuário
     const user = await prisma.user.findUnique({
       where: { id: currentUser.userId },
       select: {

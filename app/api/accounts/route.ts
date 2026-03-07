@@ -10,7 +10,6 @@ const accountSchema = z.object({
   color: z.string().regex(/^#[0-9A-F]{6}$/i),
 });
 
-// GET - Listar contas
 export async function GET() {
   try {
     const user = await getCurrentUser();
@@ -23,7 +22,6 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    // Serializar Decimals para numbers
     const serializedAccounts = accounts.map((account) => ({
       ...account,
       initialBalance: account.initialBalance.toNumber(),
@@ -40,7 +38,6 @@ export async function GET() {
   }
 }
 
-// POST - Criar conta
 export async function POST(request: Request) {
   try {
     const user = await getCurrentUser();

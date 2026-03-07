@@ -35,7 +35,6 @@ export default function LoginPage() {
                 return
             }
 
-            // Redirecionar
             if (data.user.onboardingCompleted) {
                 router.push('/dashboard')
             } else {
@@ -48,14 +47,12 @@ export default function LoginPage() {
     }
 
     useEffect(() => {
-        // Carregar Google Identity Services
         const script = document.createElement('script')
         script.src = 'https://accounts.google.com/gsi/client'
         script.async = true
         script.defer = true
         script.onload = () => {
             setGoogleLoaded(true)
-            // Renderizar botão automaticamente quando carregar
             if (window.google) {
                 window.google.accounts.id.initialize({
                     client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
@@ -111,7 +108,6 @@ export default function LoginPage() {
                 return
             }
 
-            // Redirecionar para onboarding ou dashboard
             if (data.user.onboardingCompleted) {
                 router.push('/dashboard')
             } else {

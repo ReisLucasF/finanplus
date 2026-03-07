@@ -9,7 +9,6 @@ const accountSchema = z.object({
   color: z.string().regex(/^#[0-9A-F]{6}$/i),
 });
 
-// GET - Buscar conta específica
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -42,7 +41,7 @@ export async function GET(
       );
     }
 
-    // Serializar Decimals
+     Serializar Decimals
     const serializedAccount = {
       ...account,
       initialBalance: account.initialBalance.toNumber(),
@@ -63,7 +62,6 @@ export async function GET(
   }
 }
 
-// PUT - Atualizar conta
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -106,7 +104,6 @@ export async function PUT(
   }
 }
 
-// DELETE - Excluir conta
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -119,7 +116,6 @@ export async function DELETE(
 
     const { id } = await params;
 
-    // Verificar se há transações vinculadas
     const transactionsCount = await prisma.transaction.count({
       where: { accountId: id },
     });

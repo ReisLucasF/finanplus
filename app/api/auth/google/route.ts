@@ -13,7 +13,6 @@ export async function POST(request: NextRequest) {
   try {
     const { token } = await request.json();
 
-    // Verificar o token do Google
     const ticket = await client.verifyIdToken({
       idToken: token,
       audience: process.env.GOOGLE_CLIENT_ID,
@@ -27,7 +26,6 @@ export async function POST(request: NextRequest) {
 
     const { email, name, sub: googleId, picture } = payload;
 
-    // Verificar se usuário já existe (por googleId ou email)
     let user = await prisma.user.findFirst({
       where: {
         OR: [{ googleId }, { email }],
@@ -35,12 +33,10 @@ export async function POST(request: NextRequest) {
     });
 
     if (user) {
-      // Usuário existe, verificar se está ativo
       if (!user.isActive) {
         return NextResponse.json({ error: "Usuário inativo" }, { status: 403 });
       }
 
-      // Se não tinha googleId, atualizar
       if (!user.googleId) {
         user = await prisma.user.update({
           where: { id: user.id },
@@ -48,26 +44,23 @@ export async function POST(request: NextRequest) {
         });
       }
     } else {
-      // Criar novo usuário
       user = await prisma.user.create({
         data: {
           email,
           name: name || email.split("@")[0],
           googleId,
-          password: null, // Usuários OAuth não têm senha
+          password: null,
           role: "USER",
         },
       });
     }
 
-    // Gerar token JWT
     const jwtToken = await signToken({
       userId: user.id,
       email: user.email,
       role: user.role,
     });
 
-    // Setar cookie
     await setAuthCookie(jwtToken);
 
     return NextResponse.json({

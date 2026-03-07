@@ -8,10 +8,8 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // Validar dados
     const validatedData = registerSchema.parse(body);
 
-    // Verificar se usuário já existe
     const existingUser = await prisma.user.findUnique({
       where: { email: validatedData.email },
     });
@@ -23,10 +21,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Hash da senha
     const hashedPassword = await bcrypt.hash(validatedData.password, 10);
 
-    // Criar usuário
     const user = await prisma.user.create({
       data: {
         email: validatedData.email,
@@ -43,14 +39,12 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Gerar token JWT
     const token = await signToken({
       userId: user.id,
       email: user.email,
       role: user.role,
     });
 
-    // Setar cookie
     await setAuthCookie(token);
 
     return NextResponse.json(
