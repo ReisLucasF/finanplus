@@ -4,7 +4,6 @@ import * as cheerio from "cheerio";
 import iconv from "iconv-lite";
 import { buscarAtivoCompleto } from "@/lib/brapi";
 
-
 const api = axios.create({
   responseType: "arraybuffer",
   headers: {
@@ -13,10 +12,8 @@ const api = axios.create({
   },
 });
 
-
 const clean = (text: string | null | undefined): string | null =>
   text ? text.replace(/\n/g, "").trim() : null;
-
 
 const getYahooQuote = async (ticker: string) => {
   try {
@@ -39,7 +36,6 @@ const getYahooQuote = async (ticker: string) => {
   }
 };
 
-
 const extractDetails = ($: cheerio.CheerioAPI) => {
   const details: Record<string, string> = {};
 
@@ -50,7 +46,7 @@ const extractDetails = ($: cheerio.CheerioAPI) => {
     const dataClass = dataCell.attr("class") || "";
     if (dataClass.includes("data")) {
       const label = clean(
-        labelCell.find("span.txt").text() || labelCell.text()
+        labelCell.find("span.txt").text() || labelCell.text(),
       );
       const value = clean(dataCell.find("span.txt").text() || dataCell.text());
 
@@ -59,7 +55,7 @@ const extractDetails = ($: cheerio.CheerioAPI) => {
           .toLowerCase()
           .replace(/\?/g, "")
           .replace(/\./g, "")
-          .replace(/\
+          .replace(/\//g, "_")
           .replace(/\s+/g, "_")
           .replace(/\(|\)/g, "");
         details[key] = value;
@@ -72,7 +68,7 @@ const extractDetails = ($: cheerio.CheerioAPI) => {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ ticker: string }> }
+  { params }: { params: Promise<{ ticker: string }> },
 ) {
   const { ticker: tickerParam } = await params;
   const ticker = tickerParam.toUpperCase();
@@ -88,7 +84,7 @@ export async function GET(
     if (Object.keys(details).length === 0) {
       return NextResponse.json(
         { error: "Ativo não encontrado" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -96,7 +92,6 @@ export async function GET(
 
     const isFII = details.fii !== undefined;
 
-    
     const oscillations: Record<string, string> = {};
     $("td.label").each((i, el) => {
       const label = clean($(el).text());
@@ -253,7 +248,6 @@ export async function GET(
   } catch (error: any) {
     console.error("Erro ao buscar dados:", error);
 
-    
     if (error?.response?.status === 403 || error?.code === "ERR_BAD_REQUEST") {
       console.log(`Fundamentus bloqueado (403), usando Brapi para ${ticker}`);
 
@@ -263,17 +257,16 @@ export async function GET(
         if (!brapiData.cotacao) {
           return NextResponse.json(
             { error: "Ativo não encontrado" },
-            { status: 404 }
+            { status: 404 },
           );
         }
 
-        
         const isFII = ticker.endsWith("11");
 
         const response: any = {
           ticker,
           type: brapiData.tipo || (isFII ? "FII" : "Ação"),
-          source: "brapi", 
+          source: "brapi",
           oscillations: {},
         };
 
@@ -336,14 +329,14 @@ export async function GET(
         console.error("Erro ao usar Brapi como fallback:", brapiError);
         return NextResponse.json(
           { error: "Erro ao buscar dados do ativo" },
-          { status: 500 }
+          { status: 500 },
         );
       }
     }
 
     return NextResponse.json(
       { error: "Erro ao buscar dados" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

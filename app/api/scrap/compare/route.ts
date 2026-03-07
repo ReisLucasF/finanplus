@@ -24,7 +24,7 @@ const extractDetails = ($: cheerio.CheerioAPI) => {
     const dataClass = dataCell.attr("class") || "";
     if (dataClass.includes("data")) {
       const label = clean(
-        labelCell.find("span.txt").text() || labelCell.text()
+        labelCell.find("span.txt").text() || labelCell.text(),
       );
       const value = clean(dataCell.find("span.txt").text() || dataCell.text());
 
@@ -33,7 +33,7 @@ const extractDetails = ($: cheerio.CheerioAPI) => {
           .toLowerCase()
           .replace(/\?/g, "")
           .replace(/\./g, "")
-          .replace(/\
+          .replace(/\//g, "_")
           .replace(/\s+/g, "_")
           .replace(/\(|\)/g, "");
         details[key] = value;
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
         error:
           'Parâmetro "tickers" é obrigatório. Exemplo: ?tickers=PETR4,VALE3,MXRF11',
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 

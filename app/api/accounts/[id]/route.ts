@@ -11,7 +11,7 @@ const accountSchema = z.object({
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getCurrentUser();
@@ -37,11 +37,11 @@ export async function GET(
     if (!account) {
       return NextResponse.json(
         { error: "Conta não encontrada" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
-     Serializar Decimals
+    // Serializar Decimals
     const serializedAccount = {
       ...account,
       initialBalance: account.initialBalance.toNumber(),
@@ -57,14 +57,14 @@ export async function GET(
     console.error("Erro ao buscar conta:", error);
     return NextResponse.json(
       { error: "Erro ao buscar conta" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function PUT(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getCurrentUser();
@@ -87,7 +87,7 @@ export async function PUT(
     if (account.count === 0) {
       return NextResponse.json(
         { error: "Conta não encontrada" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -99,14 +99,14 @@ export async function PUT(
     console.error("Erro ao atualizar conta:", error);
     return NextResponse.json(
       { error: "Erro ao atualizar conta" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function DELETE(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getCurrentUser();
@@ -123,7 +123,7 @@ export async function DELETE(
     if (transactionsCount > 0) {
       return NextResponse.json(
         { error: "Não é possível excluir uma conta com transações vinculadas" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -137,7 +137,7 @@ export async function DELETE(
     if (account.count === 0) {
       return NextResponse.json(
         { error: "Conta não encontrada" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -146,7 +146,7 @@ export async function DELETE(
     console.error("Erro ao excluir conta:", error);
     return NextResponse.json(
       { error: "Erro ao excluir conta" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
