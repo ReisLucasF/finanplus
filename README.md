@@ -201,10 +201,6 @@ npx prisma migrate reset
 npm run db:seed
 ```
 
-## Documentação
-
-Para documentação técnica completa, consulte [BLUEPRINT.md](./BLUEPRINT.md)
-
 ## Stack Tecnológica
 
 - **Framework**: Next.js 14 (App Router)
