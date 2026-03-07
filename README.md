@@ -1,23 +1,23 @@
-# FinanPlus 💰
+# FinanPlus
 
 Sistema completo de controle financeiro pessoal desenvolvido com Next.js 14, Prisma ORM e MySQL.
 
-## 📋 Funcionalidades
+## Funcionalidades
 
-### ✅ Implementado (Sprint 1 - Fundação)
+### Implementado (Sprint 1 - Fundação)
 
-- ✅ Projeto Next.js configurado com TypeScript e Tailwind CSS
-- ✅ Banco de dados MySQL com Prisma ORM
-- ✅ Schema completo do banco de dados
-- ✅ Sistema de autenticação JWT com jose e bcrypt
-- ✅ **OAuth do Google** para login/registro
-- ✅ Middleware de proteção de rotas
-- ✅ Landing page responsiva
-- ✅ Páginas de login e registro com Google
-- ✅ APIs de autenticação (register, login, logout, me, google)
-- ✅ Dashboard básico
+- Projeto Next.js configurado com TypeScript e Tailwind CSS
+- Banco de dados MySQL com Prisma ORM
+- Schema completo do banco de dados
+- Sistema de autenticação JWT com jose e bcrypt
+- **OAuth do Google** para login/registro
+- Middleware de proteção de rotas
+- Landing page responsiva
+- Páginas de login e registro com Google
+- APIs de autenticação (register, login, logout, me, google)
+- Dashboard básico
 
-### 🚧 Em Desenvolvimento
+### Em Desenvolvimento
 
 - Sistema de onboarding
 - Dashboard principal
@@ -27,7 +27,7 @@ Sistema completo de controle financeiro pessoal desenvolvido com Next.js 14, Pri
 - Sistema de metas
 - Painel admin
 
-## 🚀 Como Rodar o Projeto
+## Como Rodar o Projeto
 
 ### Pré-requisitos
 
@@ -78,7 +78,7 @@ npm run dev
 7. **Acesse a aplicação**
    Abra [http://localhost:3000](http://localhost:3000) no seu navegador.
 
-## 📚 Estrutura do Projeto
+## Estrutura do Projeto
 
 ```
 finanplus/
@@ -107,7 +107,7 @@ finanplus/
 └── OAUTH_GOOGLE.md        # Guia de configuração OAuth
 ```
 
-## 🔐 Autenticação
+## Autenticação
 
 ### Endpoints Disponíveis
 
@@ -201,11 +201,11 @@ npx prisma migrate reset
 npm run db:seed
 ```
 
-## 📖 Documentação
+## Documentação
 
 Para documentação técnica completa, consulte [BLUEPRINT.md](./BLUEPRINT.md)
 
-## 🛠️ Stack Tecnológica
+## Stack Tecnológica
 
 - **Framework**: Next.js 14 (App Router)
 - **Linguagem**: TypeScript
@@ -220,7 +220,7 @@ Para documentação técnica completa, consulte [BLUEPRINT.md](./BLUEPRINT.md)
 - **Gráficos**: Recharts
 - **Notificações**: Sonner
 
-## 📝 Próximos Passos
+## Próximos Passos
 
 1. Implementar sistema de onboarding (5 etapas)
 2. Criar dashboard principal com widgets
@@ -232,10 +232,7 @@ Para documentação técnica completa, consulte [BLUEPRINT.md](./BLUEPRINT.md)
 8. API de processamento de recorrências
 9. Painel administrativo
 
-## 👤 Autor
+## Autor
 
 Lucas Reis
 
-## 📄 Licença
-
-Este projeto é privado.
