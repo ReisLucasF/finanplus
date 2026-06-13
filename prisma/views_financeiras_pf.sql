@@ -7,6 +7,32 @@
 -- 1. VIEW: DASHBOARD PRINCIPAL - KPIs GERAIS DO USUÁRIO
 -- =============================================================================
 CREATE OR REPLACE VIEW vw_Dashboard_Principal AS
+WITH cc_base AS (
+    SELECT userId, SUM(cardLimit) AS total_limit, SUM(initialDebt) AS initial_debt
+    FROM CreditCard
+    GROUP BY userId
+),
+cc_purchases AS (
+    SELECT userId, SUM(amount) AS total_purchases
+    FROM CreditCardPurchase
+    GROUP BY userId
+),
+cc_payments AS (
+    SELECT userId, SUM(amount) AS total_payments
+    FROM CreditCardPayment
+    WHERE status = 'PAID'
+    GROUP BY userId
+),
+card_stats AS (
+    SELECT 
+        cb.userId,
+        cb.total_limit,
+        cb.initial_debt,
+        COALESCE(cb.initial_debt, 0) + COALESCE(cp.total_purchases, 0) - COALESCE(cpay.total_payments, 0) as current_card_debt
+    FROM cc_base cb
+    LEFT JOIN cc_purchases cp ON cp.userId = cb.userId
+    LEFT JOIN cc_payments cpay ON cpay.userId = cb.userId
+)
 SELECT 
     u.id as userId,
     u.name as nome_usuario,
@@ -27,7 +53,7 @@ SELECT
         WHERE i.userId = u.id
     ), 0) as valor_investido_total,
     
-    COALESCE((SELECT SUM(initialDebt) FROM CreditCard WHERE userId = u.id), 0) as divida_cartoes_atual,
+    COALESCE(card.current_card_debt, 0) as divida_cartoes_atual,
     
     -- Patrimônio Líquido = Saldo + Investimentos - Dívidas
     (COALESCE((SELECT SUM(currentBalance) FROM BankAccount WHERE userId = u.id), 0) +
@@ -37,7 +63,7 @@ SELECT
          JOIN Investment i ON it.investmentId = i.id
          WHERE i.userId = u.id
      ), 0) -
-     COALESCE((SELECT SUM(initialDebt) FROM CreditCard WHERE userId = u.id), 0)) as patrimonio_liquido_atual,
+     COALESCE(card.current_card_debt, 0)) as patrimonio_liquido_atual,
     
     -- ========== FLUXO DE CAIXA MENSAL ==========
     -- Receitas último mês
@@ -181,7 +207,7 @@ SELECT
                  JOIN Investment i ON it.investmentId = i.id
                  WHERE i.userId = u.id
              ), 0) -
-             COALESCE((SELECT SUM(initialDebt) FROM CreditCard WHERE userId = u.id), 0)) /
+             COALESCE(card.current_card_debt, 0)) /
             (COALESCE((
                 SELECT AVG(despesa_mes) FROM (
                     SELECT SUM(amount) as despesa_mes
@@ -235,17 +261,13 @@ SELECT
     -- ========== CARTÕES DE CRÉDITO ==========
     COALESCE((SELECT COUNT(*) FROM CreditCard WHERE userId = u.id), 0) as total_cartoes,
     
-    COALESCE((
-        SELECT SUM(cardLimit)
-        FROM CreditCard
-        WHERE userId = u.id
-    ), 0) as limite_total_cartoes,
+    COALESCE(card.total_limit, 0) as limite_total_cartoes,
     
     -- Utilização do limite (%)
     CASE 
-        WHEN COALESCE((SELECT SUM(cardLimit) FROM CreditCard WHERE userId = u.id), 0) > 0 THEN
-            (COALESCE((SELECT SUM(initialDebt) FROM CreditCard WHERE userId = u.id), 0) /
-             COALESCE((SELECT SUM(cardLimit) FROM CreditCard WHERE userId = u.id), 0)) * 100
+        WHEN COALESCE(card.total_limit, 0) > 0 THEN
+            (COALESCE(card.current_card_debt, 0) /
+             COALESCE(card.total_limit, 0)) * 100
         ELSE 0
     END as utilizacao_limite_percentual,
     
@@ -292,7 +314,7 @@ SELECT
                          JOIN Investment i ON it.investmentId = i.id
                          WHERE i.userId = u.id
                      ), 0) -
-                     COALESCE((SELECT SUM(initialDebt) FROM CreditCard WHERE userId = u.id), 0)) /
+                     COALESCE(card.current_card_debt, 0)) /
                     (COALESCE((
                         SELECT AVG(despesa_mes) FROM (
                             SELECT SUM(amount) as despesa_mes
@@ -359,7 +381,7 @@ SELECT
                     ), 0))) * 100 >= 20
                 ELSE FALSE
             END) AND
-            (COALESCE((SELECT SUM(initialDebt) FROM CreditCard WHERE userId = u.id), 0) < 
+            (COALESCE(card.current_card_debt, 0) < 
              COALESCE((
                 SELECT AVG(receita_mes) FROM (
                     SELECT SUM(amount) as receita_mes
@@ -391,14 +413,14 @@ SELECT
                         GROUP BY DATE_FORMAT(date, '%Y-%m')
                     ) AS c
                 ), 0)) > 0 THEN
-                    (COALESCE((SELECT SUM(currentBalance) FROM BankAccount WHERE userId = u.id), 0) +
-                     COALESCE((
-                         SELECT SUM(CASE WHEN it.type = 'BUY' THEN it.amount ELSE -it.amount END)
-                         FROM InvestmentTransaction it
-                         JOIN Investment i ON it.investmentId = i.id
-                         WHERE i.userId = u.id
-                     ), 0) -
-                     COALESCE((SELECT SUM(initialDebt) FROM CreditCard WHERE userId = u.id), 0)) /
+                        (COALESCE((SELECT SUM(currentBalance) FROM BankAccount WHERE userId = u.id), 0) +
+                         COALESCE((
+                             SELECT SUM(CASE WHEN it.type = 'BUY' THEN it.amount ELSE -it.amount END)
+                             FROM InvestmentTransaction it
+                             JOIN Investment i ON it.investmentId = i.id
+                             WHERE i.userId = u.id
+                         ), 0) -
+                         COALESCE(card.current_card_debt, 0)) /
                     (COALESCE((
                         SELECT AVG(despesa_mes) FROM (
                             SELECT SUM(amount) as despesa_mes
@@ -444,7 +466,7 @@ SELECT
                              JOIN Investment i ON it.investmentId = i.id
                              WHERE i.userId = u.id
                          ), 0) -
-                         COALESCE((SELECT SUM(initialDebt) FROM CreditCard WHERE userId = u.id), 0)) /
+                         COALESCE(card.current_card_debt, 0)) /
                         (COALESCE((
                             SELECT AVG(despesa_mes) FROM (
                                 SELECT SUM(amount) as despesa_mes
@@ -535,13 +557,13 @@ SELECT
                     ) AS c
                 ), 0)) > 0 THEN
                     (COALESCE((SELECT SUM(currentBalance) FROM BankAccount WHERE userId = u.id), 0) +
-                     COALESCE((
-                         SELECT SUM(CASE WHEN it.type = 'BUY' THEN it.amount ELSE -it.amount END)
-                         FROM InvestmentTransaction it
-                         JOIN Investment i ON it.investmentId = i.id
-                         WHERE i.userId = u.id
-                     ), 0) -
-                     COALESCE((SELECT SUM(initialDebt) FROM CreditCard WHERE userId = u.id), 0)) /
+                             COALESCE((
+                                 SELECT SUM(CASE WHEN it.type = 'BUY' THEN it.amount ELSE -it.amount END)
+                                 FROM InvestmentTransaction it
+                                 JOIN Investment i ON it.investmentId = i.id
+                                 WHERE i.userId = u.id
+                             ), 0) -
+                             COALESCE(card.current_card_debt, 0)) /
                     (COALESCE((
                         SELECT AVG(despesa_mes) FROM (
                             SELECT SUM(amount) as despesa_mes
@@ -561,7 +583,7 @@ SELECT
                     ), 0))
                 ELSE 999
             END < 3) OR
-            (COALESCE((SELECT SUM(initialDebt) FROM CreditCard WHERE userId = u.id), 0) > 
+            (COALESCE(card.current_card_debt, 0) > 
              COALESCE((
                 SELECT AVG(receita_mes) FROM (
                     SELECT SUM(amount) as receita_mes
@@ -572,9 +594,9 @@ SELECT
                 ) AS r
             ), 0) * 0.5) OR
             (CASE 
-                WHEN COALESCE((SELECT SUM(cardLimit) FROM CreditCard WHERE userId = u.id), 0) > 0 THEN
-                    (COALESCE((SELECT SUM(initialDebt) FROM CreditCard WHERE userId = u.id), 0) /
-                     COALESCE((SELECT SUM(cardLimit) FROM CreditCard WHERE userId = u.id), 0)) * 100 > 70
+                WHEN COALESCE(card.total_limit, 0) > 0 THEN
+                    (COALESCE(card.current_card_debt, 0) /
+                     COALESCE(card.total_limit, 0)) * 100 > 70
                 ELSE FALSE
             END)
         ) THEN 'ATENÇÃO'
@@ -588,6 +610,7 @@ SELECT
     u.updatedAt as ultima_atualizacao
 
 FROM User u
+LEFT JOIN card_stats card ON card.userId = u.id
 WHERE u.isActive = TRUE;
 
 
@@ -595,6 +618,37 @@ WHERE u.isActive = TRUE;
 -- 2. VIEW: GASTOS POR CATEGORIA - ANÁLISE DETALHADA
 -- =============================================================================
 CREATE OR REPLACE VIEW vw_Gastos_Por_Categoria AS
+WITH tx AS (
+    SELECT 
+        userId,
+        categoryId,
+        SUM(amount) as total_sum,
+        SUM(CASE WHEN date >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) THEN amount END) as sum_1m,
+        SUM(CASE WHEN date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH) THEN amount END) as sum_3m,
+        SUM(CASE WHEN date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) THEN amount END) as sum_6m,
+        SUM(CASE WHEN date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH) THEN amount END) as sum_12m,
+        SUM(CASE WHEN date >= DATE_SUB(CURDATE(), INTERVAL 2 MONTH) AND date < DATE_SUB(CURDATE(), INTERVAL 1 MONTH) THEN amount END) as sum_prev_month,
+        COUNT(*) as count_total,
+        COUNT(CASE WHEN date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH) THEN 1 END) as count_3m
+    FROM Transaction
+    WHERE type = 'EXPENSE' AND status = 'COMPLETED'
+    GROUP BY userId, categoryId
+),
+cc AS (
+    SELECT 
+        userId,
+        categoryId,
+        SUM(amount) as total_sum,
+        SUM(CASE WHEN date >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) THEN amount END) as sum_1m,
+        SUM(CASE WHEN date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH) THEN amount END) as sum_3m,
+        SUM(CASE WHEN date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) THEN amount END) as sum_6m,
+        SUM(CASE WHEN date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH) THEN amount END) as sum_12m,
+        SUM(CASE WHEN date >= DATE_SUB(CURDATE(), INTERVAL 2 MONTH) AND date < DATE_SUB(CURDATE(), INTERVAL 1 MONTH) THEN amount END) as sum_prev_month,
+        COUNT(*) as count_total,
+        COUNT(CASE WHEN date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH) THEN 1 END) as count_3m
+    FROM CreditCardPurchase
+    GROUP BY userId, categoryId
+)
 SELECT 
     u.id as userId,
     c.id as categoryId,
@@ -602,47 +656,24 @@ SELECT
     c.icon as icone_categoria,
     
     -- ========== TOTAIS POR PERÍODO ==========
-    -- Último mês
-    COALESCE(SUM(CASE WHEN t.date >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) THEN t.amount END), 0) +
-    COALESCE(SUM(CASE WHEN cp.date >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) THEN cp.amount END), 0) 
-    as total_ultimo_mes,
-    
-    -- Últimos 3 meses
-    COALESCE(SUM(CASE WHEN t.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH) THEN t.amount END), 0) +
-    COALESCE(SUM(CASE WHEN cp.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH) THEN cp.amount END), 0) 
-    as total_ultimos_3_meses,
-    
-    -- Últimos 6 meses
-    COALESCE(SUM(CASE WHEN t.date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) THEN t.amount END), 0) +
-    COALESCE(SUM(CASE WHEN cp.date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) THEN cp.amount END), 0) 
-    as total_ultimos_6_meses,
-    
-    -- Último ano
-    COALESCE(SUM(CASE WHEN t.date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH) THEN t.amount END), 0) +
-    COALESCE(SUM(CASE WHEN cp.date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH) THEN cp.amount END), 0) 
-    as total_ultimo_ano,
+    COALESCE(tx.sum_1m, 0) + COALESCE(cc.sum_1m, 0) as total_ultimo_mes,
+    COALESCE(tx.sum_3m, 0) + COALESCE(cc.sum_3m, 0) as total_ultimos_3_meses,
+    COALESCE(tx.sum_6m, 0) + COALESCE(cc.sum_6m, 0) as total_ultimos_6_meses,
+    COALESCE(tx.sum_12m, 0) + COALESCE(cc.sum_12m, 0) as total_ultimo_ano,
     
     -- ========== MÉDIAS ==========
-    (COALESCE(SUM(CASE WHEN t.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH) THEN t.amount END), 0) +
-     COALESCE(SUM(CASE WHEN cp.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH) THEN cp.amount END), 0)) / 3 
-    as media_mensal_3_meses,
-    
-    (COALESCE(SUM(CASE WHEN t.date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH) THEN t.amount END), 0) +
-     COALESCE(SUM(CASE WHEN cp.date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH) THEN cp.amount END), 0)) / 12 
-    as media_mensal_12_meses,
+    (COALESCE(tx.sum_3m, 0) + COALESCE(cc.sum_3m, 0)) / 3 as media_mensal_3_meses,
+    (COALESCE(tx.sum_12m, 0) + COALESCE(cc.sum_12m, 0)) / 12 as media_mensal_12_meses,
     
     -- ========== FREQUÊNCIA E PADRÕES ==========
-    COUNT(DISTINCT t.id) + COUNT(DISTINCT cp.id) as quantidade_transacoes_total,
-    
-    COUNT(DISTINCT CASE WHEN t.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH) THEN t.id END) +
-    COUNT(DISTINCT CASE WHEN cp.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH) THEN cp.id END)
-    as transacoes_ultimos_3_meses,
+    COALESCE(tx.count_total, 0) + COALESCE(cc.count_total, 0) as quantidade_transacoes_total,
+    COALESCE(tx.count_3m, 0) + COALESCE(cc.count_3m, 0) as transacoes_ultimos_3_meses,
     
     -- Ticket médio
     CASE 
-        WHEN (COUNT(DISTINCT t.id) + COUNT(DISTINCT cp.id)) > 0 THEN
-            (COALESCE(SUM(t.amount), 0) + COALESCE(SUM(cp.amount), 0)) / 
-            (COUNT(DISTINCT t.id) + COUNT(DISTINCT cp.id))
+        WHEN (COALESCE(tx.count_total, 0) + COALESCE(cc.count_total, 0)) > 0 THEN
+            (COALESCE(tx.total_sum, 0) + COALESCE(cc.total_sum, 0)) /
+            (COALESCE(tx.count_total, 0) + COALESCE(cc.count_total, 0))
         ELSE 0
     END as ticket_medio,
     
@@ -656,7 +687,7 @@ SELECT
                         'Transporte', 'Combustível', 'Transporte Público') 
         THEN 'ESSENCIAL'
         
-        -- Importantes mas não essenciais (30% do orçamento)
+        -- Importantes mas não essenciais (30% do orçamento)p
         WHEN c.name IN ('Educação', 'Cursos', 'Livros',
                         'Seguros', 'Seguro Auto', 'Seguro Residencial',
                         'Academia', 'Esportes',
@@ -686,100 +717,39 @@ SELECT
     END as classificacao_categoria,
     
     -- ========== ANÁLISE DE VARIAÇÃO ==========
-    -- Crescimento mês anterior vs mês atual
     CASE 
-        WHEN (COALESCE(SUM(CASE 
-            WHEN t.date >= DATE_SUB(CURDATE(), INTERVAL 2 MONTH) 
-             AND t.date < DATE_SUB(CURDATE(), INTERVAL 1 MONTH) 
-            THEN t.amount END), 0) +
-         COALESCE(SUM(CASE 
-            WHEN cp.date >= DATE_SUB(CURDATE(), INTERVAL 2 MONTH) 
-             AND cp.date < DATE_SUB(CURDATE(), INTERVAL 1 MONTH) 
-            THEN cp.amount END), 0)) > 0 THEN
-            (((COALESCE(SUM(CASE WHEN t.date >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) THEN t.amount END), 0) +
-               COALESCE(SUM(CASE WHEN cp.date >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) THEN cp.amount END), 0)) -
-              (COALESCE(SUM(CASE 
-                  WHEN t.date >= DATE_SUB(CURDATE(), INTERVAL 2 MONTH) 
-                   AND t.date < DATE_SUB(CURDATE(), INTERVAL 1 MONTH) 
-                  THEN t.amount END), 0) +
-               COALESCE(SUM(CASE 
-                  WHEN cp.date >= DATE_SUB(CURDATE(), INTERVAL 2 MONTH) 
-                   AND cp.date < DATE_SUB(CURDATE(), INTERVAL 1 MONTH) 
-                  THEN cp.amount END), 0))) /
-             (COALESCE(SUM(CASE 
-                 WHEN t.date >= DATE_SUB(CURDATE(), INTERVAL 2 MONTH) 
-                  AND t.date < DATE_SUB(CURDATE(), INTERVAL 1 MONTH) 
-                 THEN t.amount END), 0) +
-              COALESCE(SUM(CASE 
-                 WHEN cp.date >= DATE_SUB(CURDATE(), INTERVAL 2 MONTH) 
-                  AND cp.date < DATE_SUB(CURDATE(), INTERVAL 1 MONTH) 
-                 THEN cp.amount END), 0))) * 100
+        WHEN (COALESCE(tx.sum_prev_month, 0) + COALESCE(cc.sum_prev_month, 0)) > 0 THEN
+            (((COALESCE(tx.sum_1m, 0) + COALESCE(cc.sum_1m, 0)) -
+              (COALESCE(tx.sum_prev_month, 0) + COALESCE(cc.sum_prev_month, 0))) /
+             (COALESCE(tx.sum_prev_month, 0) + COALESCE(cc.sum_prev_month, 0))) * 100
         ELSE 0
     END as variacao_mes_anterior_percentual,
     
     -- ========== REGULARIDADE ==========
     CASE 
-        WHEN (COUNT(DISTINCT CASE WHEN t.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH) THEN t.id END) +
-              COUNT(DISTINCT CASE WHEN cp.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH) THEN cp.id END)) >= 15 
-        THEN 'MUITO_FREQUENTE'
-        
-        WHEN (COUNT(DISTINCT CASE WHEN t.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH) THEN t.id END) +
-              COUNT(DISTINCT CASE WHEN cp.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH) THEN cp.id END)) >= 6 
-        THEN 'FREQUENTE'
-        
-        WHEN (COUNT(DISTINCT CASE WHEN t.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH) THEN t.id END) +
-              COUNT(DISTINCT CASE WHEN cp.date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH) THEN cp.id END)) >= 2 
-        THEN 'OCASIONAL'
-        
+        WHEN (COALESCE(tx.count_3m, 0) + COALESCE(cc.count_3m, 0)) >= 15 THEN 'MUITO_FREQUENTE'
+        WHEN (COALESCE(tx.count_3m, 0) + COALESCE(cc.count_3m, 0)) >= 6 THEN 'FREQUENTE'
+        WHEN (COALESCE(tx.count_3m, 0) + COALESCE(cc.count_3m, 0)) >= 2 THEN 'OCASIONAL'
         ELSE 'RARO'
     END as frequencia_uso,
     
     -- ========== ALERTAS ==========
     CASE 
-        -- Alerta se gasto aumentou mais de 30% no último mês
-        WHEN (COALESCE(SUM(CASE 
-            WHEN t.date >= DATE_SUB(CURDATE(), INTERVAL 2 MONTH) 
-             AND t.date < DATE_SUB(CURDATE(), INTERVAL 1 MONTH) 
-            THEN t.amount END), 0) +
-         COALESCE(SUM(CASE 
-            WHEN cp.date >= DATE_SUB(CURDATE(), INTERVAL 2 MONTH) 
-             AND cp.date < DATE_SUB(CURDATE(), INTERVAL 1 MONTH) 
-            THEN cp.amount END), 0)) > 0 
-         AND
-            (((COALESCE(SUM(CASE WHEN t.date >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) THEN t.amount END), 0) +
-               COALESCE(SUM(CASE WHEN cp.date >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) THEN cp.amount END), 0)) -
-              (COALESCE(SUM(CASE 
-                  WHEN t.date >= DATE_SUB(CURDATE(), INTERVAL 2 MONTH) 
-                   AND t.date < DATE_SUB(CURDATE(), INTERVAL 1 MONTH) 
-                  THEN t.amount END), 0) +
-               COALESCE(SUM(CASE 
-                  WHEN cp.date >= DATE_SUB(CURDATE(), INTERVAL 2 MONTH) 
-                   AND cp.date < DATE_SUB(CURDATE(), INTERVAL 1 MONTH) 
-                  THEN cp.amount END), 0))) /
-             (COALESCE(SUM(CASE 
-                 WHEN t.date >= DATE_SUB(CURDATE(), INTERVAL 2 MONTH) 
-                  AND t.date < DATE_SUB(CURDATE(), INTERVAL 1 MONTH) 
-                 THEN t.amount END), 0) +
-              COALESCE(SUM(CASE 
-                 WHEN cp.date >= DATE_SUB(CURDATE(), INTERVAL 2 MONTH) 
-                  AND cp.date < DATE_SUB(CURDATE(), INTERVAL 1 MONTH) 
-                 THEN cp.amount END), 0))) * 100 > 30
-        THEN 'AUMENTO_SIGNIFICATIVO'
+        WHEN (COALESCE(tx.sum_prev_month, 0) + COALESCE(cc.sum_prev_month, 0)) > 0 AND
+             (((COALESCE(tx.sum_1m, 0) + COALESCE(cc.sum_1m, 0)) -
+               (COALESCE(tx.sum_prev_month, 0) + COALESCE(cc.sum_prev_month, 0))) /
+              (COALESCE(tx.sum_prev_month, 0) + COALESCE(cc.sum_prev_month, 0))) * 100 > 30 THEN
+            'AUMENTO_SIGNIFICATIVO'
         ELSE 'NORMAL'
     END as alerta_variacao
 
 FROM User u
 CROSS JOIN Category c
-LEFT JOIN Transaction t ON c.id = t.categoryId 
-    AND t.type = 'EXPENSE' 
-    AND t.status = 'COMPLETED' 
-    AND t.userId = u.id
-LEFT JOIN CreditCardPurchase cp ON c.id = cp.categoryId 
-    AND cp.userId = u.id
+LEFT JOIN tx ON tx.userId = u.id AND tx.categoryId = c.id
+LEFT JOIN cc ON cc.userId = u.id AND cc.categoryId = c.id
 WHERE c.type = 'EXPENSE' 
   AND u.isActive = TRUE
-GROUP BY u.id, c.id, c.name, c.icon
-HAVING total_ultimos_3_meses > 0
+  AND (COALESCE(tx.sum_3m, 0) + COALESCE(cc.sum_3m, 0)) > 0
 ORDER BY u.id, total_ultimos_3_meses DESC;
 
 

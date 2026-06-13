@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
-import { Receipt, Plus, TrendingUp, TrendingDown, Edit2, Trash2, Filter, X, ArrowLeftRight } from 'lucide-react'
+import { Receipt, Plus, TrendingUp, TrendingDown, Edit2, Trash2, Filter, X, ArrowLeftRight, Upload } from 'lucide-react'
 import LoadingSpinner from '../components/LoadingSpinner'
+import { parseInterCsv, type ParsedInterTransaction } from '@/lib/inter-csv-parser'
 
 
 const dateUtils = {
@@ -78,6 +79,11 @@ export default function TransactionsPage() {
     const [categories, setCategories] = useState<Category[]>([])
     const [loading, setLoading] = useState(true)
     const [showModal, setShowModal] = useState(false)
+    const [showImportModal, setShowImportModal] = useState(false)
+    const [importAccountId, setImportAccountId] = useState('')
+    const [importPreview, setImportPreview] = useState<ParsedInterTransaction[]>([])
+    const [importError, setImportError] = useState('')
+    const [importing, setImporting] = useState(false)
     const [showFilters, setShowFilters] = useState(false)
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
     const [filters, setFilters] = useState({
@@ -337,6 +343,73 @@ export default function TransactionsPage() {
         }
     }
 
+    const handleCsvFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        setImportError('')
+        setImportPreview([])
+
+        try {
+            const text = await file.text()
+            const parsed = parseInterCsv(text)
+            setImportPreview(parsed)
+        } catch (error) {
+            setImportError(error instanceof Error ? error.message : 'Erro ao ler o arquivo CSV')
+        }
+
+        e.target.value = ''
+    }
+
+    const handleImport = async () => {
+        if (!importAccountId) {
+            setImportError('Selecione a conta de destino')
+            return
+        }
+        if (importPreview.length === 0) {
+            setImportError('Nenhuma transação para importar')
+            return
+        }
+
+        setImporting(true)
+        setImportError('')
+
+        try {
+            const res = await fetch('/api/transactions/import', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    accountId: importAccountId,
+                    transactions: importPreview,
+                }),
+            })
+
+            const data = await res.json()
+
+            if (!res.ok) {
+                setImportError(typeof data.error === 'string' ? data.error : 'Erro ao importar transações')
+                return
+            }
+
+            alert(data.message)
+            setShowImportModal(false)
+            setImportAccountId('')
+            setImportPreview([])
+            loadData()
+        } catch (error) {
+            console.error('Erro ao importar:', error)
+            setImportError('Erro ao importar transações')
+        } finally {
+            setImporting(false)
+        }
+    }
+
+    const importSummary = useMemo(() => {
+        const income = importPreview.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0)
+        const expense = importPreview.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0)
+        return { income, expense, count: importPreview.length }
+    }, [importPreview])
+
     const handleDelete = async (id: string) => {
         if (!confirm('Tem certeza que deseja excluir esta transação?')) {
             return
@@ -388,6 +461,18 @@ export default function TransactionsPage() {
                                 {[filters.startDate, filters.endDate, filters.accountId, filters.categoryId].filter(Boolean).length}
                             </span>
                         )}
+                    </button>
+                    <button
+                        onClick={() => {
+                            setImportAccountId('')
+                            setImportPreview([])
+                            setImportError('')
+                            setShowImportModal(true)
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    >
+                        <Upload className="h-5 w-5" />
+                        Importar CSV
                     </button>
                     <button
                         onClick={() => {
@@ -640,6 +725,121 @@ export default function TransactionsPage() {
             </div>
 
             
+            {showImportModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                            Importar extrato Inter (CSV)
+                        </h2>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                            Exporte o extrato da conta corrente no app do Inter e selecione qual conta do FinanPlus receberá essas transações.
+                        </p>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Conta de destino
+                                </label>
+                                <select
+                                    value={importAccountId}
+                                    onChange={(e) => setImportAccountId(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                >
+                                    <option value="">Selecione a conta</option>
+                                    {accounts.map((account) => (
+                                        <option key={account.id} value={account.id}>{account.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Arquivo CSV
+                                </label>
+                                <input
+                                    type="file"
+                                    accept=".csv,text/csv"
+                                    onChange={handleCsvFile}
+                                    className="w-full text-sm text-gray-600 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900/30 dark:file:text-blue-300"
+                                />
+                            </div>
+
+                            {importError && (
+                                <p className="text-sm text-red-600 dark:text-red-400">{importError}</p>
+                            )}
+
+                            {importPreview.length > 0 && (
+                                <div>
+                                    <div className="flex gap-4 text-sm mb-3">
+                                        <span className="text-gray-600 dark:text-gray-400">
+                                            {importSummary.count} transação(ões)
+                                        </span>
+                                        <span className="text-green-600">
+                                            + R$ {importSummary.income.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                        </span>
+                                        <span className="text-red-600">
+                                            - R$ {importSummary.expense.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                        </span>
+                                    </div>
+                                    <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden max-h-64 overflow-y-auto">
+                                        <table className="min-w-full text-sm">
+                                            <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0">
+                                                <tr>
+                                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300">Data</th>
+                                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300">Descrição</th>
+                                                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-300">Valor</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                                                {importPreview.map((item, i) => (
+                                                    <tr key={i}>
+                                                        <td className="px-3 py-2 whitespace-nowrap text-gray-900 dark:text-white">
+                                                            {dateUtils.formatBR(item.date)}
+                                                        </td>
+                                                        <td className="px-3 py-2 text-gray-900 dark:text-white truncate max-w-xs" title={item.description}>
+                                                            {item.description}
+                                                        </td>
+                                                        <td className={`px-3 py-2 text-right font-medium whitespace-nowrap ${item.type === 'INCOME' ? 'text-green-600' : 'text-red-600'}`}>
+                                                            {item.type === 'INCOME' ? '+' : '-'} R$ {item.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                                        Transações duplicadas (mesma data, descrição e valor) serão ignoradas. Categoria padrão: Outros.
+                                    </p>
+                                </div>
+                            )}
+
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowImportModal(false)
+                                        setImportAccountId('')
+                                        setImportPreview([])
+                                        setImportError('')
+                                    }}
+                                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleImport}
+                                    disabled={importing || importPreview.length === 0 || !importAccountId}
+                                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {importing ? 'Importando...' : `Importar ${importPreview.length || ''} transação(ões)`}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {showModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
