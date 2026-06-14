@@ -85,7 +85,6 @@ export default function CardsPage() {
             if (res.ok) {
                 const data = await res.json()
 
-                
                 const cardsWithDebt = data.map((card: Card) => {
                     const currentDebt = card.currentDebt || Number(card.initialDebt) || 0
                     const usagePercentage = (currentDebt / Number(card.cardLimit)) * 100
@@ -101,8 +100,6 @@ export default function CardsPage() {
             }
         } catch (error) {
             console.error('Erro ao carregar cartões:', error)
-        } finally {
-            setLoading(false)
         }
     }
 
@@ -131,9 +128,12 @@ export default function CardsPage() {
     }
 
     useEffect(() => {
-        loadCards()
-        loadAccounts()
-        loadCategories()
+        const loadAll = async () => {
+            setLoading(true)
+            await Promise.all([loadCards(), loadAccounts(), loadCategories()])
+            setLoading(false)
+        }
+        loadAll()
     }, [])
 
     const handleSubmit = async (e: React.FormEvent) => {

@@ -12,36 +12,44 @@ const transferSchema = z.object({
 });
 
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
+    const { searchParams } = new URL(request.url);
+    const accountId = searchParams.get("accountId");
+
+    const where: {
+      userId: string;
+      OR?: Array<
+        | { fromAccountId: string }
+        | { toAccountId: string }
+      >;
+    } = { userId: user.userId };
+
+    if (accountId) {
+      where.OR = [{ fromAccountId: accountId }, { toAccountId: accountId }];
+    }
+
     const transfers = await prisma.transfer.findMany({
-      where: { userId: user.userId },
-      include: {
-        fromAccount: true,
-        toAccount: true,
+      where,
+      select: {
+        id: true,
+        amount: true,
+        date: true,
+        description: true,
+        fromAccount: { select: { id: true, name: true } },
+        toAccount: { select: { id: true, name: true } },
       },
       orderBy: { date: "desc" },
     });
 
-    
     const serializedTransfers = transfers.map((transfer) => ({
       ...transfer,
       amount: transfer.amount.toNumber(),
-      fromAccount: {
-        ...transfer.fromAccount,
-        initialBalance: transfer.fromAccount.initialBalance.toNumber(),
-        currentBalance: transfer.fromAccount.currentBalance.toNumber(),
-      },
-      toAccount: {
-        ...transfer.toAccount,
-        initialBalance: transfer.toAccount.initialBalance.toNumber(),
-        currentBalance: transfer.toAccount.currentBalance.toNumber(),
-      },
     }));
 
     return NextResponse.json(serializedTransfers);

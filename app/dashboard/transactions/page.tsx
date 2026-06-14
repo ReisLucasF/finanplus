@@ -190,77 +190,71 @@ export default function TransactionsPage() {
         
         const sortedDates = Object.keys(itemsByDate).sort((a, b) => b.localeCompare(a))
 
-        
-        const accountBalances = new Map<string, number>()
-        accounts.forEach(account => {
-            accountBalances.set(account.id, account.initialBalance)
-        })
-
-        
-        const allDates = [...sortedDates].reverse()
-        const dailyBalancesMap = new Map<string, Map<string, number>>()
-
-        
         const allOperations: Array<{ date: string, type: 'transaction' | 'transfer', data: Transaction | Transfer }> = [
             ...transactions.map(t => ({ date: dateUtils.toDateString(t.date), type: 'transaction' as const, data: t })),
             ...transfers.map(t => ({ date: dateUtils.toDateString(t.date), type: 'transfer' as const, data: t }))
         ].sort((a, b) => a.date.localeCompare(b.date))
 
-        
-        allOperations.forEach(op => {
+        const applyOperation = (
+            balances: Map<string, number>,
+            op: { type: 'transaction' | 'transfer', data: Transaction | Transfer },
+        ) => {
             if (op.type === 'transaction') {
                 const transaction = op.data as Transaction
-                const currentBalance = accountBalances.get(transaction.account.id) || 0
+                const currentBalance = balances.get(transaction.account.id) || 0
                 const newBalance = transaction.type === 'INCOME'
                     ? currentBalance + transaction.amount
                     : currentBalance - transaction.amount
-                accountBalances.set(transaction.account.id, newBalance)
-            } else {
-                const transfer = op.data as Transfer
-                
-                const fromBalance = accountBalances.get(transfer.fromAccount.id) || 0
-                accountBalances.set(transfer.fromAccount.id, fromBalance - transfer.amount)
-                
-                const toBalance = accountBalances.get(transfer.toAccount.id) || 0
-                accountBalances.set(transfer.toAccount.id, toBalance + transfer.amount)
+                balances.set(transaction.account.id, newBalance)
+                return
             }
-        })
 
-        
-        const filteredBalances = new Map<string, number>()
+            const transfer = op.data as Transfer
+            const fromBalance = balances.get(transfer.fromAccount.id) || 0
+            balances.set(transfer.fromAccount.id, fromBalance - transfer.amount)
+            const toBalance = balances.get(transfer.toAccount.id) || 0
+            balances.set(transfer.toAccount.id, toBalance + transfer.amount)
+        }
+
+        const opsByDate = new Map<string, typeof allOperations>()
+        for (const op of allOperations) {
+            if (!opsByDate.has(op.date)) opsByDate.set(op.date, [])
+            opsByDate.get(op.date)!.push(op)
+        }
+
+        const endOfDayBalance = new Map<string, Map<string, number>>()
+        const runningBalance = new Map<string, number>()
         accounts.forEach(account => {
-            filteredBalances.set(account.id, account.initialBalance)
+            runningBalance.set(account.id, account.initialBalance)
         })
 
-        allDates.forEach(date => {
-            
-            const relevantOps = allOperations.filter(op => op.date <= date)
+        for (const date of [...opsByDate.keys()].sort((a, b) => a.localeCompare(b))) {
+            for (const op of opsByDate.get(date)!) {
+                applyOperation(runningBalance, op)
+            }
+            endOfDayBalance.set(date, new Map(runningBalance))
+        }
 
-            
+        const getBalanceOnDate = (targetDate: string) => {
+            let latest: Map<string, number> | null = null
+            for (const [date, balances] of endOfDayBalance) {
+                if (date <= targetDate) latest = balances
+                else break
+            }
+
+            if (latest) return latest
+
+            const initial = new Map<string, number>()
             accounts.forEach(account => {
-                filteredBalances.set(account.id, account.initialBalance)
+                initial.set(account.id, account.initialBalance)
             })
+            return initial
+        }
 
-            relevantOps.forEach(op => {
-                if (op.type === 'transaction') {
-                    const transaction = op.data as Transaction
-                    const currentBalance = filteredBalances.get(transaction.account.id) || 0
-                    const newBalance = transaction.type === 'INCOME'
-                        ? currentBalance + transaction.amount
-                        : currentBalance - transaction.amount
-                    filteredBalances.set(transaction.account.id, newBalance)
-                } else {
-                    const transfer = op.data as Transfer
-                    const fromBalance = filteredBalances.get(transfer.fromAccount.id) || 0
-                    filteredBalances.set(transfer.fromAccount.id, fromBalance - transfer.amount)
-                    const toBalance = filteredBalances.get(transfer.toAccount.id) || 0
-                    filteredBalances.set(transfer.toAccount.id, toBalance + transfer.amount)
-                }
-            })
-
-            
-            dailyBalancesMap.set(date, new Map(filteredBalances))
-        })
+        const dailyBalancesMap = new Map<string, Map<string, number>>()
+        for (const date of sortedDates) {
+            dailyBalancesMap.set(date, getBalanceOnDate(date))
+        }
 
         
         const result: Array<TransactionOrTransfer | { type: 'BALANCE_ROW', date: string, balances: Map<string, number> }> = []

@@ -120,79 +120,40 @@ export default function DashboardPage() {
     useEffect(() => {
         const loadData = async () => {
             try {
-                const res = await fetch('/api/auth/me')
-                if (!res.ok) {
+                const params = new URLSearchParams({
+                    startDate: dateRange.start.toISOString(),
+                    endDate: dateRange.end.toISOString(),
+                })
+
+                const [overviewRes, analyticsRes] = await Promise.all([
+                    fetch(`/api/dashboard/overview?${params}`),
+                    fetch('/api/analytics/financial-overview'),
+                ])
+
+                if (!overviewRes.ok) {
                     router.push('/login')
                     return
                 }
 
-                
-                const [accountsRes, cardsRes, goalsRes, transactionsRes, recurringsRes, categoriesRes, investmentsRes, cardExpensesRes, analyticsRes] = await Promise.all([
-                    fetch('/api/accounts'),
-                    fetch('/api/cards'),
-                    fetch('/api/goals'),
-                    fetch('/api/transactions'),
-                    fetch('/api/recurring-transactions'),
-                    fetch('/api/categories'),
-                    fetch('/api/investments'),
-                    fetch(`/api/cards/expenses-by-category?startDate=${dateRange.start.toISOString()}&endDate=${dateRange.end.toISOString()}`),
-                    fetch('/api/analytics/financial-overview')
-                ])
+                const overview = await overviewRes.json()
+                const analyticsData = analyticsRes.ok
+                    ? await analyticsRes.json()
+                    : { dashboard: null, alerts: [], creditCards: [], patrimonyEvolution: [] }
 
-                const accounts = accountsRes.ok ? await accountsRes.json() : []
-                const cards = cardsRes.ok ? await cardsRes.json() : []
-                const goals = goalsRes.ok ? await goalsRes.json() : []
-                const allTransactions = transactionsRes.ok ? await transactionsRes.json() : []
-                const recurrings = recurringsRes.ok ? await recurringsRes.json() : []
-                const categories = categoriesRes.ok ? await categoriesRes.json() : []
-                const investments = investmentsRes.ok ? await investmentsRes.json() : []
-                const cardExpensesByCategory = cardExpensesRes.ok ? await cardExpensesRes.json() : []
-                const analyticsData = analyticsRes.ok ? await analyticsRes.json() : { dashboard: null, alerts: [], creditCards: [], patrimonyEvolution: [] }
-
-                
                 setAnalytics(analyticsData)
 
-                
-                const investmentSummaries = await Promise.all(
-                    investments.map((inv: any) =>
-                        fetch(`/api/investments/${inv.id}/summary`)
-                            .then(res => res.ok ? res.json() : null)
-                            .catch(() => null)
-                    )
-                )
+                const investmentTotals = overview.investments
+                const accounts = overview.accounts
+                const totalAccountsBalance = overview.available
 
-                
-                const investmentTotals = investmentSummaries.reduce((acc, summaryData) => {
-                    if (summaryData && summaryData.summary) {
-                        const s = summaryData.summary
-                        return {
-                            total: acc.total + 1,
-                            invested: acc.invested + (s.totalInvested || 0),
-                            current: acc.current + (s.currentValue || 0),
-                            profit: acc.profit + (s.profitLoss || 0),
-                        }
-                    }
-                    return acc
-                }, { total: 0, invested: 0, current: 0, profit: 0 })
-
-                investmentTotals.profitPercentage = investmentTotals.invested > 0
-                    ? (investmentTotals.profit / investmentTotals.invested) * 100
-                    : 0
-
-                
-                const totalAccountsBalance = accounts.reduce((sum: number, acc: any) => {
-                    const balance = Number(acc.currentBalance ?? acc.balance ?? acc.amount) || 0
-                    return sum + balance
-                }, 0)
-
-                const goalsWithCalculated = goals.map((goal: any) => {
+                const goalsWithCalculated = overview.goals.map((goal: any) => {
                     const accountId = goal.account?.id || goal.accountId
                     const accountFromList = accountId
                         ? accounts.find((acc: any) => acc.id === accountId)
                         : undefined
                     const fallbackBalance = Number(goal.currentAmount) || 0
                     const accountBalance = accountFromList
-                        ? (Number(accountFromList.currentBalance ?? accountFromList.balance ?? accountFromList.amount) || 0)
+                        ? (Number(accountFromList.currentBalance) || 0)
                         : (accountId ? fallbackBalance : totalAccountsBalance)
 
                     const calculatedAmount = goal.includeInvestments
@@ -207,58 +168,17 @@ export default function DashboardPage() {
                     }
                 })
 
-                
-                const transactions = allTransactions.filter((t: any) => {
-                    const date = new Date(t.date)
-                    return date >= dateRange.start && date <= dateRange.end
-                })
-
-                
-                const rangeDuration = dateRange.end.getTime() - dateRange.start.getTime()
-                const prevStart = new Date(dateRange.start.getTime() - rangeDuration)
-                const prevEnd = new Date(dateRange.start.getTime() - 1)
-
-                const previousTransactions = allTransactions.filter((t: any) => {
-                    const date = new Date(t.date)
-                    return date >= prevStart && date <= prevEnd
-                })
-
-                
-                const available = accounts.reduce((sum: number, acc: any) => {
-                    const balance = parseFloat(acc.currentBalance) || 0
-                    return sum + balance
-                }, 0)
-
-                const income = transactions
-                    .filter((t: any) => t.type === 'INCOME')
-                    .reduce((sum: number, t: any) => sum + (parseFloat(t.amount) || 0), 0)
-
-                const expenses = transactions
-                    .filter((t: any) => t.type === 'EXPENSE')
-                    .reduce((sum: number, t: any) => sum + (parseFloat(t.amount) || 0), 0)
-
-                
-                const prevIncome = previousTransactions
-                    .filter((t: any) => t.type === 'INCOME')
-                    .reduce((sum: number, t: any) => sum + (parseFloat(t.amount) || 0), 0)
-
-                const prevExpenses = previousTransactions
-                    .filter((t: any) => t.type === 'EXPENSE')
-                    .reduce((sum: number, t: any) => sum + (parseFloat(t.amount) || 0), 0)
-
-                
                 const now = new Date()
-                const futureRecurringIncome = recurrings
+                const futureRecurringIncome = overview.recurrings
                     .filter((r: any) => r.isActive && r.type === 'INCOME')
                     .reduce((sum: number, r: any) => {
-                        
                         const amount = parseFloat(r.amount) || 0
                         const futureStart = now > dateRange.start ? now : dateRange.start
                         const occurrences = calculateOccurrencesInPeriod(r, futureStart, dateRange.end)
                         return sum + (amount * occurrences)
                     }, 0)
 
-                const futureRecurringExpenses = recurrings
+                const futureRecurringExpenses = overview.recurrings
                     .filter((r: any) => r.isActive && r.type === 'EXPENSE')
                     .reduce((sum: number, r: any) => {
                         const amount = parseFloat(r.amount) || 0
@@ -267,77 +187,25 @@ export default function DashboardPage() {
                         return sum + (amount * occurrences)
                     }, 0)
 
+                const income = overview.income || 0
+                const expenses = overview.expenses || 0
+                const available = overview.available || 0
                 const predicted = available + income - expenses + futureRecurringIncome - futureRecurringExpenses
-                const predictedIncome = futureRecurringIncome 
-
-                
-                const expensesByCategory: { [key: string]: { value: number; color?: string } } = {}
-                const incomeByCategory: { [key: string]: { value: number; color?: string } } = {}
-
-                console.log(' Dashboard - Transações filtradas:', transactions.length)
-                console.log(' Dashboard - Exemplos de transações:', transactions.slice(0, 3))
-
-                transactions.forEach((t: any) => {
-                    const categoryName = t.category?.name || 'Sem categoria'
-                    const categoryColor = t.category?.color && t.category.color !== '#999999' && t.category.color !== ''
-                        ? t.category.color
-                        : undefined
-                    const amount = typeof t.amount === 'number' ? t.amount : parseFloat(t.amount) || 0
-
-                    console.log(` Transação: ${t.description} - Tipo: ${t.type} - Categoria: ${categoryName} - Valor: ${amount}`)
-
-                    if (t.type === 'EXPENSE') {
-                        if (!expensesByCategory[categoryName]) {
-                            expensesByCategory[categoryName] = {
-                                value: 0,
-                                color: categoryColor
-                            }
-                        }
-                        expensesByCategory[categoryName].value += amount
-                    } else if (t.type === 'INCOME') {
-                        if (!incomeByCategory[categoryName]) {
-                            incomeByCategory[categoryName] = {
-                                value: 0,
-                                color: categoryColor
-                            }
-                        }
-                        incomeByCategory[categoryName].value += amount
-                    }
-                })
-
-                const expensesChart = Object.entries(expensesByCategory).map(([name, data]) => ({
-                    name,
-                    value: data.value,
-                    ...(data.color && { color: data.color })
-                }))
-
-                const incomeChart = Object.entries(incomeByCategory).map(([name, data]) => ({
-                    name,
-                    value: data.value,
-                    ...(data.color && { color: data.color })
-                }))
-
-                console.log(' Dashboard - Despesas por categoria (FINAL):', expensesChart)
-                console.log(' Dashboard - Receitas por categoria (FINAL):', incomeChart)
 
                 setStats({
-                    income: income || 0,
-                    expenses: expenses || 0,
-                    available: available || 0,
-                    predicted: predicted || 0,
-                    predictedIncome: predictedIncome || 0,
+                    income,
+                    expenses,
+                    available,
+                    predicted,
+                    predictedIncome: futureRecurringIncome,
                     accounts,
-                    cards,
+                    cards: overview.cards,
                     goals: goalsWithCalculated,
-                    expensesByCategory: expensesChart,
-                    incomeByCategory: incomeChart,
-                    cardExpensesByCategory: cardExpensesByCategory,
-                    previousMonth: {
-                        income: prevIncome || 0,
-                        expenses: prevExpenses || 0,
-                        balance: prevIncome - prevExpenses
-                    },
-                    investments: investmentTotals
+                    expensesByCategory: overview.expensesByCategory,
+                    incomeByCategory: overview.incomeByCategory,
+                    cardExpensesByCategory: overview.cardExpensesByCategory,
+                    previousMonth: overview.previousMonth,
+                    investments: investmentTotals,
                 })
             } catch (error) {
                 console.error('Erro ao carregar dados:', error)

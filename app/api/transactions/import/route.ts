@@ -18,6 +18,15 @@ const importSchema = z.object({
     .min(1),
 });
 
+function buildDedupeKey(item: {
+  date: string;
+  description: string;
+  amount: number;
+  type: string;
+}) {
+  return `${item.date}|${item.description}|${item.amount}|${item.type}`;
+}
+
 export async function POST(request: Request) {
   try {
     const user = await getCurrentUser();
@@ -43,43 +52,68 @@ export async function POST(request: Request) {
       a.date.localeCompare(b.date),
     );
 
+    const minDate = new Date(`${sorted[0].date}T00:00:00.000Z`);
+    const maxDate = new Date(`${sorted[sorted.length - 1].date}T23:59:59.999Z`);
+
     const result = await prisma.$transaction(async (tx) => {
       const importCategory = await resolveImportCategory(tx);
+
+      const existingRows = await tx.transaction.findMany({
+        where: {
+          userId: user.userId,
+          accountId,
+          date: { gte: minDate, lte: maxDate },
+        },
+        select: {
+          description: true,
+          amount: true,
+          type: true,
+          date: true,
+        },
+      });
+
+      const existingKeys = new Set(
+        existingRows.map((row) =>
+          buildDedupeKey({
+            date: row.date.toISOString().slice(0, 10),
+            description: row.description,
+            amount: row.amount.toNumber(),
+            type: row.type,
+          }),
+        ),
+      );
+
       let balance = account.currentBalance.toNumber();
       let imported = 0;
       let skipped = 0;
+      const toCreate: Array<{
+        userId: string;
+        accountId: string;
+        categoryId: string;
+        type: "INCOME" | "EXPENSE";
+        description: string;
+        amount: number;
+        date: Date;
+        status: "COMPLETED";
+      }> = [];
 
       for (const item of sorted) {
-        const dateStart = new Date(`${item.date}T00:00:00.000Z`);
-        const dateEnd = new Date(`${item.date}T23:59:59.999Z`);
-
-        const existing = await tx.transaction.findFirst({
-          where: {
-            userId: user.userId,
-            accountId,
-            description: item.description,
-            amount: item.amount,
-            type: item.type,
-            date: { gte: dateStart, lte: dateEnd },
-          },
-        });
-
-        if (existing) {
+        const key = buildDedupeKey(item);
+        if (existingKeys.has(key)) {
           skipped++;
           continue;
         }
 
-        await tx.transaction.create({
-          data: {
-            userId: user.userId,
-            accountId,
-            categoryId: importCategory.id,
-            type: item.type,
-            description: item.description,
-            amount: item.amount,
-            date: new Date(`${item.date}T12:00:00.000Z`),
-            status: "COMPLETED",
-          },
+        existingKeys.add(key);
+        toCreate.push({
+          userId: user.userId,
+          accountId,
+          categoryId: importCategory.id,
+          type: item.type,
+          description: item.description,
+          amount: item.amount,
+          date: new Date(`${item.date}T12:00:00.000Z`),
+          status: "COMPLETED",
         });
 
         balance =
@@ -89,7 +123,8 @@ export async function POST(request: Request) {
         imported++;
       }
 
-      if (imported > 0) {
+      if (toCreate.length > 0) {
+        await tx.transaction.createMany({ data: toCreate });
         await tx.bankAccount.update({
           where: { id: accountId },
           data: { currentBalance: balance },

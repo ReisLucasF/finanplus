@@ -18,36 +18,53 @@ export async function GET() {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    const cards = await prisma.creditCard.findMany({
-      where: { userId: user.userId },
-      include: {
-        purchases: true,
-        payments: true,
-      },
-      orderBy: { createdAt: "desc" },
-    });
+    const [cards, purchaseSums, paymentSums] = await Promise.all([
+      prisma.creditCard.findMany({
+        where: { userId: user.userId },
+        select: {
+          id: true,
+          name: true,
+          cardLimit: true,
+          dueDay: true,
+          initialDebt: true,
+          color: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.creditCardPurchase.groupBy({
+        by: ["creditCardId"],
+        where: { userId: user.userId },
+        _sum: { amount: true },
+      }),
+      prisma.creditCardPayment.groupBy({
+        by: ["creditCardId"],
+        where: { userId: user.userId },
+        _sum: { amount: true },
+      }),
+    ]);
+
+    const purchaseMap = new Map(
+      purchaseSums.map((p) => [p.creditCardId, p._sum.amount?.toNumber() ?? 0]),
+    );
+    const paymentMap = new Map(
+      paymentSums.map((p) => [p.creditCardId, p._sum.amount?.toNumber() ?? 0]),
+    );
 
     const serializedCards = cards.map((card) => {
-      const totalPurchases = card.purchases.reduce(
-        (sum, p) => sum + p.amount.toNumber(),
-        0,
-      );
-      const totalPayments = card.payments.reduce(
-        (sum, p) => sum + p.amount.toNumber(),
-        0,
-      );
+      const purchases = purchaseMap.get(card.id) ?? 0;
+      const payments = paymentMap.get(card.id) ?? 0;
       const currentDebt =
-        card.initialDebt.toNumber() + totalPurchases - totalPayments;
+        card.initialDebt.toNumber() + purchases - payments;
 
       return {
-        ...card,
+        id: card.id,
+        name: card.name,
         cardLimit: card.cardLimit.toNumber(),
+        dueDay: card.dueDay,
         initialDebt: card.initialDebt.toNumber(),
+        color: card.color,
         currentDebt,
-        purchases: card.purchases.map((p) => ({
-          ...p,
-          amount: p.amount.toNumber(),
-        })),
       };
     });
 
@@ -69,7 +86,6 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-
     const data = cardSchema.parse(body);
 
     const card = await prisma.creditCard.create({
@@ -79,13 +95,18 @@ export async function POST(request: Request) {
       },
     });
 
-    const serializedCard = {
-      ...card,
-      cardLimit: card.cardLimit.toNumber(),
-      initialDebt: card.initialDebt.toNumber(),
-    };
-
-    return NextResponse.json(serializedCard, { status: 201 });
+    return NextResponse.json(
+      {
+        id: card.id,
+        name: card.name,
+        cardLimit: card.cardLimit.toNumber(),
+        dueDay: card.dueDay,
+        initialDebt: card.initialDebt.toNumber(),
+        color: card.color,
+        currentDebt: card.initialDebt.toNumber(),
+      },
+      { status: 201 },
+    );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues }, { status: 400 });

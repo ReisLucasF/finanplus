@@ -13,6 +13,16 @@ const transactionSchema = z.object({
   status: z.enum(["PENDING", "COMPLETED", "CANCELLED"]).default("COMPLETED"),
 });
 
+const transactionSelect = {
+  id: true,
+  type: true,
+  description: true,
+  amount: true,
+  date: true,
+  status: true,
+  account: { select: { id: true, name: true } },
+  category: { select: { id: true, name: true } },
+} as const;
 
 export async function GET(request: Request) {
   try {
@@ -22,35 +32,35 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const limit = searchParams.get("limit")
-      ? parseInt(searchParams.get("limit")!)
-      : undefined;
+    const limitParam = searchParams.get("limit");
+    const limit = limitParam ? parseInt(limitParam) : undefined;
     const accountId = searchParams.get("accountId");
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
 
-    const where: any = { userId: user.userId };
+    const where: {
+      userId: string;
+      accountId?: string;
+      date?: { gte?: Date; lte?: Date };
+    } = { userId: user.userId };
+
     if (accountId) where.accountId = accountId;
+    if (startDate || endDate) {
+      where.date = {};
+      if (startDate) where.date.gte = new Date(startDate);
+      if (endDate) where.date.lte = new Date(endDate);
+    }
 
     const transactions = await prisma.transaction.findMany({
       where,
-      include: {
-        account: true,
-        category: true,
-      },
+      select: transactionSelect,
       orderBy: { date: "desc" },
       take: limit,
     });
 
-    
     const serializedTransactions = transactions.map((tx) => ({
       ...tx,
       amount: tx.amount.toNumber(),
-      account: tx.account
-        ? {
-            ...tx.account,
-            initialBalance: tx.account.initialBalance.toNumber(),
-            currentBalance: tx.account.currentBalance.toNumber(),
-          }
-        : null,
     }));
 
     return NextResponse.json(serializedTransactions);
@@ -63,7 +73,6 @@ export async function GET(request: Request) {
   }
 }
 
-
 export async function POST(request: Request) {
   try {
     const user = await getCurrentUser();
@@ -74,7 +83,6 @@ export async function POST(request: Request) {
     const body = await request.json();
     const data = transactionSchema.parse(body);
 
-    
     const account = await prisma.bankAccount.findFirst({
       where: {
         id: data.accountId,
@@ -89,7 +97,6 @@ export async function POST(request: Request) {
       );
     }
 
-    
     if (
       data.type === "EXPENSE" &&
       account.currentBalance.toNumber() < data.amount
@@ -100,20 +107,15 @@ export async function POST(request: Request) {
       );
     }
 
-    
     const transaction = await prisma.$transaction(async (tx) => {
       const newTransaction = await tx.transaction.create({
         data: {
           ...data,
           userId: user.userId,
         },
-        include: {
-          account: true,
-          category: true,
-        },
+        select: transactionSelect,
       });
 
-      
       if (data.status === "COMPLETED") {
         const newBalance =
           data.type === "INCOME"
@@ -129,7 +131,10 @@ export async function POST(request: Request) {
       return newTransaction;
     });
 
-    return NextResponse.json(transaction, { status: 201 });
+    return NextResponse.json(
+      { ...transaction, amount: transaction.amount.toNumber() },
+      { status: 201 },
+    );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues }, { status: 400 });
