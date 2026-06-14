@@ -31,6 +31,12 @@ enum TransactionType {
   EXPENSE
 }
 
+enum CategoryScope {
+  INCOME
+  EXPENSE
+  BOTH
+}
+
 enum TransactionStatus {
   PENDING
   COMPLETED
@@ -164,7 +170,7 @@ model Category {
   id              String   @id @default(uuid())
   userId          String?  // Null para categorias do sistema
   name            String
-  type            TransactionType
+  type            CategoryScope
   icon            String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt

@@ -99,7 +99,7 @@ export const goalSchema = z.object({
 
 export const categorySchema = z.object({
   name: z.string().min(2, "Nome da categoria é obrigatório"),
-  type: z.enum(["INCOME", "EXPENSE"]),
+  type: z.enum(["INCOME", "EXPENSE", "BOTH"]),
   icon: z.string().optional(),
 });
 

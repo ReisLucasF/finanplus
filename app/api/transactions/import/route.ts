@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { resolveImportCategory } from "@/lib/category-db";
 import { z } from "zod";
 
 const importSchema = z.object({
@@ -38,27 +39,12 @@ export async function POST(request: Request) {
       );
     }
 
-    const [incomeCategory, expenseCategory] = await Promise.all([
-      prisma.category.findFirst({
-        where: { name: "Outros", type: "INCOME" },
-      }),
-      prisma.category.findFirst({
-        where: { name: "Outros", type: "EXPENSE" },
-      }),
-    ]);
-
-    if (!incomeCategory || !expenseCategory) {
-      return NextResponse.json(
-        { error: "Categorias padrão não encontradas" },
-        { status: 500 },
-      );
-    }
-
     const sorted = [...transactions].sort((a, b) =>
       a.date.localeCompare(b.date),
     );
 
     const result = await prisma.$transaction(async (tx) => {
+      const importCategory = await resolveImportCategory(tx);
       let balance = account.currentBalance.toNumber();
       let imported = 0;
       let skipped = 0;
@@ -83,14 +69,11 @@ export async function POST(request: Request) {
           continue;
         }
 
-        const categoryId =
-          item.type === "INCOME" ? incomeCategory.id : expenseCategory.id;
-
         await tx.transaction.create({
           data: {
             userId: user.userId,
             accountId,
-            categoryId,
+            categoryId: importCategory.id,
             type: item.type,
             description: item.description,
             amount: item.amount,

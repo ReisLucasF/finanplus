@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { getCategoryTypeLabel, getCategoryTypeColor } from '@/lib/category-utils'
 import { TrendingUp, Plus, Edit, Trash2 } from 'lucide-react'
 import LoadingSpinner from '../components/LoadingSpinner'
 
@@ -125,13 +126,13 @@ export default function CategoriesPage() {
                         {userCategories.map((category) => (
                             <div key={category.id} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <div className={`p-2 rounded-lg ${category.type === 'INCOME' ? 'bg-green-100 dark:bg-green-900/20' : 'bg-red-100 dark:bg-red-900/20'}`}>
-                                        <TrendingUp className={`h-5 w-5 ${category.type === 'INCOME' ? 'text-green-600' : 'text-red-600'}`} />
+                                    <div className={`p-2 rounded-lg ${getCategoryTypeColor(category.type).bg}`}>
+                                        <TrendingUp className={`h-5 w-5 ${getCategoryTypeColor(category.type).text}`} />
                                     </div>
                                     <div>
                                         <p className="font-medium text-gray-900 dark:text-white">{category.name}</p>
                                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                                            {category.type === 'INCOME' ? 'Receita' : 'Despesa'}
+                                            {getCategoryTypeLabel(category.type)}
                                         </p>
                                     </div>
                                 </div>
@@ -161,13 +162,13 @@ export default function CategoriesPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {systemCategories.map((category) => (
                         <div key={category.id} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 flex items-center gap-3">
-                            <div className={`p-2 rounded-lg ${category.type === 'INCOME' ? 'bg-green-100 dark:bg-green-900/20' : 'bg-red-100 dark:bg-red-900/20'}`}>
-                                <TrendingUp className={`h-5 w-5 ${category.type === 'INCOME' ? 'text-green-600' : 'text-red-600'}`} />
+                            <div className={`p-2 rounded-lg ${getCategoryTypeColor(category.type).bg}`}>
+                                <TrendingUp className={`h-5 w-5 ${getCategoryTypeColor(category.type).text}`} />
                             </div>
                             <div>
                                 <p className="font-medium text-gray-900 dark:text-white">{category.name}</p>
                                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                                    {category.type === 'INCOME' ? 'Receita' : 'Despesa'}
+                                    {getCategoryTypeLabel(category.type)}
                                 </p>
                             </div>
                         </div>
@@ -206,6 +207,7 @@ export default function CategoriesPage() {
                                 >
                                     <option value="INCOME">Receita</option>
                                     <option value="EXPENSE">Despesa</option>
+                                    <option value="BOTH">Receita e Despesa</option>
                                 </select>
                             </div>
                             <div className="flex gap-3 pt-4">

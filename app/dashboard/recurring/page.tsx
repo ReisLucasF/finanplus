@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { RefreshCw, Plus, Edit, Trash2, Play, Pause, Calendar, DollarSign } from 'lucide-react'
+import { categoryMatchesTransactionType } from '@/lib/category-utils'
 import LoadingSpinner from '../components/LoadingSpinner'
 
 interface Recurring {
@@ -423,7 +424,7 @@ export default function RecurringPage() {
                                     required
                                 >
                                     <option value="">Selecione uma categoria</option>
-                                    {categories.filter(c => c.type === formData.type).map((category) => (
+                                    {categories.filter(c => categoryMatchesTransactionType(c.type, formData.type)).map((category) => (
                                         <option key={category.id} value={category.id}>{category.name}</option>
                                     ))}
                                 </select>
