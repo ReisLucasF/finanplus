@@ -1,4 +1,4 @@
-export type BankId = "inter" | "bb" | "mercantil" | "bradesco";
+export type BankId = "inter" | "bb" | "mercantil" | "bradesco" | "nubank";
 
 export interface ParsedBankTransaction {
   date: string;
@@ -18,6 +18,7 @@ const BANK_LABELS: Record<BankId, string> = {
   bb: "Banco do Brasil",
   mercantil: "Banco Mercantil",
   bradesco: "Bradesco",
+  nubank: "Nubank",
 };
 
 const DATE_BR = /^\d{2}\/\d{2}\/\d{4}$/;
@@ -93,7 +94,7 @@ function dedupeTransactions(
 }
 
 function detectBank(content: string): BankId | null {
-  const firstLine = content.split(/\r?\n/)[0]?.trim() ?? "";
+  const firstLine = content.split(/\r?\n/)[0]?.trim().replace(/^\uFEFF/, "") ?? "";
 
   if (
     content.includes("Crédito (R$);Débito (R$)") ||
@@ -107,6 +108,10 @@ function detectBank(content: string): BankId | null {
     content.includes("Extrato Conta Corrente")
   ) {
     return "inter";
+  }
+
+  if (/^Data,Valor,Identificador/i.test(firstLine)) {
+    return "nubank";
   }
 
   if (firstLine.startsWith('"Data"') && firstLine.includes('"Valor"')) {
@@ -214,6 +219,30 @@ function parseMercantil(content: string): ParsedBankTransaction[] {
   return transactions;
 }
 
+function parseNubank(content: string): ParsedBankTransaction[] {
+  const transactions: ParsedBankTransaction[] = [];
+
+  for (const line of content.split(/\r?\n/)) {
+    if (!line.trim()) continue;
+
+    const cols = parseCsvLine(line.replace(/^\uFEFF/, ""));
+    if (cols.length < 4) continue;
+    if (cols[0] === "Data") continue;
+
+    const dateStr = cols[0].trim();
+    if (!DATE_BR.test(dateStr)) continue;
+
+    const rawValue = parseAmount(cols[1]);
+    const description = cols.slice(3).join(",").trim();
+
+    if (!description) continue;
+
+    transactions.push(buildTransaction(dateStr, description, rawValue));
+  }
+
+  return transactions;
+}
+
 function parseBradesco(content: string): ParsedBankTransaction[] {
   const transactions: ParsedBankTransaction[] = [];
   let inTransactionBlock = false;
@@ -283,6 +312,7 @@ const PARSERS: Record<BankId, (content: string) => ParsedBankTransaction[]> = {
   bb: parseBB,
   mercantil: parseMercantil,
   bradesco: parseBradesco,
+  nubank: parseNubank,
 };
 
 export function parseBankStatement(content: string): ParseResult {
@@ -290,7 +320,7 @@ export function parseBankStatement(content: string): ParseResult {
 
   if (!bank) {
     throw new Error(
-      "Formato não reconhecido. Suportamos extratos CSV/TXT do Inter, Banco do Brasil, Mercantil e Bradesco.",
+      "Formato não reconhecido. Suportamos extratos CSV/TXT do Inter, Banco do Brasil, Mercantil, Bradesco e Nubank.",
     );
   }
 
@@ -321,7 +351,7 @@ export function parseBankStatementFile(buffer: ArrayBuffer): ParseResult {
   }
 
   throw new Error(
-    "Formato não reconhecido. Suportamos extratos CSV/TXT do Inter, Banco do Brasil, Mercantil e Bradesco.",
+    "Formato não reconhecido. Suportamos extratos CSV/TXT do Inter, Banco do Brasil, Mercantil, Bradesco e Nubank.",
   );
 }
 

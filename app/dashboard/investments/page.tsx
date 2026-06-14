@@ -1,12 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Plus, Edit, Trash2, TrendingUp, TrendingDown, DollarSign, Briefcase, LineChart, RefreshCw } from 'lucide-react'
 import LoadingSpinner from '../components/LoadingSpinner'
 
 export default function InvestmentsPage() {
-    const router = useRouter()
     const [loading, setLoading] = useState(true)
     const [investments, setInvestments] = useState<any[]>([])
     const [investmentsSummaries, setInvestmentsSummaries] = useState<Map<string, any>>(new Map())
@@ -61,21 +59,25 @@ export default function InvestmentsPage() {
 
     const loadInvestments = async () => {
         try {
-            const res = await fetch('/api/investments')
-            if (res.ok) {
-                const data = await res.json()
+            const [investmentsRes, summariesRes] = await Promise.all([
+                fetch('/api/investments'),
+                fetch('/api/investments/summaries'),
+            ])
+
+            if (investmentsRes.ok) {
+                const data = await investmentsRes.json()
                 setInvestments(data)
 
-                
-                const summaries = new Map()
-                for (const inv of data) {
-                    const summaryRes = await fetch(`/api/investments/${inv.id}/summary`)
-                    if (summaryRes.ok) {
-                        const summaryData = await summaryRes.json()
-                        summaries.set(inv.id, summaryData.summary)
-                    }
+                if (summariesRes.ok) {
+                    const { summaries } = await summariesRes.json()
+                    const summaryMap = new Map(
+                        summaries.map((item: { id: string; summary: unknown }) => [
+                            item.id,
+                            item.summary,
+                        ]),
+                    )
+                    setInvestmentsSummaries(summaryMap)
                 }
-                setInvestmentsSummaries(summaries)
             }
         } catch (error) {
             console.error('Erro ao carregar investimentos:', error)
@@ -85,16 +87,8 @@ export default function InvestmentsPage() {
     }
 
     useEffect(() => {
-        const checkAuth = async () => {
-            const res = await fetch('/api/auth/me')
-            if (!res.ok) {
-                router.push('/login')
-                return
-            }
-            loadInvestments()
-        }
-        checkAuth()
-    }, [router])
+        loadInvestments()
+    }, [])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()

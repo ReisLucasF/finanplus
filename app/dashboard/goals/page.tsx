@@ -75,25 +75,10 @@ export default function GoalsPage() {
                 let investmentsTotal = 0
 
                 if (hasGoalsWithInvestments) {
-                    const investmentsRes = await fetch('/api/investments')
-                    if (investmentsRes.ok) {
-                        const investments = await investmentsRes.json()
-
-                        
-                        const summaries = await Promise.all(
-                            investments.map((inv: any) =>
-                                fetch(`/api/investments/${inv.id}/summary`)
-                                    .then(r => r.json())
-                                    .catch(() => null)
-                            )
-                        )
-
-                        investmentsTotal = summaries.reduce((total, summaryData) => {
-                            if (summaryData && summaryData.summary) {
-                                return total + (summaryData.summary.currentValue || 0)
-                            }
-                            return total
-                        }, 0)
+                    const summariesRes = await fetch('/api/investments/summaries')
+                    if (summariesRes.ok) {
+                        const { totals } = await summariesRes.json()
+                        investmentsTotal = totals?.current || 0
                     }
                 }
 
