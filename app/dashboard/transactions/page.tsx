@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
-import { Receipt, Plus, TrendingUp, TrendingDown, Edit2, Trash2, Filter, X, ArrowLeftRight, Upload } from 'lucide-react'
+import { Receipt, Plus, TrendingUp, TrendingDown, Edit2, Trash2, Filter, X, ArrowLeftRight, Upload, Tags, ChevronLeft, ChevronRight } from 'lucide-react'
 import { categoryMatchesTransactionType } from '@/lib/category-utils'
 import LoadingSpinner from '../components/LoadingSpinner'
 import { parseBankStatementFile, type ParsedBankTransaction, SUPPORTED_BANKS } from '@/lib/bank-statement-parser'
@@ -68,10 +68,7 @@ interface Transfer {
 
 type TransactionOrTransfer = Transaction | (Transfer & { type: 'TRANSFER' })
 
-interface DailyBalance {
-    date: string
-    accountBalances: { accountName: string, balance: number, accountId: string }[]
-}
+const PAGE_SIZE_OPTIONS = [30, 50, 100]
 
 export default function TransactionsPage() {
     const [transactions, setTransactions] = useState<Transaction[]>([])
@@ -79,6 +76,12 @@ export default function TransactionsPage() {
     const [accounts, setAccounts] = useState<Account[]>([])
     const [categories, setCategories] = useState<Category[]>([])
     const [loading, setLoading] = useState(true)
+    const [listLoading, setListLoading] = useState(false)
+    const [page, setPage] = useState(1)
+    const [pageSize, setPageSize] = useState(30)
+    const [total, setTotal] = useState(0)
+    const [totalPages, setTotalPages] = useState(1)
+    const [dailyBalances, setDailyBalances] = useState<Record<string, Record<string, number>>>({})
     const [showModal, setShowModal] = useState(false)
     const [showImportModal, setShowImportModal] = useState(false)
     const [importAccountId, setImportAccountId] = useState('')
@@ -86,6 +89,15 @@ export default function TransactionsPage() {
     const [importBankLabel, setImportBankLabel] = useState('')
     const [importError, setImportError] = useState('')
     const [importing, setImporting] = useState(false)
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+    const [showBulkModal, setShowBulkModal] = useState(false)
+    const [bulkSaving, setBulkSaving] = useState(false)
+    const [bulkForm, setBulkForm] = useState({
+        updateCategory: false,
+        categoryId: '',
+        updateDescription: false,
+        description: '',
+    })
     const [showFilters, setShowFilters] = useState(false)
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
     const [filters, setFilters] = useState({
@@ -93,7 +105,9 @@ export default function TransactionsPage() {
         endDate: '',
         accountId: '',
         categoryId: '',
+        description: '',
     })
+    const [descriptionInput, setDescriptionInput] = useState('')
     const [formData, setFormData] = useState({
         accountId: '',
         categoryId: '',
@@ -104,78 +118,152 @@ export default function TransactionsPage() {
         status: 'COMPLETED',
     })
 
-    const loadData = async () => {
+    const buildListQueryParams = (targetPage: number) => {
+        const params = new URLSearchParams({
+            page: String(targetPage),
+            limit: String(pageSize),
+        })
+        if (filters.startDate) params.set('startDate', filters.startDate)
+        if (filters.endDate) params.set('endDate', filters.endDate)
+        if (filters.accountId) params.set('accountId', filters.accountId)
+        if (filters.categoryId) params.set('categoryId', filters.categoryId)
+        if (filters.description) params.set('description', filters.description)
+        return params
+    }
+
+    const buildTransferQueryParams = () => {
+        const params = new URLSearchParams()
+        if (filters.startDate) params.set('startDate', filters.startDate)
+        if (filters.endDate) params.set('endDate', filters.endDate)
+        if (filters.accountId) params.set('accountId', filters.accountId)
+        if (filters.description) params.set('description', filters.description)
+        return params
+    }
+
+    const loadTransactionsList = async (targetPage = page) => {
+        setListLoading(true)
         try {
-            const [transRes, accRes, catRes, transferRes] = await Promise.all([
-                fetch('/api/transactions'),
-                fetch('/api/accounts'),
-                fetch('/api/categories'),
-                fetch('/api/transfers'),
+            const listParams = buildListQueryParams(targetPage)
+            const transferParams = buildTransferQueryParams()
+
+            const [transRes, transferRes] = await Promise.all([
+                fetch(`/api/transactions?${listParams}`),
+                fetch(`/api/transfers?${transferParams}`),
             ])
 
-            if (transRes.ok) setTransactions(await transRes.json())
-            if (accRes.ok) setAccounts(await accRes.json())
-            if (catRes.ok) setCategories(await catRes.json())
-            if (transferRes.ok) setTransfers(await transferRes.json())
+            if (transRes.ok) {
+                const data = await transRes.json()
+                setTransactions(data.data ?? [])
+                setTotal(data.pagination?.total ?? 0)
+                setTotalPages(data.pagination?.totalPages ?? 1)
+                setPage(data.pagination?.page ?? targetPage)
+
+                const dates = new Set<string>()
+                for (const tx of data.data ?? []) {
+                    dates.add(dateUtils.toDateString(tx.date))
+                }
+
+                if (transferRes.ok) {
+                    const transfersData = await transferRes.json()
+                    setTransfers(transfersData)
+                    for (const transfer of transfersData) {
+                        dates.add(dateUtils.toDateString(transfer.date))
+                    }
+                }
+
+                if (dates.size > 0) {
+                    const balanceParams = new URLSearchParams({
+                        dates: [...dates].join(','),
+                    })
+                    if (filters.accountId) {
+                        balanceParams.set('accountId', filters.accountId)
+                    }
+                    const balRes = await fetch(
+                        `/api/transactions/daily-balances?${balanceParams}`,
+                    )
+                    if (balRes.ok) {
+                        const { balances } = await balRes.json()
+                        setDailyBalances(balances ?? {})
+                    }
+                } else {
+                    setDailyBalances({})
+                }
+            }
         } catch (error) {
-            console.error('Erro ao carregar dados:', error)
+            console.error('Erro ao carregar transações:', error)
         } finally {
-            setLoading(false)
+            setListLoading(false)
         }
     }
 
+    const loadStaticData = async () => {
+        try {
+            const [accRes, catRes] = await Promise.all([
+                fetch('/api/accounts'),
+                fetch('/api/categories'),
+            ])
+            if (accRes.ok) setAccounts(await accRes.json())
+            if (catRes.ok) setCategories(await catRes.json())
+        } catch (error) {
+            console.error('Erro ao carregar dados:', error)
+        }
+    }
+
+    const reloadAll = async (targetPage = page) => {
+        await loadTransactionsList(targetPage)
+    }
+
     useEffect(() => {
-        loadData()
+        void loadStaticData().then(() => setLoading(false))
     }, [])
 
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            const value = descriptionInput.trim()
+            setFilters((prev) => {
+                if (prev.description === value) return prev
+                setPage(1)
+                setSelectedIds(new Set())
+                return { ...prev, description: value }
+            })
+        }, 400)
+        return () => clearTimeout(timer)
+    }, [descriptionInput])
+
+    useEffect(() => {
+        if (loading) return
+        void loadTransactionsList(page)
+    }, [loading, page, pageSize, filters])
+
+    const handleFilterChange = (partial: Partial<typeof filters>) => {
+        setPage(1)
+        setSelectedIds(new Set())
+        setFilters((prev) => ({ ...prev, ...partial }))
+    }
+
+    const handlePageSizeChange = (newSize: number) => {
+        setPage(1)
+        setSelectedIds(new Set())
+        setPageSize(newSize)
+    }
+
+    const goToPage = (newPage: number) => {
+        if (newPage < 1 || newPage > totalPages || newPage === page) return
+        setSelectedIds(new Set())
+        setPage(newPage)
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+
     
-    const filteredTransactions = useMemo(() => {
-        return transactions.filter(transaction => {
-            const transactionDate = dateUtils.toDateString(transaction.date)
-
-            if (filters.startDate && transactionDate < filters.startDate) {
-                return false
-            }
-            if (filters.endDate && transactionDate > filters.endDate) {
-                return false
-            }
-            if (filters.accountId && transaction.account.id !== filters.accountId) {
-                return false
-            }
-            if (filters.categoryId && transaction.category.id !== filters.categoryId) {
-                return false
-            }
-            return true
-        })
-    }, [transactions, filters])
-
-    
-    const filteredTransfers = useMemo(() => {
-        return transfers.filter(transfer => {
-            const transferDate = dateUtils.toDateString(transfer.date)
-
-            if (filters.startDate && transferDate < filters.startDate) {
-                return false
-            }
-            if (filters.endDate && transferDate > filters.endDate) {
-                return false
-            }
-            
-            if (filters.accountId && transfer.fromAccount.id !== filters.accountId && transfer.toAccount.id !== filters.accountId) {
-                return false
-            }
-            
-            return true
-        })
-    }, [transfers, filters])
+    const filteredTransfers = useMemo(() => transfers, [transfers])
 
     
     const transactionsWithBalances = useMemo(() => {
-        if (filteredTransactions.length === 0 && filteredTransfers.length === 0) return []
+        if (transactions.length === 0 && filteredTransfers.length === 0) return []
 
         
         const allItems: TransactionOrTransfer[] = [
-            ...filteredTransactions,
+            ...transactions,
             ...filteredTransfers.map(t => ({ ...t, type: 'TRANSFER' as const }))
         ]
 
@@ -190,73 +278,6 @@ export default function TransactionsPage() {
         
         const sortedDates = Object.keys(itemsByDate).sort((a, b) => b.localeCompare(a))
 
-        const allOperations: Array<{ date: string, type: 'transaction' | 'transfer', data: Transaction | Transfer }> = [
-            ...transactions.map(t => ({ date: dateUtils.toDateString(t.date), type: 'transaction' as const, data: t })),
-            ...transfers.map(t => ({ date: dateUtils.toDateString(t.date), type: 'transfer' as const, data: t }))
-        ].sort((a, b) => a.date.localeCompare(b.date))
-
-        const applyOperation = (
-            balances: Map<string, number>,
-            op: { type: 'transaction' | 'transfer', data: Transaction | Transfer },
-        ) => {
-            if (op.type === 'transaction') {
-                const transaction = op.data as Transaction
-                const currentBalance = balances.get(transaction.account.id) || 0
-                const newBalance = transaction.type === 'INCOME'
-                    ? currentBalance + transaction.amount
-                    : currentBalance - transaction.amount
-                balances.set(transaction.account.id, newBalance)
-                return
-            }
-
-            const transfer = op.data as Transfer
-            const fromBalance = balances.get(transfer.fromAccount.id) || 0
-            balances.set(transfer.fromAccount.id, fromBalance - transfer.amount)
-            const toBalance = balances.get(transfer.toAccount.id) || 0
-            balances.set(transfer.toAccount.id, toBalance + transfer.amount)
-        }
-
-        const opsByDate = new Map<string, typeof allOperations>()
-        for (const op of allOperations) {
-            if (!opsByDate.has(op.date)) opsByDate.set(op.date, [])
-            opsByDate.get(op.date)!.push(op)
-        }
-
-        const endOfDayBalance = new Map<string, Map<string, number>>()
-        const runningBalance = new Map<string, number>()
-        accounts.forEach(account => {
-            runningBalance.set(account.id, account.initialBalance)
-        })
-
-        for (const date of [...opsByDate.keys()].sort((a, b) => a.localeCompare(b))) {
-            for (const op of opsByDate.get(date)!) {
-                applyOperation(runningBalance, op)
-            }
-            endOfDayBalance.set(date, new Map(runningBalance))
-        }
-
-        const getBalanceOnDate = (targetDate: string) => {
-            let latest: Map<string, number> | null = null
-            for (const [date, balances] of endOfDayBalance) {
-                if (date <= targetDate) latest = balances
-                else break
-            }
-
-            if (latest) return latest
-
-            const initial = new Map<string, number>()
-            accounts.forEach(account => {
-                initial.set(account.id, account.initialBalance)
-            })
-            return initial
-        }
-
-        const dailyBalancesMap = new Map<string, Map<string, number>>()
-        for (const date of sortedDates) {
-            dailyBalancesMap.set(date, getBalanceOnDate(date))
-        }
-
-        
         const result: Array<TransactionOrTransfer | { type: 'BALANCE_ROW', date: string, balances: Map<string, number> }> = []
 
         sortedDates.forEach(date => {
@@ -266,27 +287,141 @@ export default function TransactionsPage() {
 
             result.push(...dayItems)
 
-            
+            const balanceData = dailyBalances[date]
             result.push({
                 type: 'BALANCE_ROW',
                 date,
-                balances: dailyBalancesMap.get(date) || new Map()
+                balances: new Map(
+                    balanceData ? Object.entries(balanceData) : [],
+                ),
             })
         })
 
         return result
-    }, [filteredTransactions, filteredTransfers, accounts, transactions, transfers])
+    }, [transactions, filteredTransfers, dailyBalances])
 
     const clearFilters = () => {
+        setPage(1)
+        setSelectedIds(new Set())
+        setDescriptionInput('')
         setFilters({
             startDate: '',
             endDate: '',
             accountId: '',
             categoryId: '',
+            description: '',
         })
     }
 
-    const hasActiveFilters = filters.startDate || filters.endDate || filters.accountId || filters.categoryId
+    const hasActiveFilters =
+        filters.startDate ||
+        filters.endDate ||
+        filters.accountId ||
+        filters.categoryId ||
+        filters.description
+
+    const filteredTransactionIds = useMemo(
+        () => transactions.map((t) => t.id),
+        [transactions],
+    )
+
+    const allFilteredSelected =
+        filteredTransactionIds.length > 0 &&
+        filteredTransactionIds.every((id) => selectedIds.has(id))
+
+    const selectedTransactions = useMemo(
+        () => transactions.filter((t) => selectedIds.has(t.id)),
+        [transactions, selectedIds],
+    )
+
+    const bulkCompatibleCategories = useMemo(() => {
+        if (selectedTransactions.length === 0) return categories
+        return categories.filter((cat) =>
+            selectedTransactions.every((t) =>
+                categoryMatchesTransactionType(cat.type, t.type),
+            ),
+        )
+    }, [categories, selectedTransactions])
+
+    const toggleSelect = (id: string) => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev)
+            if (next.has(id)) next.delete(id)
+            else next.add(id)
+            return next
+        })
+    }
+
+    const toggleSelectAllFiltered = () => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev)
+            if (allFilteredSelected) {
+                filteredTransactionIds.forEach((id) => next.delete(id))
+            } else {
+                filteredTransactionIds.forEach((id) => next.add(id))
+            }
+            return next
+        })
+    }
+
+    const clearSelection = () => setSelectedIds(new Set())
+
+    const openBulkModal = () => {
+        setBulkForm({
+            updateCategory: false,
+            categoryId: bulkCompatibleCategories[0]?.id ?? '',
+            updateDescription: false,
+            description: '',
+        })
+        setShowBulkModal(true)
+    }
+
+    const handleBulkSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+
+        if (selectedIds.size === 0) return
+
+        const updates: { categoryId?: string; description?: string } = {}
+        if (bulkForm.updateCategory && bulkForm.categoryId) {
+            updates.categoryId = bulkForm.categoryId
+        }
+        if (bulkForm.updateDescription && bulkForm.description.trim()) {
+            updates.description = bulkForm.description.trim()
+        }
+
+        if (Object.keys(updates).length === 0) {
+            alert('Marque ao menos uma opção para alterar')
+            return
+        }
+
+        setBulkSaving(true)
+        try {
+            const res = await fetch('/api/transactions/bulk', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ids: Array.from(selectedIds),
+                    updates,
+                }),
+            })
+
+            const data = await res.json()
+            if (!res.ok) {
+                alert(typeof data.error === 'string' ? data.error : 'Erro ao atualizar transações')
+                return
+            }
+
+            alert(data.message)
+            setShowBulkModal(false)
+            clearSelection()
+            reloadAll(page)
+        } catch (error) {
+            console.error('Erro:', error)
+            alert('Erro ao atualizar transações')
+        } finally {
+            setBulkSaving(false)
+        }
+    }
 
     const openEditModal = (transaction: Transaction) => {
         setEditingTransaction(transaction)
@@ -328,7 +463,7 @@ export default function TransactionsPage() {
                     date: dateUtils.today(),
                     status: 'COMPLETED',
                 })
-                loadData()
+                reloadAll(page)
             } else {
                 const error = await res.json()
                 alert(error.error || `Erro ao ${editingTransaction ? 'atualizar' : 'criar'} transação`)
@@ -394,7 +529,7 @@ export default function TransactionsPage() {
             setImportAccountId('')
             setImportPreview([])
             setImportBankLabel('')
-            loadData()
+            reloadAll(page)
         } catch (error) {
             console.error('Erro ao importar:', error)
             setImportError('Erro ao importar transações')
@@ -424,7 +559,7 @@ export default function TransactionsPage() {
                 return
             }
 
-            loadData()
+            reloadAll(page)
         } catch (error) {
             console.error('Erro ao excluir:', error)
             alert('Erro ao excluir transação')
@@ -441,8 +576,9 @@ export default function TransactionsPage() {
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Transações</h1>
                     <p className="text-gray-600 dark:text-gray-400 mt-1">
-                        {filteredTransactions.length} transação(ões) e {filteredTransfers.length} transferência(s)
-                        {hasActiveFilters && ' (filtrado)'}
+                        {total.toLocaleString('pt-BR')} transação(ões) · {filteredTransfers.length} transferência(s) visíveis
+                        {hasActiveFilters && ' · filtrado'}
+                        {totalPages > 1 && ` · página ${page} de ${totalPages}`}
                     </p>
                 </div>
                 <div className="flex gap-3">
@@ -457,7 +593,7 @@ export default function TransactionsPage() {
                         Filtros
                         {hasActiveFilters && (
                             <span className="bg-white text-blue-600 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
-                                {[filters.startDate, filters.endDate, filters.accountId, filters.categoryId].filter(Boolean).length}
+                                {[filters.startDate, filters.endDate, filters.accountId, filters.categoryId, filters.description].filter(Boolean).length}
                             </span>
                         )}
                     </button>
@@ -512,6 +648,18 @@ export default function TransactionsPage() {
                         )}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="md:col-span-2 lg:col-span-4">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Descrição
+                            </label>
+                            <input
+                                type="search"
+                                value={descriptionInput}
+                                onChange={(e) => setDescriptionInput(e.target.value)}
+                                placeholder="Buscar por texto na descrição..."
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                            />
+                        </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Data Inicial
@@ -519,7 +667,7 @@ export default function TransactionsPage() {
                             <input
                                 type="date"
                                 value={filters.startDate}
-                                onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+                                onChange={(e) => handleFilterChange({ startDate: e.target.value })}
                                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                             />
                         </div>
@@ -530,7 +678,7 @@ export default function TransactionsPage() {
                             <input
                                 type="date"
                                 value={filters.endDate}
-                                onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+                                onChange={(e) => handleFilterChange({ endDate: e.target.value })}
                                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                             />
                         </div>
@@ -540,7 +688,7 @@ export default function TransactionsPage() {
                             </label>
                             <select
                                 value={filters.accountId}
-                                onChange={(e) => setFilters({ ...filters, accountId: e.target.value })}
+                                onChange={(e) => handleFilterChange({ accountId: e.target.value })}
                                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                             >
                                 <option value="">Todas as contas</option>
@@ -555,7 +703,7 @@ export default function TransactionsPage() {
                             </label>
                             <select
                                 value={filters.categoryId}
-                                onChange={(e) => setFilters({ ...filters, categoryId: e.target.value })}
+                                onChange={(e) => handleFilterChange({ categoryId: e.target.value })}
                                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                             >
                                 <option value="">Todas as categorias</option>
@@ -568,7 +716,28 @@ export default function TransactionsPage() {
                 </div>
             )}
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+            {selectedIds.size > 0 && (
+                <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-800 dark:bg-blue-900/20">
+                    <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                        {selectedIds.size} transação(ões) selecionada(s)
+                    </span>
+                    <button
+                        onClick={openBulkModal}
+                        className="flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700"
+                    >
+                        <Tags className="h-4 w-4" />
+                        Editar em massa
+                    </button>
+                    <button
+                        onClick={clearSelection}
+                        className="text-sm text-blue-700 hover:underline dark:text-blue-300"
+                    >
+                        Limpar seleção
+                    </button>
+                </div>
+            )}
+
+            <div className={`bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden ${listLoading ? 'opacity-60 pointer-events-none' : ''}`}>
                 {transactionsWithBalances.length === 0 ? (
                     <div className="text-center py-12">
                         <Receipt className="h-16 w-16 text-gray-400 mx-auto mb-4" />
@@ -584,6 +753,16 @@ export default function TransactionsPage() {
                         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead className="bg-gray-50 dark:bg-gray-700">
                                 <tr>
+                                    <th className="px-4 py-3 text-left">
+                                        <input
+                                            type="checkbox"
+                                            checked={allFilteredSelected}
+                                            onChange={toggleSelectAllFiltered}
+                                            disabled={filteredTransactionIds.length === 0}
+                                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                            title="Selecionar todas visíveis"
+                                        />
+                                    </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                         Data
                                     </th>
@@ -618,6 +797,7 @@ export default function TransactionsPage() {
 
                                         return (
                                             <tr key={`balance-${balanceRow.date}`} className="bg-blue-50 dark:bg-blue-900/20">
+                                                <td className="px-4 py-3" />
                                                 <td colSpan={4} className="px-6 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
                                                     Saldo do Dia
                                                 </td>
@@ -641,6 +821,7 @@ export default function TransactionsPage() {
                                         const transfer = typedItem as Transfer & { type: 'TRANSFER' }
                                         return (
                                             <tr key={`transfer-${transfer.id}`} className="hover:bg-purple-50 dark:hover:bg-purple-900/10 bg-purple-50/30 dark:bg-purple-900/5">
+                                                <td className="px-4 py-4" />
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                                                     {dateUtils.formatBR(transfer.date)}
                                                 </td>
@@ -672,8 +853,20 @@ export default function TransactionsPage() {
 
                                     
                                     const transaction = typedItem as Transaction
+                                    const isSelected = selectedIds.has(transaction.id)
                                     return (
-                                        <tr key={transaction.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                        <tr
+                                            key={transaction.id}
+                                            className={`hover:bg-gray-50 dark:hover:bg-gray-700 ${isSelected ? 'bg-blue-50/60 dark:bg-blue-900/10' : ''}`}
+                                        >
+                                            <td className="px-4 py-4">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isSelected}
+                                                    onChange={() => toggleSelect(transaction.id)}
+                                                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                />
+                                            </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                                                 {dateUtils.formatBR(transaction.date)}
                                             </td>
@@ -720,6 +913,49 @@ export default function TransactionsPage() {
                                 })}
                             </tbody>
                         </table>
+                    </div>
+                )}
+
+                {total > 0 && (
+                    <div className="flex flex-wrap items-center justify-between gap-4 border-t border-gray-200 dark:border-gray-700 px-6 py-4">
+                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                            <span>Itens por página:</span>
+                            <select
+                                value={pageSize}
+                                onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                                className="rounded-lg border border-gray-300 dark:border-gray-600 px-2 py-1 dark:bg-gray-700 dark:text-white"
+                            >
+                                {PAGE_SIZE_OPTIONS.map((size) => (
+                                    <option key={size} value={size}>{size}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                            {((page - 1) * pageSize + 1).toLocaleString('pt-BR')}–{Math.min(page * pageSize, total).toLocaleString('pt-BR')} de {total.toLocaleString('pt-BR')}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => goToPage(page - 1)}
+                                disabled={page <= 1 || listLoading}
+                                className="flex items-center gap-1 rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-sm disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-700"
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                                Anterior
+                            </button>
+                            <span className="text-sm text-gray-700 dark:text-gray-300 px-2">
+                                {page} / {totalPages}
+                            </span>
+                            <button
+                                onClick={() => goToPage(page + 1)}
+                                disabled={page >= totalPages || listLoading}
+                                className="flex items-center gap-1 rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-sm disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-700"
+                            >
+                                Próxima
+                                <ChevronRight className="h-4 w-4" />
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>
@@ -843,6 +1079,93 @@ export default function TransactionsPage() {
                                 </button>
                             </div>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {showBulkModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
+                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                            Editar em massa
+                        </h2>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                            {selectedIds.size} transação(ões) selecionada(s). Marque o que deseja alterar.
+                        </p>
+                        <form onSubmit={handleBulkSubmit} className="space-y-4">
+                            <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={bulkForm.updateCategory}
+                                        onChange={(e) => setBulkForm({ ...bulkForm, updateCategory: e.target.checked })}
+                                        className="h-4 w-4 rounded border-gray-300 text-blue-600"
+                                    />
+                                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                        Alterar categoria
+                                    </span>
+                                </label>
+                                {bulkForm.updateCategory && (
+                                    <select
+                                        value={bulkForm.categoryId}
+                                        onChange={(e) => setBulkForm({ ...bulkForm, categoryId: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                        required={bulkForm.updateCategory}
+                                    >
+                                        <option value="">Selecione uma categoria</option>
+                                        {bulkCompatibleCategories.map((category) => (
+                                            <option key={category.id} value={category.id}>{category.name}</option>
+                                        ))}
+                                    </select>
+                                )}
+                                {bulkForm.updateCategory && bulkCompatibleCategories.length === 0 && (
+                                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                                        Nenhuma categoria compatível com a seleção (receitas e despesas misturadas). Use categorias &quot;Receita e Despesa&quot;.
+                                    </p>
+                                )}
+                            </div>
+
+                            <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={bulkForm.updateDescription}
+                                        onChange={(e) => setBulkForm({ ...bulkForm, updateDescription: e.target.checked })}
+                                        className="h-4 w-4 rounded border-gray-300 text-blue-600"
+                                    />
+                                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                        Renomear descrição
+                                    </span>
+                                </label>
+                                {bulkForm.updateDescription && (
+                                    <input
+                                        type="text"
+                                        value={bulkForm.description}
+                                        onChange={(e) => setBulkForm({ ...bulkForm, description: e.target.value })}
+                                        placeholder="Nova descrição para todas"
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                        required={bulkForm.updateDescription}
+                                    />
+                                )}
+                            </div>
+
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowBulkModal(false)}
+                                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={bulkSaving}
+                                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                                >
+                                    {bulkSaving ? 'Salvando...' : `Aplicar em ${selectedIds.size}`}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}

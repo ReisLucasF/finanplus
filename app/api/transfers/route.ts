@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { z } from "zod";
+import { buildTransferWhere } from "@/lib/daily-balances";
 
 const transferSchema = z.object({
   fromAccountId: z.string(),
@@ -21,18 +22,16 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const accountId = searchParams.get("accountId");
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
+    const description = searchParams.get("description");
 
-    const where: {
-      userId: string;
-      OR?: Array<
-        | { fromAccountId: string }
-        | { toAccountId: string }
-      >;
-    } = { userId: user.userId };
-
-    if (accountId) {
-      where.OR = [{ fromAccountId: accountId }, { toAccountId: accountId }];
-    }
+    const where = buildTransferWhere(user.userId, {
+      accountId,
+      startDate,
+      endDate,
+      description,
+    });
 
     const transfers = await prisma.transfer.findMany({
       where,

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { z } from "zod";
+import { buildTransactionWhere } from "@/lib/daily-balances";
 
 const transactionSchema = z.object({
   accountId: z.string(),
@@ -24,6 +25,19 @@ const transactionSelect = {
   category: { select: { id: true, name: true } },
 } as const;
 
+const DEFAULT_PAGE_SIZE = 30;
+const MAX_PAGE_SIZE = 100;
+
+function serializeTransaction(tx: {
+  amount: { toNumber: () => number };
+  [key: string]: unknown;
+}) {
+  return {
+    ...tx,
+    amount: tx.amount.toNumber(),
+  };
+}
+
 export async function GET(request: Request) {
   try {
     const user = await getCurrentUser();
@@ -32,24 +46,53 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const limitParam = searchParams.get("limit");
-    const limit = limitParam ? parseInt(limitParam) : undefined;
+    const pageParam = searchParams.get("page");
     const accountId = searchParams.get("accountId");
+    const categoryId = searchParams.get("categoryId");
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
+    const description = searchParams.get("description");
 
-    const where: {
-      userId: string;
-      accountId?: string;
-      date?: { gte?: Date; lte?: Date };
-    } = { userId: user.userId };
+    const where = buildTransactionWhere(user.userId, {
+      accountId,
+      categoryId,
+      startDate,
+      endDate,
+      description,
+    });
 
-    if (accountId) where.accountId = accountId;
-    if (startDate || endDate) {
-      where.date = {};
-      if (startDate) where.date.gte = new Date(startDate);
-      if (endDate) where.date.lte = new Date(endDate);
+    if (pageParam) {
+      const page = Math.max(1, parseInt(pageParam) || 1);
+      const limit = Math.min(
+        MAX_PAGE_SIZE,
+        Math.max(1, parseInt(searchParams.get("limit") || String(DEFAULT_PAGE_SIZE)) || DEFAULT_PAGE_SIZE),
+      );
+      const skip = (page - 1) * limit;
+
+      const [total, transactions] = await Promise.all([
+        prisma.transaction.count({ where }),
+        prisma.transaction.findMany({
+          where,
+          select: transactionSelect,
+          orderBy: [{ date: "desc" }, { id: "desc" }],
+          skip,
+          take: limit,
+        }),
+      ]);
+
+      return NextResponse.json({
+        data: transactions.map(serializeTransaction),
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.max(1, Math.ceil(total / limit)),
+        },
+      });
     }
+
+    const limitParam = searchParams.get("limit");
+    const limit = limitParam ? parseInt(limitParam) : undefined;
 
     const transactions = await prisma.transaction.findMany({
       where,
@@ -58,12 +101,7 @@ export async function GET(request: Request) {
       take: limit,
     });
 
-    const serializedTransactions = transactions.map((tx) => ({
-      ...tx,
-      amount: tx.amount.toNumber(),
-    }));
-
-    return NextResponse.json(serializedTransactions);
+    return NextResponse.json(transactions.map(serializeTransaction));
   } catch (error) {
     console.error("Erro ao buscar transações:", error);
     return NextResponse.json(
@@ -131,10 +169,9 @@ export async function POST(request: Request) {
       return newTransaction;
     });
 
-    return NextResponse.json(
-      { ...transaction, amount: transaction.amount.toNumber() },
-      { status: 201 },
-    );
+    return NextResponse.json(serializeTransaction(transaction), {
+      status: 201,
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues }, { status: 400 });
