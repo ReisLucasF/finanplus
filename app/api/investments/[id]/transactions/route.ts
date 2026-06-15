@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { validateTransactionQuantity } from "@/lib/investment-summary";
 import { z } from "zod";
 
 const transactionSchema = z.object({
@@ -42,6 +43,24 @@ export async function POST(
       return NextResponse.json(
         { error: "Investimento não encontrado" },
         { status: 404 }
+      );
+    }
+
+    const allTransactions = await prisma.investmentTransaction.findMany({
+      where: { investmentId: id, userId: user.userId },
+    });
+
+    const check = validateTransactionQuantity(allTransactions, {
+      type: validatedData.type,
+      quantity: validatedData.quantity,
+    });
+
+    if (!check.ok) {
+      return NextResponse.json(
+        {
+          error: `Quantidade insuficiente para venda. Disponível: ${check.available.toFixed(6)}`,
+        },
+        { status: 400 },
       );
     }
 
@@ -119,7 +138,20 @@ export async function GET(
       orderBy: { date: "desc" },
     });
 
-    return NextResponse.json(transactions);
+    return NextResponse.json(
+      transactions.map((tx) => ({
+        id: tx.id,
+        userId: tx.userId,
+        investmentId: tx.investmentId,
+        type: tx.type,
+        amount: tx.amount.toNumber(),
+        quantity: tx.quantity.toNumber(),
+        price: tx.price.toNumber(),
+        date: tx.date.toISOString(),
+        notes: tx.notes,
+        createdAt: tx.createdAt.toISOString(),
+      })),
+    );
   } catch (error) {
     console.error("Erro ao buscar transações:", error);
     return NextResponse.json(

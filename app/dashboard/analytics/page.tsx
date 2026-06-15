@@ -11,886 +11,515 @@ import {
     PiggyBank,
     CreditCard,
     Target,
-    TrendingDown as TrendingDownIcon,
     Shield,
-    Zap,
     Activity,
     BarChart3,
-    PieChart as PieChartIcon,
     ArrowUpRight,
     ArrowDownRight,
-    Clock,
-    Calendar,
-    Percent,
     Award,
     AlertCircle,
-    Info
+    Repeat,
+    Flame,
+    Wallet,
 } from 'lucide-react'
 import StatCard from '../components/StatCard'
 import SectionCard from '../components/SectionCard'
 import PieChart from '../components/PieChart'
 import LoadingSpinner from '../components/LoadingSpinner'
-import { formatCurrency } from '@/lib/utils'
-import { cn } from '@/lib/utils'
+import { formatCurrency, cn } from '@/lib/utils'
 
-interface DashboardData {
-    saldo_contas_correntes: number
-    valor_investido_total: number
-    divida_cartoes_atual: number
-    patrimonio_liquido_atual: number
-    receita_ultimo_mes: number
-    receita_media_3_meses: number
-    despesa_ultimo_mes: number
-    despesa_media_3_meses: number
-    taxa_poupanca_percentual: number
-    meses_reserva_emergencia: number
-    total_metas_ativas: number
-    metas_atrasadas: number
-    progresso_medio_metas_percentual: number
-    total_cartoes: number
-    limite_total_cartoes: number
-    utilizacao_limite_percentual: number
-    total_investimentos_ativos: number
-    aportes_investimentos_3_meses: number
-    status_saude_financeira: string
+type AnalyticsData = {
+    dashboard: {
+        saldo_contas_correntes: number
+        valor_investido_total: number
+        divida_cartoes_atual: number
+        patrimonio_liquido_atual: number
+        receita_ultimo_mes: number
+        receita_media_3_meses: number
+        despesa_ultimo_mes: number
+        despesa_media_3_meses: number
+        taxa_poupanca_percentual: number
+        meses_reserva_emergencia: number
+        status_saude_financeira: string
+        caixa_com_investimentos: number
+        utilizacao_limite_percentual: number
+    } | null
+    fixedCostAnalysis: {
+        custo_fixo_mensal_estimado: number
+        runway_meses: number
+        caixa_total: number
+        cobertura_percentual: number
+        itens_recorrentes: Array<{
+            descricao: string
+            categoria: string
+            meses_repetidos: number
+            media_mensal: number
+            confianca: string
+        }>
+    }
+    expensesByCategory: Array<{
+        categoria: string
+        total_ultimos_3_meses: number
+        media_mensal_3_meses: number
+        classificacao_categoria: string
+        frequencia_uso: string
+        variacao_mes_anterior_percentual: number
+        percentual_total_3_meses: number
+    }>
+    incomeAnalysis: Array<{
+        fonte_receita: string
+        receita_ultimos_3_meses: number
+        tipo_renda: string
+        regularidade: string
+        percentual_renda_total_3_meses: number
+        media_mensal_3_meses: number
+    }>
+    investments: Array<{
+        nome_investimento: string
+        tipo_investimento: string
+        valor_investido_liquido: number
+        valor_atual: number
+        nivel_risco: string
+        percentual_portfolio: number
+        aportes_3_meses: number
+    }>
+    creditCards: Array<{
+        nome_cartao: string
+        limite_total: number
+        divida_atual: number
+        percentual_utilizado: number
+        status_utilizacao: string
+        score_saude_cartao: number
+    }>
+    patrimonyEvolution: Array<{
+        mes_ano: string
+        receita_mes: number
+        despesa_mes: number
+        saldo_liquido_real_mes: number
+        taxa_poupanca_mes_percentual: number
+        desempenho_mes: string
+    }>
+    goals: Array<{
+        nome_meta: string
+        valor_objetivo: number
+        valor_atual: number
+        progresso_percentual: number
+        dias_restantes: number
+        viabilidade: string
+        valor_necessario_por_mes: number
+    }>
+    alerts: Array<{
+        nivel_prioridade: string
+        titulo: string
+        mensagem: string
+        acao_sugerida: string
+    }>
 }
 
-interface ExpenseCategory {
-    categoria: string
-    total_ultimo_mes: number
-    total_ultimos_3_meses: number
-    media_mensal_3_meses: number
-    classificacao_categoria: string
-    frequencia_uso: string
-    variacao_mes_anterior_percentual: number
-    alerta_variacao: string
+function healthStyles(status: string) {
+    switch (status) {
+        case 'EXCELENTE': return 'from-emerald-500/20 to-teal-500/10 border-emerald-400/40 text-emerald-700 dark:text-emerald-300'
+        case 'BOM': return 'from-blue-500/20 to-cyan-500/10 border-blue-400/40 text-blue-700 dark:text-blue-300'
+        case 'ATENÇÃO': return 'from-amber-500/20 to-orange-500/10 border-amber-400/40 text-amber-700 dark:text-amber-300'
+        case 'CRÍTICO': return 'from-red-500/20 to-rose-500/10 border-red-400/40 text-red-700 dark:text-red-300'
+        default: return 'from-gray-500/20 to-gray-500/10 border-gray-400/40'
+    }
 }
 
-interface IncomeSource {
-    fonte_receita: string
-    receita_ultimo_mes: number
-    receita_ultimos_3_meses: number
-    tipo_renda: string
-    regularidade: string
-    percentual_renda_total_3_meses: number
-}
-
-interface Investment {
-    nome_investimento: string
-    tipo_investimento: string
-    valor_investido_liquido: number
-    nivel_risco: string
-    percentual_portfolio: number
-    aportes_3_meses: number
-    dias_desde_ultima_movimentacao: number
-}
-
-interface CreditCard {
-    nome_cartao: string
-    limite_total: number
-    divida_atual: number
-    percentual_utilizado: number
-    status_utilizacao: string
-    score_saude_cartao: number
-    alerta_pagamento: string
-    proxima_fatura_valor: number
-}
-
-interface Goal {
-    nome_meta: string
-    valor_objetivo: number
-    valor_atual: number
-    progresso_percentual: number
-    dias_restantes: number
-    status_prazo: string
-    viabilidade: string
-    valor_necessario_por_mes: number
-}
-
-interface Alert {
-    tipo_alerta: string
-    nivel_prioridade: string
-    titulo: string
-    mensagem: string
-    acao_sugerida: string
-}
-
-interface PatrimonyMonth {
-    mes_ano: string
-    receita_mes: number
-    despesa_mes: number
-    saldo_liquido_real_mes: number
-    taxa_poupanca_mes_percentual: number
-    desempenho_mes: string
+function alertBorder(priority: string) {
+    switch (priority) {
+        case 'CRÍTICO': return 'border-l-red-500 bg-red-50/80 dark:bg-red-950/30'
+        case 'ALTO': return 'border-l-orange-500 bg-orange-50/80 dark:bg-orange-950/30'
+        case 'MÉDIO': return 'border-l-amber-500 bg-amber-50/80 dark:bg-amber-950/30'
+        default: return 'border-l-blue-500 bg-blue-50/80 dark:bg-blue-950/30'
+    }
 }
 
 export default function AnalyticsPage() {
     const router = useRouter()
     const [loading, setLoading] = useState(true)
-    const [data, setData] = useState<{
-        dashboard: DashboardData | null
-        expensesByCategory: ExpenseCategory[]
-        incomeAnalysis: IncomeSource[]
-        investments: Investment[]
-        creditCards: CreditCard[]
-        patrimonyEvolution: PatrimonyMonth[]
-        goals: Goal[]
-        alerts: Alert[]
-    }>({
-        dashboard: null,
-        expensesByCategory: [],
-        incomeAnalysis: [],
-        investments: [],
-        creditCards: [],
-        patrimonyEvolution: [],
-        goals: [],
-        alerts: []
-    })
+    const [data, setData] = useState<AnalyticsData | null>(null)
 
     useEffect(() => {
-        fetchData()
-    }, [])
+        fetch('/api/analytics/financial-overview')
+            .then(async (res) => {
+                if (res.status === 401) { router.push('/login'); return null }
+                if (!res.ok) throw new Error('Erro')
+                return res.json()
+            })
+            .then(setData)
+            .catch(console.error)
+            .finally(() => setLoading(false))
+    }, [router])
 
-    const fetchData = async () => {
-        try {
-            const response = await fetch('/api/analytics/financial-overview')
-            if (!response.ok) {
-                if (response.status === 401) {
-                    router.push('/login')
-                    return
-                }
-                throw new Error('Erro ao carregar dados')
-            }
-            const result = await response.json()
-            setData(result)
-        } catch (error) {
-            console.error('Erro:', error)
-        } finally {
-            setLoading(false)
-        }
-    }
+    if (loading) return <LoadingSpinner />
 
-    if (loading) {
-        return <LoadingSpinner />
-    }
-
-    const dashboard = data.dashboard
-
-    if (!dashboard) {
+    const dash = data?.dashboard
+    if (!dash) {
         return (
-            <div className="flex min-h-screen items-center justify-center">
-                <div className="text-center">
-                    <AlertTriangle className="mx-auto h-12 w-12 text-yellow-500" />
-                    <h2 className="mt-4 text-xl font-semibold">Dados insuficientes</h2>
-                    <p className="mt-2 text-gray-600">
-                        Adicione transações para visualizar suas análises financeiras
+            <div className="flex min-h-[60vh] items-center justify-center">
+                <div className="text-center max-w-md">
+                    <AlertTriangle className="mx-auto h-12 w-12 text-amber-500 mb-4" />
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Sem dados suficientes</h2>
+                    <p className="mt-2 text-gray-600 dark:text-gray-400">
+                        Adicione transações para visualizar suas análises financeiras.
                     </p>
                 </div>
             </div>
         )
     }
 
-    
-    const expensesChartData = data.expensesByCategory.slice(0, 8).map(cat => ({
-        name: cat.categoria,
-        value: cat.total_ultimos_3_meses
-    }))
-
-    const incomeChartData = data.incomeAnalysis.map(inc => ({
-        name: inc.fonte_receita,
-        value: inc.receita_ultimos_3_meses
-    }))
-
-    const investmentsChartData = data.investments.map(inv => ({
-        name: inv.nome_investimento,
-        value: inv.valor_investido_liquido
-    }))
-
-    
-    const getHealthStatusColor = (status: string) => {
-        switch (status) {
-            case 'EXCELENTE':
-                return 'text-green-600 bg-green-50 border-green-200'
-            case 'BOM':
-                return 'text-blue-600 bg-blue-50 border-blue-200'
-            case 'ATENÇÃO':
-                return 'text-yellow-600 bg-yellow-50 border-yellow-200'
-            case 'CRÍTICO':
-                return 'text-red-600 bg-red-50 border-red-200'
-            default:
-                return 'text-gray-600 bg-gray-50 border-gray-200'
-        }
-    }
-
-    
-    const getAlertPriorityColor = (priority: string) => {
-        switch (priority) {
-            case 'CRÍTICO':
-                return 'border-l-4 border-red-500 bg-red-50'
-            case 'ALTO':
-                return 'border-l-4 border-orange-500 bg-orange-50'
-            case 'MÉDIO':
-                return 'border-l-4 border-yellow-500 bg-yellow-50'
-            default:
-                return 'border-l-4 border-blue-500 bg-blue-50'
-        }
-    }
+    const fixed = data!.fixedCostAnalysis
+    const runwayPct = Math.min((fixed.runway_meses / 12) * 100, 100)
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 dark:from-gray-900 dark:to-gray-800 md:p-8">
-            <div className="mx-auto max-w-7xl">
-                
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white md:text-4xl">
-                        Análise Financeira Completa
-                    </h1>
-                    <p className="mt-2 text-gray-600 dark:text-gray-400">
-                        Visão detalhada da sua saúde financeira e patrimônio
+        <div className="space-y-8 pb-12">
+            {/* Header */}
+            <div>
+                <p className="text-sm font-medium text-blue-600 dark:text-blue-400 mb-1">Inteligência financeira</p>
+                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white tracking-tight">
+                    Análise Completa
+                </h1>
+                <p className="mt-2 text-gray-600 dark:text-gray-400 max-w-2xl">
+                    Receitas, despesas e patrimônio calculados direto do banco — sem transferências entre contas nem movimentações de investimento como fluxo operacional.
+                </p>
+            </div>
+
+            {/* Hero status */}
+            <div className={cn(
+                'relative overflow-hidden rounded-3xl border p-6 md:p-8 bg-gradient-to-br',
+                healthStyles(dash.status_saude_financeira)
+            )}>
+                <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+                <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                    <div className="flex items-start gap-4">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/60 dark:bg-white/10 backdrop-blur">
+                            {dash.status_saude_financeira === 'EXCELENTE' && <Award className="h-7 w-7" />}
+                            {dash.status_saude_financeira === 'BOM' && <CheckCircle className="h-7 w-7" />}
+                            {dash.status_saude_financeira === 'ATENÇÃO' && <AlertCircle className="h-7 w-7" />}
+                            {dash.status_saude_financeira === 'CRÍTICO' && <AlertTriangle className="h-7 w-7" />}
+                        </div>
+                        <div>
+                            <p className="text-sm font-medium opacity-80">Saúde financeira</p>
+                            <h2 className="text-2xl md:text-3xl font-bold">{dash.status_saude_financeira}</h2>
+                            <p className="mt-1 text-sm opacity-75">
+                                Taxa de poupança {dash.taxa_poupanca_percentual.toFixed(1)}% · Reserva {dash.meses_reserva_emergencia.toFixed(1)} meses
+                            </p>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 lg:gap-6">
+                        <div className="rounded-2xl bg-white/50 dark:bg-black/20 backdrop-blur px-4 py-3">
+                            <p className="text-xs opacity-70">Patrimônio líquido</p>
+                            <p className="text-xl font-bold">{formatCurrency(dash.patrimonio_liquido_atual)}</p>
+                        </div>
+                        <div className="rounded-2xl bg-white/50 dark:bg-black/20 backdrop-blur px-4 py-3">
+                            <p className="text-xs opacity-70">Caixa + invest.</p>
+                            <p className="text-xl font-bold">{formatCurrency(dash.caixa_com_investimentos)}</p>
+                        </div>
+                        <div className="rounded-2xl bg-white/50 dark:bg-black/20 backdrop-blur px-4 py-3 col-span-2 md:col-span-1">
+                            <p className="text-xs opacity-70">Saldo líquido 3m</p>
+                            <p className="text-xl font-bold">{formatCurrency(dash.receita_media_3_meses - dash.despesa_media_3_meses)}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Runway / Fixed costs */}
+            <div className="grid lg:grid-cols-5 gap-6">
+                <div className="lg:col-span-2 rounded-3xl bg-gradient-to-br from-indigo-600 to-violet-700 p-6 text-white shadow-xl shadow-indigo-500/20">
+                    <div className="flex items-center gap-2 mb-4">
+                        <Flame className="h-5 w-5" />
+                        <h3 className="font-semibold">Runway (custos fixos)</h3>
+                    </div>
+                    <p className="text-5xl font-bold tracking-tight">
+                        {fixed.runway_meses > 0 ? fixed.runway_meses.toFixed(1) : '—'}
+                        <span className="text-lg font-normal ml-2 opacity-80">meses</span>
+                    </p>
+                    <p className="mt-3 text-sm text-indigo-100 leading-relaxed">
+                        Com {formatCurrency(fixed.caixa_total)} em caixa + investimentos e custos fixos estimados de{' '}
+                        {formatCurrency(fixed.custo_fixo_mensal_estimado)}/mês (base: despesas repetidas nos últimos 4 meses).
+                    </p>
+                    <div className="mt-5">
+                        <div className="flex justify-between text-xs mb-1 opacity-80">
+                            <span>0 meses</span>
+                            <span>12+ meses</span>
+                        </div>
+                        <div className="h-2.5 rounded-full bg-white/20 overflow-hidden">
+                            <div
+                                className={cn(
+                                    'h-full rounded-full transition-all',
+                                    fixed.runway_meses >= 12 ? 'bg-emerald-300' :
+                                    fixed.runway_meses >= 6 ? 'bg-amber-300' : 'bg-rose-300'
+                                )}
+                                style={{ width: `${runwayPct}%` }}
+                            />
+                        </div>
+                    </div>
+                    <p className="mt-3 text-xs opacity-70">
+                        Fixos representam {fixed.cobertura_percentual.toFixed(0)}% da despesa média mensal
                     </p>
                 </div>
 
-                
-                <div className={cn(
-                    "mb-8 rounded-2xl border-2 p-6 shadow-lg",
-                    getHealthStatusColor(dashboard.status_saude_financeira)
-                )}>
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/50">
-                                {dashboard.status_saude_financeira === 'EXCELENTE' && (
-                                    <Award className="h-8 w-8" />
-                                )}
-                                {dashboard.status_saude_financeira === 'BOM' && (
-                                    <CheckCircle className="h-8 w-8" />
-                                )}
-                                {dashboard.status_saude_financeira === 'ATENÇÃO' && (
-                                    <AlertCircle className="h-8 w-8" />
-                                )}
-                                {dashboard.status_saude_financeira === 'CRÍTICO' && (
-                                    <AlertTriangle className="h-8 w-8" />
-                                )}
-                            </div>
-                            <div>
-                                <h2 className="text-2xl font-bold">
-                                    Status: {dashboard.status_saude_financeira}
-                                </h2>
-                                <p className="mt-1 text-sm opacity-80">
-                                    {dashboard.status_saude_financeira === 'EXCELENTE' &&
-                                        'Parabéns! Suas finanças estão excelentes! Continue assim! 🎉'}
-                                    {dashboard.status_saude_financeira === 'BOM' &&
-                                        'Suas finanças estão bem encaminhadas! Continue melhorando! 💪'}
-                                    {dashboard.status_saude_financeira === 'ATENÇÃO' &&
-                                        'Atenção necessária. Revise seus gastos e reserve de emergência.'}
-                                    {dashboard.status_saude_financeira === 'CRÍTICO' &&
-                                        'Situação crítica. Ação imediata necessária!'}
-                                </p>
-                            </div>
+                <div className="lg:col-span-3 rounded-3xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                            <Repeat className="h-5 w-5 text-violet-600" />
+                            <h3 className="font-bold text-gray-900 dark:text-white">Custos fixos detectados</h3>
                         </div>
-                        <div className="text-right">
-                            <div className="text-sm opacity-80">Patrimônio Líquido</div>
-                            <div className="text-3xl font-bold">
-                                {formatCurrency(dashboard.patrimonio_liquido_atual)}
-                            </div>
-                        </div>
+                        <span className="text-sm text-gray-500">{fixed.itens_recorrentes.length} itens</span>
                     </div>
-                </div>
-
-                
-                {data.alerts.length > 0 && (
-                    <div className="mb-8">
-                        <h2 className="mb-4 flex items-center gap-2 text-xl font-bold text-gray-900 dark:text-white">
-                            <AlertTriangle className="h-6 w-6 text-yellow-500" />
-                            Alertas e Recomendações
-                        </h2>
-                        <div className="space-y-3">
-                            {data.alerts.slice(0, 5).map((alert, idx) => (
-                                <div
-                                    key={idx}
-                                    className={cn(
-                                        "rounded-xl p-4 shadow-sm",
-                                        getAlertPriorityColor(alert.nivel_prioridade)
-                                    )}
-                                >
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex-1">
-                                            <h3 className="font-semibold text-gray-900">
-                                                {alert.titulo}
-                                            </h3>
-                                            <p className="mt-1 text-sm text-gray-700">
-                                                {alert.mensagem}
-                                            </p>
-                                            <p className="mt-2 text-xs font-medium text-gray-600">
-                                                💡 {alert.acao_sugerida}
-                                            </p>
-                                        </div>
-                                        <span
-                                            className={cn(
-                                                "ml-4 rounded-full px-3 py-1 text-xs font-bold",
-                                                alert.nivel_prioridade === 'CRÍTICO' && 'bg-red-600 text-white',
-                                                alert.nivel_prioridade === 'ALTO' && 'bg-orange-600 text-white',
-                                                alert.nivel_prioridade === 'MÉDIO' && 'bg-yellow-600 text-white'
-                                            )}
-                                        >
-                                            {alert.nivel_prioridade}
-                                        </span>
+                    {fixed.itens_recorrentes.length === 0 ? (
+                        <p className="text-gray-500 dark:text-gray-400 text-sm py-8 text-center">
+                            Nenhum padrão recorrente encontrado nos últimos 4 meses.
+                        </p>
+                    ) : (
+                        <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                            {fixed.itens_recorrentes.slice(0, 12).map((item, i) => (
+                                <div key={i} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                    <div className="min-w-0 flex-1">
+                                        <p className="font-medium text-gray-900 dark:text-white truncate">{item.descricao}</p>
+                                        <p className="text-xs text-gray-500">
+                                            {item.categoria} · {item.meses_repetidos}/4 meses · confiança {item.confianca.toLowerCase()}
+                                        </p>
                                     </div>
+                                    <p className="font-semibold text-red-600 dark:text-red-400 shrink-0">
+                                        {formatCurrency(item.media_mensal)}/mês
+                                    </p>
                                 </div>
                             ))}
                         </div>
-                    </div>
-                )}
-
-                
-                <div className="mb-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                    <StatCard
-                        title="Saldo em Contas"
-                        value={formatCurrency(dashboard.saldo_contas_correntes)}
-                        icon={DollarSign}
-                        gradient="bg-gradient-to-br from-green-400 to-green-600"
-                        trend={{
-                            value: `${dashboard.meses_reserva_emergencia.toFixed(1)} meses`,
-                            isPositive: dashboard.meses_reserva_emergencia >= 6
-                        }}
-                    />
-                    <StatCard
-                        title="Investimentos"
-                        value={formatCurrency(dashboard.valor_investido_total)}
-                        icon={TrendingUp}
-                        gradient="bg-gradient-to-br from-blue-400 to-blue-600"
-                        trend={{
-                            value: `${data.investments.length} ativos`,
-                            isPositive: true
-                        }}
-                    />
-                    <StatCard
-                        title="Dívida Cartões"
-                        value={formatCurrency(dashboard.divida_cartoes_atual)}
-                        icon={CreditCard}
-                        gradient="bg-gradient-to-br from-red-400 to-red-600"
-                        trend={{
-                            value: `${dashboard.utilizacao_limite_percentual.toFixed(1)}% do limite`,
-                            isPositive: dashboard.utilizacao_limite_percentual < 30
-                        }}
-                    />
-                    <StatCard
-                        title="Taxa de Poupança"
-                        value={`${dashboard.taxa_poupanca_percentual.toFixed(1)}%`}
-                        icon={PiggyBank}
-                        gradient="bg-gradient-to-br from-purple-400 to-purple-600"
-                        trend={{
-                            value: dashboard.taxa_poupanca_percentual >= 20 ? 'Excelente' : 'Melhorar',
-                            isPositive: dashboard.taxa_poupanca_percentual >= 20
-                        }}
-                    />
-                </div>
-
-                
-                <div className="mb-8 grid gap-6 lg:grid-cols-2">
-                    <SectionCard
-                        title="Receitas Mensais"
-                        description="Análise de receitas dos últimos 3 meses"
-                        icon={TrendingUp}
-                        gradient="bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-green-500/30"
-                    >
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between rounded-lg bg-green-50 p-4 dark:bg-green-900/20">
-                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                    Média Mensal (3m)
-                                </span>
-                                <span className="text-xl font-bold text-green-600 dark:text-green-400">
-                                    {formatCurrency(dashboard.receita_media_3_meses)}
-                                </span>
-                            </div>
-                            <div className="flex items-center justify-between rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
-                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                    Último Mês
-                                </span>
-                                <span className="text-xl font-bold text-gray-900 dark:text-white">
-                                    {formatCurrency(dashboard.receita_ultimo_mes)}
-                                </span>
-                            </div>
-
-                            
-                            <div className="mt-4">
-                                <h4 className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                                    Principais Fontes
-                                </h4>
-                                <div className="space-y-2">
-                                    {data.incomeAnalysis.slice(0, 3).map((income, idx) => (
-                                        <div
-                                            key={idx}
-                                            className="flex items-center justify-between rounded-lg border border-gray-200 p-3 dark:border-gray-700"
-                                        >
-                                            <div>
-                                                <div className="font-medium text-gray-900 dark:text-white">
-                                                    {income.fonte_receita}
-                                                </div>
-                                                <div className="text-xs text-gray-500">
-                                                    {income.tipo_renda.replace(/_/g, ' ')} •{' '}
-                                                    {income.regularidade}
-                                                </div>
-                                            </div>
-                                            <div className="text-right">
-                                                <div className="font-semibold text-green-600 dark:text-green-400">
-                                                    {formatCurrency(income.receita_ultimos_3_meses / 3)}
-                                                </div>
-                                                <div className="text-xs text-gray-500">
-                                                    {income.percentual_renda_total_3_meses.toFixed(1)}%
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </SectionCard>
-
-                    <SectionCard
-                        title="Despesas Mensais"
-                        description="Análise de gastos dos últimos 3 meses"
-                        icon={TrendingDownIcon}
-                        gradient="bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-red-500/30"
-                    >
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between rounded-lg bg-red-50 p-4 dark:bg-red-900/20">
-                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                    Média Mensal (3m)
-                                </span>
-                                <span className="text-xl font-bold text-red-600 dark:text-red-400">
-                                    {formatCurrency(dashboard.despesa_media_3_meses)}
-                                </span>
-                            </div>
-                            <div className="flex items-center justify-between rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
-                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                    Último Mês
-                                </span>
-                                <span className="text-xl font-bold text-gray-900 dark:text-white">
-                                    {formatCurrency(dashboard.despesa_ultimo_mes)}
-                                </span>
-                            </div>
-
-                            
-                            <div className="mt-4">
-                                <h4 className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                                    Maiores Gastos
-                                </h4>
-                                <div className="space-y-2">
-                                    {data.expensesByCategory.slice(0, 3).map((expense, idx) => (
-                                        <div
-                                            key={idx}
-                                            className="flex items-center justify-between rounded-lg border border-gray-200 p-3 dark:border-gray-700"
-                                        >
-                                            <div>
-                                                <div className="font-medium text-gray-900 dark:text-white">
-                                                    {expense.categoria}
-                                                </div>
-                                                <div className="text-xs text-gray-500">
-                                                    {expense.classificacao_categoria} •{' '}
-                                                    {expense.frequencia_uso}
-                                                </div>
-                                            </div>
-                                            <div className="text-right">
-                                                <div className="font-semibold text-red-600 dark:text-red-400">
-                                                    {formatCurrency(expense.media_mensal_3_meses)}
-                                                </div>
-                                                {expense.variacao_mes_anterior_percentual !== 0 && (
-                                                    <div
-                                                        className={cn(
-                                                            'flex items-center gap-1 text-xs',
-                                                            expense.variacao_mes_anterior_percentual > 0
-                                                                ? 'text-red-600'
-                                                                : 'text-green-600'
-                                                        )}
-                                                    >
-                                                        {expense.variacao_mes_anterior_percentual > 0 ? (
-                                                            <ArrowUpRight className="h-3 w-3" />
-                                                        ) : (
-                                                            <ArrowDownRight className="h-3 w-3" />
-                                                        )}
-                                                        {Math.abs(expense.variacao_mes_anterior_percentual).toFixed(
-                                                            1
-                                                        )}
-                                                        %
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </SectionCard>
-                </div>
-
-                
-                <div className="mb-8 grid gap-6 lg:grid-cols-2">
-                    {expensesChartData.length > 0 && (
-                        <div className="rounded-2xl bg-white p-6 shadow-sm dark:bg-gray-800">
-                            <PieChart title="Despesas por Categoria (3 meses)" data={expensesChartData} />
-                        </div>
-                    )}
-                    {incomeChartData.length > 0 && (
-                        <div className="rounded-2xl bg-white p-6 shadow-sm dark:bg-gray-800">
-                            <PieChart title="Receitas por Fonte (3 meses)" data={incomeChartData} />
-                        </div>
                     )}
                 </div>
+            </div>
 
-                
-                {data.creditCards.length > 0 && (
-                    <div className="mb-8">
-                        <SectionCard
-                            title="Análise de Cartões de Crédito"
-                            description={`${data.creditCards.length} cartão(ões) em uso`}
-                            icon={CreditCard}
-                            gradient="bg-gradient-to-br from-orange-500 to-red-600 text-white shadow-orange-500/30"
-                        >
-                            <div className="grid gap-4 md:grid-cols-2">
-                                {data.creditCards.map((card, idx) => (
-                                    <div
-                                        key={idx}
-                                        className="rounded-xl border-2 border-gray-200 p-4 dark:border-gray-700"
-                                    >
-                                        <div className="mb-3 flex items-center justify-between">
-                                            <h4 className="font-bold text-gray-900 dark:text-white">
-                                                {card.nome_cartao}
-                                            </h4>
-                                            <span
-                                                className={cn(
-                                                    'rounded-full px-3 py-1 text-xs font-bold',
-                                                    card.status_utilizacao === 'CRÍTICO' &&
-                                                    'bg-red-100 text-red-700',
-                                                    card.status_utilizacao === 'ALTO' &&
-                                                    'bg-orange-100 text-orange-700',
-                                                    card.status_utilizacao === 'MODERADO' &&
-                                                    'bg-yellow-100 text-yellow-700',
-                                                    card.status_utilizacao === 'SAUDÁVEL' &&
-                                                    'bg-green-100 text-green-700'
-                                                )}
-                                            >
-                                                {card.status_utilizacao}
-                                            </span>
-                                        </div>
-
-                                        <div className="space-y-2 text-sm">
-                                            <div className="flex justify-between">
-                                                <span className="text-gray-600 dark:text-gray-400">
-                                                    Utilização
-                                                </span>
-                                                <span className="font-semibold">
-                                                    {card.percentual_utilizado.toFixed(1)}%
-                                                </span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-gray-600 dark:text-gray-400">
-                                                    Dívida Atual
-                                                </span>
-                                                <span className="font-semibold text-red-600">
-                                                    {formatCurrency(card.divida_atual)}
-                                                </span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-gray-600 dark:text-gray-400">
-                                                    Limite Total
-                                                </span>
-                                                <span className="font-semibold">
-                                                    {formatCurrency(card.limite_total)}
-                                                </span>
-                                            </div>
-
-                                            
-                                            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-gray-600 dark:text-gray-400">
-                                                        Score de Saúde
-                                                    </span>
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="h-2 w-24 rounded-full bg-gray-200">
-                                                            <div
-                                                                className={cn(
-                                                                    'h-2 rounded-full',
-                                                                    card.score_saude_cartao >= 70 && 'bg-green-500',
-                                                                    card.score_saude_cartao >= 40 &&
-                                                                    card.score_saude_cartao < 70 &&
-                                                                    'bg-yellow-500',
-                                                                    card.score_saude_cartao < 40 && 'bg-red-500'
-                                                                )}
-                                                                style={{
-                                                                    width: `${card.score_saude_cartao}%`
-                                                                }}
-                                                            />
-                                                        </div>
-                                                        <span className="font-bold">
-                                                            {card.score_saude_cartao.toFixed(0)}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            
-                                            {card.alerta_pagamento !== 'OK' && (
-                                                <div className="mt-2 rounded-lg bg-yellow-50 p-2 text-xs font-medium text-yellow-800">
-                                                    ⚠️ {card.alerta_pagamento.replace(/_/g, ' ')}
-                                                    {card.proxima_fatura_valor > 0 && (
-                                                        <>
-                                                            {' - '}
-                                                            {formatCurrency(card.proxima_fatura_valor)}
-                                                        </>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
+            {/* Alerts */}
+            {data!.alerts.length > 0 && (
+                <div>
+                    <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                        <AlertTriangle className="h-5 w-5 text-amber-500" />
+                        Alertas ({data!.alerts.length})
+                    </h2>
+                    <div className="grid md:grid-cols-2 gap-3">
+                        {data!.alerts.slice(0, 6).map((alert, i) => (
+                            <div key={i} className={cn('rounded-xl border-l-4 p-4', alertBorder(alert.nivel_prioridade))}>
+                                <div className="flex justify-between gap-2 mb-1">
+                                    <h3 className="font-semibold text-gray-900 dark:text-white">{alert.titulo}</h3>
+                                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-white/60 dark:bg-black/20">{alert.nivel_prioridade}</span>
+                                </div>
+                                <p className="text-sm text-gray-700 dark:text-gray-300">{alert.mensagem}</p>
+                                <p className="text-xs text-blue-600 dark:text-blue-400 mt-2 font-medium">{alert.acao_sugerida}</p>
                             </div>
-                        </SectionCard>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* KPIs */}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <StatCard title="Saldo em contas" value={formatCurrency(dash.saldo_contas_correntes)} icon={Wallet}
+                    gradient="bg-emerald-500" iconColor="bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-emerald-500/30"
+                    trend={{ value: `${dash.meses_reserva_emergencia.toFixed(1)} meses reserva`, isPositive: dash.meses_reserva_emergencia >= 6 }} />
+                <StatCard title="Investimentos" value={formatCurrency(dash.valor_investido_total)} icon={TrendingUp}
+                    gradient="bg-blue-500" iconColor="bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-blue-500/30"
+                    trend={{ value: `${data!.investments.length} ativos`, isPositive: true }} />
+                <StatCard title="Dívida cartões" value={formatCurrency(dash.divida_cartoes_atual)} icon={CreditCard}
+                    gradient="bg-red-500" iconColor="bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-red-500/30"
+                    trend={{ value: `${dash.utilizacao_limite_percentual.toFixed(0)}% limite`, isPositive: dash.utilizacao_limite_percentual < 30 }} />
+                <StatCard title="Taxa de poupança" value={`${dash.taxa_poupanca_percentual.toFixed(1)}%`} icon={PiggyBank}
+                    gradient="bg-violet-500" iconColor="bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-violet-500/30"
+                    trend={{ value: dash.taxa_poupanca_percentual >= 20 ? 'Excelente' : 'Melhorar', isPositive: dash.taxa_poupanca_percentual >= 20 }} />
+            </div>
+
+            {/* Income / Expense */}
+            <div className="grid lg:grid-cols-2 gap-6">
+                <SectionCard title="Receitas" description="Últimos 3 meses (operacionais)" icon={TrendingUp}
+                    gradient="bg-gradient-to-br from-emerald-500 to-green-600 text-white shadow-emerald-500/30">
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                        <div className="rounded-xl bg-emerald-50 dark:bg-emerald-900/20 p-3">
+                            <p className="text-xs text-gray-600 dark:text-gray-400">Média mensal</p>
+                            <p className="text-lg font-bold text-emerald-600">{formatCurrency(dash.receita_media_3_meses)}</p>
+                        </div>
+                        <div className="rounded-xl bg-gray-50 dark:bg-gray-700/50 p-3">
+                            <p className="text-xs text-gray-600 dark:text-gray-400">Último mês</p>
+                            <p className="text-lg font-bold">{formatCurrency(dash.receita_ultimo_mes)}</p>
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        {data!.incomeAnalysis.slice(0, 5).map((inc, i) => (
+                            <div key={i} className="flex justify-between items-center p-3 rounded-xl border border-gray-100 dark:border-gray-700">
+                                <div>
+                                    <p className="font-medium text-gray-900 dark:text-white">{inc.fonte_receita}</p>
+                                    <p className="text-xs text-gray-500">{inc.tipo_renda.replace(/_/g, ' ')} · {inc.regularidade}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="font-semibold text-emerald-600">{formatCurrency(inc.media_mensal_3_meses)}</p>
+                                    <p className="text-xs text-gray-500">{inc.percentual_renda_total_3_meses.toFixed(1)}%</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </SectionCard>
+
+                <SectionCard title="Despesas" description="Últimos 3 meses (operacionais)" icon={TrendingDown}
+                    gradient="bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-red-500/30">
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                        <div className="rounded-xl bg-red-50 dark:bg-red-900/20 p-3">
+                            <p className="text-xs text-gray-600 dark:text-gray-400">Média mensal</p>
+                            <p className="text-lg font-bold text-red-600">{formatCurrency(dash.despesa_media_3_meses)}</p>
+                        </div>
+                        <div className="rounded-xl bg-gray-50 dark:bg-gray-700/50 p-3">
+                            <p className="text-xs text-gray-600 dark:text-gray-400">Último mês</p>
+                            <p className="text-lg font-bold">{formatCurrency(dash.despesa_ultimo_mes)}</p>
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        {data!.expensesByCategory.slice(0, 5).map((exp, i) => (
+                            <div key={i} className="flex justify-between items-center p-3 rounded-xl border border-gray-100 dark:border-gray-700">
+                                <div>
+                                    <p className="font-medium text-gray-900 dark:text-white">{exp.categoria}</p>
+                                    <p className="text-xs text-gray-500">{exp.classificacao_categoria} · {exp.frequencia_uso}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="font-semibold text-red-600">{formatCurrency(exp.media_mensal_3_meses)}</p>
+                                    {exp.variacao_mes_anterior_percentual !== 0 && (
+                                        <p className={cn('text-xs flex items-center justify-end gap-0.5',
+                                            exp.variacao_mes_anterior_percentual > 0 ? 'text-red-500' : 'text-emerald-500')}>
+                                            {exp.variacao_mes_anterior_percentual > 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                                            {Math.abs(exp.variacao_mes_anterior_percentual).toFixed(0)}%
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </SectionCard>
+            </div>
+
+            {/* Charts */}
+            <div className="grid lg:grid-cols-2 gap-6">
+                {data!.expensesByCategory.length > 0 && (
+                    <div className="rounded-3xl bg-white dark:bg-gray-800 p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                        <PieChart title="Despesas por categoria (3m)" data={data!.expensesByCategory.slice(0, 8).map(c => ({ name: c.categoria, value: c.total_ultimos_3_meses }))} />
                     </div>
                 )}
-
-                
-                {data.investments.length > 0 && (
-                    <div className="mb-8">
-                        <SectionCard
-                            title="Portfolio de Investimentos"
-                            description={`${data.investments.length} investimento(s) ativo(s)`}
-                            icon={Activity}
-                            gradient="bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-blue-500/30"
-                        >
-                            <div className="mb-6">
-                                <PieChart title="Alocação do Portfolio" data={investmentsChartData} />
-                            </div>
-
-                            <div className="space-y-3">
-                                {data.investments.map((investment, idx) => (
-                                    <div
-                                        key={idx}
-                                        className="flex items-center justify-between rounded-lg border border-gray-200 p-4 dark:border-gray-700"
-                                    >
-                                        <div className="flex-1">
-                                            <div className="font-semibold text-gray-900 dark:text-white">
-                                                {investment.nome_investimento}
-                                            </div>
-                                            <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
-                                                <span
-                                                    className={cn(
-                                                        'rounded px-2 py-1',
-                                                        investment.nivel_risco === 'BAIXO' &&
-                                                        'bg-green-100 text-green-700',
-                                                        investment.nivel_risco === 'MEDIO' &&
-                                                        'bg-yellow-100 text-yellow-700',
-                                                        investment.nivel_risco === 'ALTO' &&
-                                                        'bg-orange-100 text-orange-700',
-                                                        investment.nivel_risco === 'MUITO_ALTO' &&
-                                                        'bg-red-100 text-red-700'
-                                                    )}
-                                                >
-                                                    {investment.nivel_risco}
-                                                </span>
-                                                <span>{investment.tipo_investimento}</span>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="font-bold text-blue-600 dark:text-blue-400">
-                                                {formatCurrency(investment.valor_investido_liquido)}
-                                            </div>
-                                            <div className="text-xs text-gray-500">
-                                                {investment.percentual_portfolio.toFixed(1)}% do portfolio
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </SectionCard>
-                    </div>
-                )}
-
-                
-                {data.goals.length > 0 && (
-                    <div className="mb-8">
-                        <SectionCard
-                            title="Análise de Metas"
-                            description={`${dashboard.total_metas_ativas} meta(s) ativa(s)`}
-                            icon={Target}
-                            gradient="bg-gradient-to-br from-purple-500 to-pink-600 text-white shadow-purple-500/30"
-                        >
-                            <div className="space-y-4">
-                                {data.goals.slice(0, 5).map((goal, idx) => (
-                                    <div
-                                        key={idx}
-                                        className="rounded-xl border-2 border-gray-200 p-4 dark:border-gray-700"
-                                    >
-                                        <div className="mb-3 flex items-center justify-between">
-                                            <h4 className="font-bold text-gray-900 dark:text-white">
-                                                {goal.nome_meta}
-                                            </h4>
-                                            <span
-                                                className={cn(
-                                                    'rounded-full px-3 py-1 text-xs font-bold',
-                                                    goal.viabilidade === 'ALCANÇADA' &&
-                                                    'bg-green-100 text-green-700',
-                                                    goal.viabilidade === 'VIÁVEL' &&
-                                                    'bg-blue-100 text-blue-700',
-                                                    goal.viabilidade === 'DESAFIADORA' &&
-                                                    'bg-yellow-100 text-yellow-700',
-                                                    goal.viabilidade === 'INVIÁVEL_NO_PRAZO' &&
-                                                    'bg-red-100 text-red-700'
-                                                )}
-                                            >
-                                                {goal.viabilidade.replace(/_/g, ' ')}
-                                            </span>
-                                        </div>
-
-                                        
-                                        <div className="mb-3">
-                                            <div className="mb-1 flex justify-between text-sm">
-                                                <span className="text-gray-600 dark:text-gray-400">
-                                                    Progresso
-                                                </span>
-                                                <span className="font-semibold">
-                                                    {goal.progresso_percentual.toFixed(1)}%
-                                                </span>
-                                            </div>
-                                            <div className="h-3 w-full rounded-full bg-gray-200">
-                                                <div
-                                                    className="h-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-500"
-                                                    style={{
-                                                        width: `${Math.min(goal.progresso_percentual, 100)}%`
-                                                    }}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-4 text-sm">
-                                            <div>
-                                                <div className="text-gray-600 dark:text-gray-400">Atual</div>
-                                                <div className="font-semibold">
-                                                    {formatCurrency(goal.valor_atual)}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <div className="text-gray-600 dark:text-gray-400">Objetivo</div>
-                                                <div className="font-semibold">
-                                                    {formatCurrency(goal.valor_objetivo)}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <div className="text-gray-600 dark:text-gray-400">
-                                                    Necessário/mês
-                                                </div>
-                                                <div className="font-semibold text-blue-600">
-                                                    {formatCurrency(goal.valor_necessario_por_mes)}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <div className="text-gray-600 dark:text-gray-400">Prazo</div>
-                                                <div
-                                                    className={cn(
-                                                        'font-semibold',
-                                                        goal.dias_restantes < 0 && 'text-red-600',
-                                                        goal.dias_restantes >= 0 &&
-                                                        goal.dias_restantes <= 30 &&
-                                                        'text-yellow-600',
-                                                        goal.dias_restantes > 30 && 'text-green-600'
-                                                    )}
-                                                >
-                                                    {goal.dias_restantes < 0
-                                                        ? `${Math.abs(goal.dias_restantes)} dias atrás`
-                                                        : `${goal.dias_restantes} dias`}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </SectionCard>
-                    </div>
-                )}
-
-                
-                {data.patrimonyEvolution.length > 0 && (
-                    <div className="mb-8">
-                        <SectionCard
-                            title="Evolução Patrimonial"
-                            description="Últimos 12 meses de movimentação"
-                            icon={BarChart3}
-                            gradient="bg-gradient-to-br from-cyan-500 to-teal-600 text-white shadow-cyan-500/30"
-                        >
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                    <thead className="border-b border-gray-200 dark:border-gray-700">
-                                        <tr>
-                                            <th className="pb-3 text-left font-semibold text-gray-700 dark:text-gray-300">
-                                                Mês
-                                            </th>
-                                            <th className="pb-3 text-right font-semibold text-gray-700 dark:text-gray-300">
-                                                Receitas
-                                            </th>
-                                            <th className="pb-3 text-right font-semibold text-gray-700 dark:text-gray-300">
-                                                Despesas
-                                            </th>
-                                            <th className="pb-3 text-right font-semibold text-gray-700 dark:text-gray-300">
-                                                Saldo
-                                            </th>
-                                            <th className="pb-3 text-right font-semibold text-gray-700 dark:text-gray-300">
-                                                Taxa Poupança
-                                            </th>
-                                            <th className="pb-3 text-center font-semibold text-gray-700 dark:text-gray-300">
-                                                Status
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {data.patrimonyEvolution.slice(0, 12).map((month, idx) => (
-                                            <tr
-                                                key={idx}
-                                                className="border-b border-gray-100 dark:border-gray-800"
-                                            >
-                                                <td className="py-3 font-medium text-gray-900 dark:text-white">
-                                                    {month.mes_ano}
-                                                </td>
-                                                <td className="py-3 text-right text-green-600 dark:text-green-400">
-                                                    {formatCurrency(month.receita_mes)}
-                                                </td>
-                                                <td className="py-3 text-right text-red-600 dark:text-red-400">
-                                                    {formatCurrency(month.despesa_mes)}
-                                                </td>
-                                                <td
-                                                    className={cn(
-                                                        'py-3 text-right font-semibold',
-                                                        month.saldo_liquido_real_mes >= 0
-                                                            ? 'text-green-600 dark:text-green-400'
-                                                            : 'text-red-600 dark:text-red-400'
-                                                    )}
-                                                >
-                                                    {formatCurrency(month.saldo_liquido_real_mes)}
-                                                </td>
-                                                <td className="py-3 text-right font-semibold">
-                                                    {month.taxa_poupanca_mes_percentual.toFixed(1)}%
-                                                </td>
-                                                <td className="py-3 text-center">
-                                                    <span
-                                                        className={cn(
-                                                            'inline-flex rounded-full px-2 py-1 text-xs font-medium',
-                                                            month.desempenho_mes === 'POSITIVO' &&
-                                                            'bg-green-100 text-green-700',
-                                                            month.desempenho_mes === 'NEUTRO' &&
-                                                            'bg-gray-100 text-gray-700',
-                                                            month.desempenho_mes === 'NEGATIVO' &&
-                                                            'bg-red-100 text-red-700'
-                                                        )}
-                                                    >
-                                                        {month.desempenho_mes}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </SectionCard>
+                {data!.incomeAnalysis.length > 0 && (
+                    <div className="rounded-3xl bg-white dark:bg-gray-800 p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                        <PieChart title="Receitas por fonte (3m)" data={data!.incomeAnalysis.map(i => ({ name: i.fonte_receita, value: i.receita_ultimos_3_meses }))} />
                     </div>
                 )}
             </div>
+
+            {/* Portfolio */}
+            {data!.investments.length > 0 && (
+                <SectionCard title="Portfolio de investimentos" description={`${data!.investments.length} ativo(s)`} icon={Activity}
+                    gradient="bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-blue-500/30">
+                    <div className="mb-6">
+                        <PieChart title="Alocação" data={data!.investments.map(i => ({ name: i.nome_investimento, value: i.valor_atual }))} />
+                    </div>
+                    <div className="space-y-2">
+                        {data!.investments.map((inv, i) => (
+                            <div key={i} className="flex justify-between items-center p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+                                <div>
+                                    <p className="font-semibold text-gray-900 dark:text-white">{inv.nome_investimento}</p>
+                                    <p className="text-xs text-gray-500">{inv.tipo_investimento} · Risco {inv.nivel_risco}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="font-bold text-blue-600">{formatCurrency(inv.valor_atual)}</p>
+                                    <p className="text-xs text-gray-500">{inv.percentual_portfolio.toFixed(1)}% do portfolio</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </SectionCard>
+            )}
+
+            {/* Cards + Goals + Evolution */}
+            {data!.creditCards.length > 0 && (
+                <SectionCard title="Cartões de crédito" icon={CreditCard}
+                    gradient="bg-gradient-to-br from-orange-500 to-red-600 text-white shadow-orange-500/30">
+                    <div className="grid md:grid-cols-2 gap-4">
+                        {data!.creditCards.map((card, i) => (
+                            <div key={i} className="p-4 rounded-2xl border border-gray-200 dark:border-gray-700">
+                                <div className="flex justify-between mb-3">
+                                    <h4 className="font-bold">{card.nome_cartao}</h4>
+                                    <span className={cn('text-xs font-bold px-2 py-1 rounded-full',
+                                        card.status_utilizacao === 'CRÍTICO' ? 'bg-red-100 text-red-700' :
+                                        card.status_utilizacao === 'ALTO' ? 'bg-orange-100 text-orange-700' :
+                                        'bg-green-100 text-green-700')}>{card.status_utilizacao}</span>
+                                </div>
+                                <div className="space-y-1 text-sm">
+                                    <div className="flex justify-between"><span className="text-gray-500">Utilização</span><span>{card.percentual_utilizado.toFixed(1)}%</span></div>
+                                    <div className="flex justify-between"><span className="text-gray-500">Dívida</span><span className="text-red-600 font-medium">{formatCurrency(card.divida_atual)}</span></div>
+                                    <div className="mt-2 h-2 rounded-full bg-gray-200 dark:bg-gray-600">
+                                        <div className={cn('h-2 rounded-full', card.score_saude_cartao >= 70 ? 'bg-green-500' : card.score_saude_cartao >= 40 ? 'bg-amber-500' : 'bg-red-500')}
+                                            style={{ width: `${card.score_saude_cartao}%` }} />
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </SectionCard>
+            )}
+
+            {data!.goals.length > 0 && (
+                <SectionCard title="Metas financeiras" icon={Target}
+                    gradient="bg-gradient-to-br from-purple-500 to-pink-600 text-white shadow-purple-500/30">
+                    <div className="space-y-4">
+                        {data!.goals.slice(0, 5).map((goal, i) => (
+                            <div key={i} className="p-4 rounded-2xl border border-gray-200 dark:border-gray-700">
+                                <div className="flex justify-between mb-2">
+                                    <h4 className="font-bold">{goal.nome_meta}</h4>
+                                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">{goal.viabilidade.replace(/_/g, ' ')}</span>
+                                </div>
+                                <div className="h-2.5 rounded-full bg-gray-200 dark:bg-gray-600 mb-2">
+                                    <div className="h-2.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500" style={{ width: `${Math.min(goal.progresso_percentual, 100)}%` }} />
+                                </div>
+                                <div className="grid grid-cols-3 gap-2 text-sm">
+                                    <div><p className="text-gray-500 text-xs">Atual</p><p className="font-medium">{formatCurrency(goal.valor_atual)}</p></div>
+                                    <div><p className="text-gray-500 text-xs">Meta</p><p className="font-medium">{formatCurrency(goal.valor_objetivo)}</p></div>
+                                    <div><p className="text-gray-500 text-xs">Prazo</p><p className={cn('font-medium', goal.dias_restantes < 0 && 'text-red-600')}>{goal.dias_restantes < 0 ? `${Math.abs(goal.dias_restantes)}d atraso` : `${goal.dias_restantes}d`}</p></div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </SectionCard>
+            )}
+
+            {data!.patrimonyEvolution.length > 0 && (
+                <SectionCard title="Evolução mensal" description="12 meses · fluxo operacional" icon={BarChart3}
+                    gradient="bg-gradient-to-br from-cyan-500 to-teal-600 text-white shadow-cyan-500/30">
+                    <div className="overflow-x-auto -mx-2">
+                        <table className="w-full text-sm min-w-[640px]">
+                            <thead>
+                                <tr className="border-b border-gray-200 dark:border-gray-700 text-left">
+                                    <th className="pb-3 pl-2 font-semibold text-gray-600 dark:text-gray-400">Mês</th>
+                                    <th className="pb-3 text-right font-semibold text-gray-600 dark:text-gray-400">Receitas</th>
+                                    <th className="pb-3 text-right font-semibold text-gray-600 dark:text-gray-400">Despesas</th>
+                                    <th className="pb-3 text-right font-semibold text-gray-600 dark:text-gray-400">Saldo</th>
+                                    <th className="pb-3 text-right font-semibold text-gray-600 dark:text-gray-400">Poupança</th>
+                                    <th className="pb-3 text-center font-semibold text-gray-600 dark:text-gray-400">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {data!.patrimonyEvolution.slice(-12).reverse().map((m, i) => (
+                                    <tr key={i} className="border-b border-gray-100 dark:border-gray-800">
+                                        <td className="py-3 pl-2 font-medium">{m.mes_ano}</td>
+                                        <td className="py-3 text-right text-emerald-600">{formatCurrency(m.receita_mes)}</td>
+                                        <td className="py-3 text-right text-red-600">{formatCurrency(m.despesa_mes)}</td>
+                                        <td className={cn('py-3 text-right font-semibold', m.saldo_liquido_real_mes >= 0 ? 'text-emerald-600' : 'text-red-600')}>{formatCurrency(m.saldo_liquido_real_mes)}</td>
+                                        <td className="py-3 text-right">{m.taxa_poupanca_mes_percentual.toFixed(1)}%</td>
+                                        <td className="py-3 text-center">
+                                            <span className={cn('text-xs px-2 py-1 rounded-full font-medium',
+                                                m.desempenho_mes === 'POSITIVO' ? 'bg-emerald-100 text-emerald-700' :
+                                                m.desempenho_mes === 'NEGATIVO' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700')}>{m.desempenho_mes}</span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </SectionCard>
+            )}
         </div>
     )
 }

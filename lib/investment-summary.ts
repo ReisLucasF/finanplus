@@ -22,6 +22,32 @@ function calcularDiasUteis(dataInicio: Date, dataFim: Date): number {
   return dias;
 }
 
+export function computeQuantityFromTransactions(
+  transactions: Array<{
+    type: string;
+    quantity: number | { toString(): string };
+  }>,
+): number {
+  return transactions.reduce((qty, tx) => {
+    const q = parseFloat(String(tx.quantity));
+    return tx.type === "BUY" ? qty + q : qty - q;
+  }, 0);
+}
+
+export function validateTransactionQuantity(
+  existing: Array<{ id: string; type: string; quantity: number | { toString(): string } }>,
+  payload: { id?: string; type: "BUY" | "SELL"; quantity: number },
+): { ok: boolean; available: number } {
+  const withoutEdited = existing.filter((t) => t.id !== payload.id);
+  const available = computeQuantityFromTransactions(withoutEdited);
+  const after = computeQuantityFromTransactions([
+    ...withoutEdited,
+    { type: payload.type, quantity: payload.quantity },
+  ]);
+
+  return { ok: after >= -0.000001, available };
+}
+
 export function calculateInvestmentSummary(
   investment: Investment & { transactions: InvestmentTransaction[] },
   quotePrices: Map<string, number>,

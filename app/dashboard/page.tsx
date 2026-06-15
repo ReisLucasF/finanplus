@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { TriangleAlert, Package, Home, Smartphone, PartyPopper, TrendingUp, TrendingDown, Wallet, Calendar, CreditCard, Target, PlusCircle, DollarSign, LineChart, AlertTriangle, PiggyBank, Shield } from 'lucide-react'
+import { TriangleAlert, Package, Home, Smartphone, PartyPopper, TrendingUp, TrendingDown, Wallet, Calendar, CreditCard, Target, PlusCircle, DollarSign, LineChart, AlertTriangle, PiggyBank, Shield, Flame, Repeat, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 import PieChart from './components/PieChart'
 import StatCard from './components/StatCard'
@@ -45,11 +45,24 @@ export default function DashboardPage() {
     })
 
     
-    const [analytics, setAnalytics] = useState<any>({
+    const [analytics, setAnalytics] = useState<{
+        dashboard: any
+        fixedCostAnalysis: any
+        alerts: any[]
+        creditCards: any[]
+        patrimonyEvolution: any[]
+        incomeAnalysis: any[]
+        expensesByCategory: any[]
+        investments: any[]
+    }>({
         dashboard: null,
+        fixedCostAnalysis: null,
         alerts: [],
         creditCards: [],
-        patrimonyEvolution: []
+        patrimonyEvolution: [],
+        incomeAnalysis: [],
+        expensesByCategory: [],
+        investments: [],
     })
 
 
@@ -138,7 +151,7 @@ export default function DashboardPage() {
                 const overview = await overviewRes.json()
                 const analyticsData = analyticsRes.ok
                     ? await analyticsRes.json()
-                    : { dashboard: null, alerts: [], creditCards: [], patrimonyEvolution: [] }
+                    : { dashboard: null, fixedCostAnalysis: null, alerts: [], creditCards: [], patrimonyEvolution: [], incomeAnalysis: [], expensesByCategory: [], investments: [] }
 
                 setAnalytics(analyticsData)
 
@@ -401,6 +414,60 @@ export default function DashboardPage() {
                 </div>
             )}
 
+            {analytics.fixedCostAnalysis && (
+                <div className="grid md:grid-cols-3 gap-4">
+                    <div className="md:col-span-1 rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-700 p-6 text-white shadow-lg shadow-indigo-500/25">
+                        <div className="flex items-center gap-2 mb-3">
+                            <Flame className="h-5 w-5" />
+                            <h3 className="font-semibold">Runway</h3>
+                        </div>
+                        <p className="text-4xl font-bold">
+                            {analytics.fixedCostAnalysis.runway_meses > 0
+                                ? analytics.fixedCostAnalysis.runway_meses.toFixed(1)
+                                : '—'}
+                            <span className="text-base font-normal ml-1 opacity-80">meses</span>
+                        </p>
+                        <p className="mt-2 text-sm text-indigo-100 leading-relaxed">
+                            Caixa + investimentos cobrem custos fixos recorrentes detectados nos últimos 4 meses.
+                        </p>
+                    </div>
+                    <div className="md:col-span-2 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2">
+                                <Repeat className="h-5 w-5 text-violet-600" />
+                                <h3 className="font-bold text-gray-900 dark:text-white">Custos fixos estimados</h3>
+                            </div>
+                            <Link href="/dashboard/analytics" className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1">
+                                Ver análise completa <ArrowRight className="h-4 w-4" />
+                            </Link>
+                        </div>
+                        <div className="grid sm:grid-cols-3 gap-4 mb-4">
+                            <div className="rounded-xl bg-gray-50 dark:bg-gray-700/50 p-3">
+                                <p className="text-xs text-gray-500">Fixo/mês</p>
+                                <p className="text-lg font-bold text-red-600">{formatCurrency(analytics.fixedCostAnalysis.custo_fixo_mensal_estimado)}</p>
+                            </div>
+                            <div className="rounded-xl bg-gray-50 dark:bg-gray-700/50 p-3">
+                                <p className="text-xs text-gray-500">Caixa total</p>
+                                <p className="text-lg font-bold">{formatCurrency(analytics.fixedCostAnalysis.caixa_total)}</p>
+                            </div>
+                            <div className="rounded-xl bg-gray-50 dark:bg-gray-700/50 p-3">
+                                <p className="text-xs text-gray-500">% da despesa média</p>
+                                <p className="text-lg font-bold">{analytics.fixedCostAnalysis.cobertura_percentual.toFixed(0)}%</p>
+                            </div>
+                        </div>
+                        {analytics.fixedCostAnalysis.itens_recorrentes?.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                                {analytics.fixedCostAnalysis.itens_recorrentes.slice(0, 5).map((item: { descricao: string; media_mensal: number }, i: number) => (
+                                    <span key={i} className="text-xs px-3 py-1.5 rounded-full bg-violet-50 dark:bg-violet-900/30 text-violet-800 dark:text-violet-200 border border-violet-200 dark:border-violet-800">
+                                        {item.descricao}: {formatCurrency(item.media_mensal)}/m
+                                    </span>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
             
             {analytics.dashboard && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -490,9 +557,7 @@ export default function DashboardPage() {
                 <StatCard
                     title="Investimentos"
                     value={formatCurrency(
-                        analytics.investments && analytics.investments.length > 0
-                            ? analytics.investments.reduce((sum: number, inv: any) => sum + (inv.valor_investido_liquido || 0), 0)
-                            : stats.investments.current
+                        analytics.dashboard?.valor_investido_total ?? stats.investments.current
                     )}
                     icon={LineChart}
                     trend={{
@@ -505,11 +570,7 @@ export default function DashboardPage() {
                 <StatCard
                     title="Patrimônio Total"
                     value={formatCurrency(
-                        stats.available + (
-                            analytics.investments && analytics.investments.length > 0
-                                ? analytics.investments.reduce((sum: number, inv: any) => sum + (inv.valor_investido_liquido || 0), 0)
-                                : stats.investments.current
-                        )
+                        stats.available + (analytics.dashboard?.valor_investido_total ?? stats.investments.current)
                     )}
                     icon={Target}
                     gradient="bg-indigo-500"

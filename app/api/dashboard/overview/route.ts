@@ -6,6 +6,7 @@ import {
   calculateInvestmentSummary,
   fetchStockQuotes,
 } from "@/lib/investment-summary";
+import { EXCLUDED_INCOME_EXPENSE_CATEGORIES } from "@/lib/analytics-constants";
 
 function serializeAccount(account: {
   id: string;
@@ -121,6 +122,9 @@ export async function GET(request: Request) {
           userId: user.userId,
           status: "COMPLETED",
           date: { gte: startDate, lte: endDate },
+          category: {
+            name: { notIn: [...EXCLUDED_INCOME_EXPENSE_CATEGORIES] },
+          },
         },
         select: {
           type: true,
@@ -133,6 +137,9 @@ export async function GET(request: Request) {
           userId: user.userId,
           status: "COMPLETED",
           date: { gte: prevStart, lte: prevEnd },
+          category: {
+            name: { notIn: [...EXCLUDED_INCOME_EXPENSE_CATEGORIES] },
+          },
         },
         select: { type: true, amount: true },
       }),
@@ -145,6 +152,9 @@ export async function GET(request: Request) {
         where: {
           userId: user.userId,
           date: { gte: startDate, lte: endDate },
+          category: {
+            name: { notIn: [...EXCLUDED_INCOME_EXPENSE_CATEGORIES] },
+          },
         },
         _sum: { amount: true },
       }),
