@@ -2,6 +2,10 @@
 
 
 import { prisma } from "@/lib/prisma";
+import {
+  calculateInvestmentSummary,
+  fetchStockQuotes,
+} from "@/lib/investment-summary";
 
 interface DateRange {
   startDate: Date;
@@ -288,37 +292,28 @@ function classifyIncome(name: string): string {
 export async function calculatePortfolioInvestimentos(userId: string) {
   const investments = await prisma.investment.findMany({
     where: { userId },
-    include: { transactions: true },
+    include: { transactions: { orderBy: { date: "asc" } } },
   });
 
-  const portfolio = [];
+  const tickers = investments
+    .filter((i) => i.type === "STOCKS" && i.ticker)
+    .map((i) => i.ticker!);
+  const quotes = await fetchStockQuotes(tickers);
 
-  for (const inv of investments) {
-    let totalInvested = 0;
-    let totalQuantity = 0;
-
-    for (const tx of inv.transactions) {
-      if (tx.type === "BUY") {
-        totalInvested += Number(tx.amount);
-        totalQuantity += Number(tx.quantity);
-      } else if (tx.type === "SELL") {
-        totalInvested -= Number(tx.amount);
-        totalQuantity -= Number(tx.quantity);
-      }
-    }
-
+  const portfolio = investments.map((inv) => {
+    const summary = calculateInvestmentSummary(inv, quotes);
     const risco = classifyRisk(inv.type);
 
-    portfolio.push({
+    return {
       nome_investimento: inv.name,
       tipo: inv.type,
       instituicao: inv.institution || "Não especificado",
-      valor_investido: totalInvested,
+      valor_investido: summary.totalInvested,
       nivel_risco: risco,
       ticker: inv.ticker,
       cdi_percentage: inv.cdiPercentage ? Number(inv.cdiPercentage) : null,
-    });
-  }
+    };
+  });
 
   const totalGeral = portfolio.reduce((sum, p) => sum + p.valor_investido, 0);
 

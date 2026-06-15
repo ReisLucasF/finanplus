@@ -40,12 +40,14 @@ export function validateTransactionQuantity(
 ): { ok: boolean; available: number } {
   const withoutEdited = existing.filter((t) => t.id !== payload.id);
   const available = computeQuantityFromTransactions(withoutEdited);
-  const after = computeQuantityFromTransactions([
-    ...withoutEdited,
-    { type: payload.type, quantity: payload.quantity },
-  ]);
 
-  return { ok: after >= -0.000001, available };
+  if (payload.type === "BUY") {
+    return { ok: payload.quantity > 0, available };
+  }
+
+  // Venda: só pode vender o que há em carteira
+  const ok = payload.quantity > 0 && payload.quantity <= available + 1e-6;
+  return { ok, available: Math.max(0, available) };
 }
 
 export function calculateInvestmentSummary(
@@ -73,8 +75,10 @@ export function calculateInvestmentSummary(
     }
   }
 
-  const totalInvested = totalBought - totalSold;
-  const averagePrice = totalQuantity > 0 ? weightedSum / totalQuantity : 0;
+  // Custo da posição aberta (preço médio). Posição zerada → investido = 0.
+  const hasPosition = totalQuantity > 1e-6;
+  const totalInvested = hasPosition ? Math.max(0, weightedSum) : 0;
+  const averagePrice = hasPosition ? weightedSum / totalQuantity : 0;
 
   let currentValue = 0;
   let profitLoss = 0;
@@ -94,7 +98,7 @@ export function calculateInvestmentSummary(
     profitLoss = currentValue - totalInvested;
     profitLossPercentage =
       totalInvested > 0 ? (profitLoss / totalInvested) * 100 : 0;
-  } else if (totalQuantity <= 0) {
+  } else if (!hasPosition) {
     currentValue = 0;
     profitLoss = totalSold - totalBought;
     profitLossPercentage =

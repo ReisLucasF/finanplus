@@ -523,14 +523,38 @@ export default function InvestmentsPage() {
                                         <p className="font-bold text-sm">{formatCurrency(detailSummary.totalInvested)}</p>
                                     </div>
                                     <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-3 text-center">
-                                        <p className="text-xs text-gray-500">Atual</p>
-                                        <p className="font-bold text-sm">{formatCurrency(detailSummary.currentValue)}</p>
+                                        <p className="text-xs text-gray-500">
+                                            {detailSummary.totalQuantity > 0 ? 'Atual' : 'Realizado'}
+                                        </p>
+                                        <p className={cn(
+                                            'font-bold text-sm',
+                                            detailSummary.totalQuantity > 0
+                                                ? 'text-gray-900 dark:text-white'
+                                                : detailSummary.profitLoss >= 0
+                                                  ? 'text-emerald-600'
+                                                  : 'text-red-600',
+                                        )}>
+                                            {detailSummary.totalQuantity > 0
+                                                ? formatCurrency(detailSummary.currentValue)
+                                                : formatCurrency(detailSummary.profitLoss)}
+                                        </p>
                                     </div>
                                     <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-3 text-center">
                                         <p className="text-xs text-gray-500">Cotas</p>
-                                        <p className="font-bold text-sm">{detailSummary.totalQuantity || '—'}</p>
+                                        <p className={cn(
+                                            'font-bold text-sm',
+                                            detailSummary.totalQuantity < 0 && 'text-amber-600',
+                                        )}>
+                                            {detailSummary.totalQuantity}
+                                        </p>
                                     </div>
                                 </div>
+                            )}
+
+                            {detailSummary && detailSummary.totalQuantity < 0 && (
+                                <p className="mt-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-lg px-3 py-2">
+                                    Carteira inconsistente (vendeu mais do que tinha). Registre compras para regularizar.
+                                </p>
                             )}
 
                             {/* Ações rápidas */}

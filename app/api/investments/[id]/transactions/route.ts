@@ -56,12 +56,11 @@ export async function POST(
     });
 
     if (!check.ok) {
-      return NextResponse.json(
-        {
-          error: `Quantidade insuficiente para venda. Disponível: ${check.available.toFixed(6)}`,
-        },
-        { status: 400 },
-      );
+      const errorMessage =
+        validatedData.type === "SELL"
+          ? `Quantidade insuficiente para venda. Disponível: ${check.available.toFixed(6)}`
+          : "Informe uma quantidade válida para compra.";
+      return NextResponse.json({ error: errorMessage }, { status: 400 });
     }
 
     
