@@ -3,7 +3,8 @@ export const EXCLUDED_INCOME_EXPENSE_CATEGORIES = [
   "Investimentos",
   "Transferência entre contas",
   "Transferencia entre contas",
-  "Outros"
+  "Outros",
+  "Férias"
 ] as const;
 
 export function classifyExpenseCategory(name: string): string {
