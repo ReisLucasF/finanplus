@@ -278,12 +278,29 @@ export default function TransactionsPage() {
         
         const sortedDates = Object.keys(itemsByDate).sort((a, b) => b.localeCompare(a))
 
-        const result: Array<TransactionOrTransfer | { type: 'BALANCE_ROW', date: string, balances: Map<string, number> }> = []
+        const result: Array<
+            TransactionOrTransfer | {
+                type: 'BALANCE_ROW'
+                date: string
+                balances: Map<string, number>
+                activeAccountIds: Set<string>
+            }
+        > = []
 
         sortedDates.forEach(date => {
             const dayItems = itemsByDate[date].sort((a, b) =>
                 b.date.localeCompare(a.date)
             )
+
+            const activeAccountIds = new Set<string>()
+            for (const item of dayItems) {
+                if ('type' in item && item.type === 'TRANSFER') {
+                    activeAccountIds.add(item.fromAccount.id)
+                    activeAccountIds.add(item.toAccount.id)
+                } else if ('account' in item) {
+                    activeAccountIds.add(item.account.id)
+                }
+            }
 
             result.push(...dayItems)
 
@@ -294,6 +311,7 @@ export default function TransactionsPage() {
                 balances: new Map(
                     balanceData ? Object.entries(balanceData) : [],
                 ),
+                activeAccountIds,
             })
         })
 
@@ -787,13 +805,22 @@ export default function TransactionsPage() {
                                 {transactionsWithBalances.map((item, index) => {
                                     if ('type' in item && item.type === 'BALANCE_ROW') {
                                         
-                                        const balanceRow = item as { type: 'BALANCE_ROW', date: string, balances: Map<string, number> }
+                                        const balanceRow = item as {
+                                            type: 'BALANCE_ROW'
+                                            date: string
+                                            balances: Map<string, number>
+                                            activeAccountIds: Set<string>
+                                        }
                                         const balanceAccounts = Array.from(balanceRow.balances.entries())
                                             .map(([accountId, balance]) => {
                                                 const account = accounts.find(a => a.id === accountId)
                                                 return { accountId, accountName: account?.name || '', balance }
                                             })
-                                            .filter(b => b.balance !== 0)
+                                            .filter(
+                                                (b) =>
+                                                    Math.abs(b.balance) >= 0.005 ||
+                                                    balanceRow.activeAccountIds.has(b.accountId),
+                                            )
 
                                         return (
                                             <tr key={`balance-${balanceRow.date}`} className="bg-blue-50 dark:bg-blue-900/20">
@@ -829,7 +856,6 @@ export default function TransactionsPage() {
                                                     <div className="flex items-center gap-2">
                                                         <ArrowLeftRight className="h-4 w-4 text-purple-600" />
                                                         {transfer.description || 'Transferência entre contas'}
-                                                        <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">(somente visualização)</span>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">

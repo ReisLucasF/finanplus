@@ -4,8 +4,13 @@ type BalanceOperation = {
 };
 
 function toDateKey(date: Date | string): string {
-  const d = typeof date === "string" ? new Date(date) : date;
-  return d.toISOString().slice(0, 10);
+  if (typeof date === "string") {
+    return date.split("T")[0];
+  }
+  const y = date.getUTCFullYear();
+  const m = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(date.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 export function computeDailyBalances(
@@ -49,31 +54,43 @@ export function computeDailyBalances(
         balances.set(transfer.toAccountId, to + transfer.amount);
       },
     })),
-  ].sort((a, b) => a.date.localeCompare(b.date));
+  ];
+
+  const opsByDate = new Map<string, BalanceOperation[]>();
+  for (const op of operations) {
+    const list = opsByDate.get(op.date) ?? [];
+    list.push(op);
+    opsByDate.set(op.date, list);
+  }
 
   const sortedTargets = [...targetDates].sort((a, b) => a.localeCompare(b));
-  const maxTarget = sortedTargets[sortedTargets.length - 1];
+  const operationDates = [...opsByDate.keys()].sort((a, b) => a.localeCompare(b));
+  const allDates = [
+    ...new Set([...operationDates, ...sortedTargets]),
+  ].sort((a, b) => a.localeCompare(b));
+
   const result: Record<string, Record<string, number>> = {};
   let targetIndex = 0;
 
-  for (const op of operations) {
-    op.apply(running);
+  // Aplica todas as operações do dia antes de gravar o saldo (transferências incluídas)
+  for (const date of allDates) {
+    for (const op of opsByDate.get(date) ?? []) {
+      op.apply(running);
+    }
 
     while (
       targetIndex < sortedTargets.length &&
-      sortedTargets[targetIndex] <= op.date
+      sortedTargets[targetIndex] <= date
     ) {
-      const date = sortedTargets[targetIndex];
-      result[date] = Object.fromEntries(running.entries());
+      const target = sortedTargets[targetIndex];
+      result[target] = Object.fromEntries(running.entries());
       targetIndex++;
     }
-
-    if (maxTarget && op.date > maxTarget) break;
   }
 
   while (targetIndex < sortedTargets.length) {
-    const date = sortedTargets[targetIndex];
-    result[date] = Object.fromEntries(running.entries());
+    const target = sortedTargets[targetIndex];
+    result[target] = Object.fromEntries(running.entries());
     targetIndex++;
   }
 
